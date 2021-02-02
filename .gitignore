@@ -1,0 +1,74 @@
+# ide files and similiar
+.vscode
+cmake-build-*
+.idea
+build
+
+# debuggers and profilers
+.gdb_history
+*.nvvp
+
+# cmake files
+CmakeCache.txt
+CMakeFiles
+
+# documentation
+docs
+
+# python environment
+python/bin/*
+python/include/*
+python/share/*
+python/lib/*
+python/pyvenv.cfg
+
+# object files and binaries
+playground/**
+!playground/**/
+!playground*/**/CMakeLists.txt
+!playground/**/*.sh
+!playground/**/*.c
+!playground/**/*.cxx
+!playground/**/*.cl
+!playground/**/*.h
+!playground/**/*.hpp
+!playground/*-dependency/glfw
+
+# object files and binaries
+qemu-csd/**
+!qemu-csd/**/
+!qemu-csd/**/CMakeLists.txt
+!qemu-csd/**/*.c
+!qemu-csd/**/*.cxx
+!qemu-csd/**/*.cl
+!qemu-csd/**/*.h
+!qemu-csd/**/*.hpp
+
+#dependencies
+dependencies/**
+!dependencies/glfw
+!dependencies/vulkan-headers
+!dependencies/vulkan-loader
+!dependencies/opencl-headers
+!dependencies/opencl-loader
+!dependencies/CMakeLists.txt
+!dependencies/*.sh
+
+# test examples and try outs
+tests*/**
+!tests*/**/
+!tests*/**/CMakeLists.txt
+!tests*/**/*.c
+!tests*/**/*.cxx
+!tests*/**/*.cl
+!tests*/**/*.h
+!tests*/**/*.hpp
+
+# latex intermediate files
+documentation/*
+!documentation/**/
+!documentation/**/images/
+!documentation/**/bash/
+!documentation/**/python/
+!documentation/**/*.tex
+!documentation/**/*.bib

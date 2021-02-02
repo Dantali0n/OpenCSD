@@ -1,0 +1,8 @@
+transfer-fp16/32, 4940, 16
+transfer-fp64, 308, 16
+dram-fp16/32, 4940, 212
+dram-fp64, 308, 212
+cache/constant-fp16/32, 4940, 2539
+cache/constant-fp64, 308, 2539
+shared-fp16/32, 4940, 4115
+shared-fp64, 308, 4115

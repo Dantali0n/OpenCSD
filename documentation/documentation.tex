@@ -1,0 +1,518 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote.
+% If that is unneeded, please comment it out.
+%\usepackage[backend=bibtex,style=verbose-trad2]{biblatex}
+
+\usepackage{adjustbox}
+\usepackage{algorithmic}
+\usepackage{amsmath,amssymb,amsfonts}
+%\usepackage[backend=bibtex,style=ieee]{biblatex}
+%\usepackage{bookmark}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{cite}
+\usepackage{color}
+\usepackage[inline]{enumitem}
+\usepackage{float}
+\usepackage[T1]{fontenc}
+%\usepackage{fontspec}
+\usepackage{footnote}
+\usepackage{graphicx}
+\usepackage[colorlinks=true,citecolor=blue]{hyperref}
+\usepackage{inputenc}[utf8]
+\usepackage{listings}
+\usepackage{textcomp}
+\usepackage[flushleft]{threeparttable}
+\usepackage{subcaption}
+\usepackage{xcolor}
+
+\title{QEMU Computation Storage Devices%\\
+%{\footnotesize \textsuperscript{*}Note: Sub-titles are not captured in Xplore 
+% and should not be used}
+%\thanks{Identify applicable funding agency here. If none, delete this.}
+}
+
+\pagenumbering{arabic}
+\pagestyle{plain}
+
+% Ensure decimal numbering in table  of contents
+\renewcommand{\thesection}{\arabic{section}}
+\renewcommand{\thesubsection}{\arabic{section}.\arabic{subsection}}
+\renewcommand{\thesubsubsection}{\arabic{section}.\arabic{subsection}.\arabic{subsubsection}}
+
+% ensure decimal numbering for sub sections
+\makeatletter
+\renewcommand{\@seccntformat}[1]{\csname the#1\endcsname.\quad}
+\makeatother
+
+% ------------------------------------------------------------------------%
+% Proper Python Syntax Highlighting                                       %
+% Author: redmode
+% https://tex.stackexchange.com/questions/83882/how-to-highlight-python   %
+% -syntax-in-latex-listings-lstinputlistings-command#83883                %
+% ----------------------------------------------------------------------- %
+
+% Default fixed font does not support bold face
+\DeclareFixedFont{\ttb}{T1}{txtt}{bx}{n}{8} % for bold
+\DeclareFixedFont{\ttm}{T1}{txtt}{m}{n}{8}  % for normal
+
+% Custom colors
+\definecolor{deepblue}{rgb}{0,0,0.5}
+\definecolor{deepred}{rgb}{0.6,0,0}
+\definecolor{deepgreen}{rgb}{0,0.5,0}
+
+% Python style for highlighting
+\newcommand\pythonstyle{
+	\lstset{
+		language=Python,
+		basicstyle=\ttm,
+		showstringspaces=false,
+		tabsize=4,
+		aboveskip=0.2cm,
+		belowskip=0.2cm,
+		otherkeywords={self},             % Add keywords here
+		keywordstyle=\ttb\color{deepblue},
+		emph={MyClass,__init__},          % Custom highlighting
+		emphstyle=\ttb\color{deepred},    % Custom highlighting style
+		stringstyle=\color{deepgreen},
+		frame=tb,                          % Any extra options here
+		prebreak=\textbackslash,
+		linewidth=8.85cm,
+		breaklines=true,
+	}
+}
+
+% Python environment
+\lstnewenvironment{python}[1][] {
+	\pythonstyle\lstset{#1}
+}{}
+
+% Python for inline
+\newcommand\pythoninline[1]{{\pythonstyle\lstinline!#1!}}
+
+% Python for external file
+\newcommand\pythonexternal[2][]{{\pythonstyle\lstinputlisting[#1]{#2}}}
+
+% ----------------------------------------------------------------------- %
+
+% Bash style for highlighting
+\newcommand\bashstyle{
+	\lstset{
+		language=Bash,
+		basicstyle=\ttm,
+		showstringspaces=false,
+		tabsize=2,
+		%commentstyle=itshape,
+		aboveskip=0.2cm,
+		belowskip=0.2cm,
+		prebreak=\textbackslash,
+		extendedchars=true,
+		mathescape=false,
+		% literate= {\$}{{\textcolor{blue}{\$}}}1 {&}{{\textcolor{blue}{\&}}}1 {/n}{{\textcolor{green}{\textbackslash n}}}1,
+		linewidth=8.85cm,
+		breaklines=true
+	}
+}
+
+% Bash environment
+\lstnewenvironment{bash}[1][] {
+	\bashstyle\lstset{#1}
+}{}
+
+% Bash for inline
+\newcommand\bashinline[1]{{\bashstyle\lstinline!#1!}}
+
+% Bash for external file
+\newcommand\bashexternal[2][]{{\bashstyle\lstinputlisting[#1]{#2}}}
+
+
+% Python style for highlighting
+\newcommand\cstyle{
+	\lstset{
+		language=c,
+		basicstyle=\ttm,
+		showstringspaces=false,
+		tabsize=4,
+		aboveskip=0.2cm,
+		belowskip=0.2cm,
+		otherkeywords={self},             % Add keywords here
+		keywordstyle=\ttb\color{deepblue},
+		emph={MyClass,__init__},          % Custom highlighting
+		emphstyle=\ttb\color{deepred},    % Custom highlighting style
+		stringstyle=\color{deepgreen},
+		frame=tb,                          % Any extra options here
+		prebreak=\textbackslash,
+		linewidth=8.85cm,
+		breaklines=true,
+	}
+}
+
+% Python environment
+\lstnewenvironment{clist}[1][] {
+	\cstyle\lstset{#1}
+}{}
+
+% Python for inline
+\newcommand\cinline[1]{{\cstyle\lstinline!#1!}}
+
+% Python for external file
+\newcommand\cexternal[2][]{{\cstyle\lstinputlisting[#1]{#2}}}
+
+% ----------------------------------------------------------------------- %
+
+\begin{document}
+
+\begin{titlepage}
+\begingroup
+\centering
+{\LARGE\bfseries QEMU Computational Storage Devices}
+
+\vspace{1cm}
+
+{\Large Vrije Universiteit (VU)}
+
+\vspace{0.5cm}
+
+{Corne Kenneth Lukken}
+
+{\textit{Department of Computer Science} \\
+Amsterdam, Netherlands \\
+info@dantalion.nl}
+
+\vspace{4.0cm}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{resources/images/arduino-fft.png}
+	\captionsetup{justification=centering}
+	\caption{
+		Output of embedded FFT library for which windowing \\
+		and DC removal was implemented in previous work\cite{arduinofft}.
+	}
+\end{figure}
+
+\vfill
+\endgroup
+\hfill
+\begin{minipage}{0.3\textwidth}
+\begin{flushright}
+	\includegraphics[width=\textwidth]{resources/images/vu-logo.png}
+\end{flushright}
+\end{minipage}
+\end{titlepage}
+
+\clearpage
+\onecolumn
+
+% Ensure black link color in table of contents
+\hypersetup{
+	linkcolor=black
+}
+
+\renewcommand{\contentsname}{CONTENTS}
+\tableofcontents{}
+
+\hypersetup{
+	linkcolor=blue
+}
+
+\twocolumn
+
+\addcontentsline{toc}{section}{\protect\numberline{}INTRODUCTION}
+\section*{INTRODUCTION}
+This is the introduction
+
+%\footnotemark[1]. example\ref{term}.
+%\footnotetext[1]{test}
+%\subsection*{Accelerated Computing Landscape}
+%\textit{C++}
+%GPUOCelot\cite{tired-manycore-architectures-ocelot}
+%\section{LARGER SECTION}
+%$\mathcal{O}(N\log N)$
+
+%\begin{center}
+%	\begin{figure}[H]
+%		\includegraphics[width=0.5\textwidth]{resources/images/example.png}
+%		\captionsetup{justification=centering}
+%		\caption{
+%			\href{https://commons.wikimedia.org/wiki/User:AkanoToE}{AkanoToE}
+%			licensed under CC-BY-SA 4.0}
+%		\label{fig:consampling}
+%	\end{figure}
+%\end{center}
+
+%\begin{table}[h!]
+%	\caption{Input evaluation sizes}
+%	\label{table:files}
+%	\centering
+%	\begin{adjustbox}{width=0.5\textwidth}
+%		\begin{threeparttable}[]
+%			\begin{tabular}{llll}
+%				\toprule
+%				\textbf{Name} & \textbf{Type} & \textbf{Sample rate (kHz)} &
+%				\textbf{Samples} \\
+%				\midrule
+%				test-b & complex & 10000 & 502622 \\
+%				test-t & complex & 5333 & 2654207 \\
+%				\bottomrule
+%			\end{tabular}
+%			\begin{tablenotes}[para,flushleft]
+%				\centering List of input files and parameters used for
+%				performance evaluations.
+%			\end{tablenotes}
+%		\end{threeparttable}
+%	\end{adjustbox}
+%\end{table}
+
+\section{Target Hardware}
+
+\begin{center}
+	\begin{figure}[H]
+		\bashexternal{resources/bash/inxi.sh}
+		\captionsetup{justification=centering}
+		\caption{Output of inxi showing both CPU and GPU hardware configuration}
+		\label{fig:inxihardware}
+	\end{figure}
+\end{center}
+
+%\cite{Rius1995,Karp1996,parreverse,Adikaram2014}.
+
+%\begin{center}
+%	\begin{figure}[H]
+%		\cexternal{resources/c/basic.c}
+%		\captionsetup{justification=centering}
+%		\caption{First basic kernel}
+%		\label{fig:base}
+%	\end{figure}
+%\end{center}
+
+\addcontentsline{toc}{section}{\protect\numberline{}TERMINOLOGY} 
+\section*{TERMINOLOGY} \label{term}
+
+This section hopes to define some common terminology as well as clearly detail
+how some of these terms are interpreted. Mainly, this section serves to avoid
+confusion.
+
+\begin{enumerate}
+	\item CSD - Computational Storage Device
+\end{enumerate}
+
+% \phantomsection
+% \addcontentsline{toc}{section}{\protect\numberline{}References}
+\bibliographystyle{IEEEtran}
+\bibliography{bibliography}
+
+
+%% \begin{center}
+% 	\begin{figure}[H]
+% 		\includegraphics[width=0.5\textwidth]{resources/mape-k.png}
+% 		\captionsetup{justification=centering}
+% 		\caption{Diagram of MAPE-K feedback loop \\ CC-BY 4.0$^{0}$}
+% 		\label{fig:mapek}
+% 	\end{figure}
+% \end{center}
+
+% \begin{table}[h!]
+% \caption{Platform migrations}
+% \label{table:platformmigrations}
+% \centering
+% \begin{adjustbox}{width=0.5\textwidth}
+% \begin{threeparttable}[]
+% \begin{tabular}{lll}
+% \toprule 
+% \textbf{Original platform} & \textbf{New platform} & \textbf{Status} \\
+% \midrule
+% \href{https://git.openstack.org}{git.openstack.org} &
+% \href{https://opendev.org}{opendev.org} & complete \\
+% \href{https://review.openstack.org}{review.openstack.org} &
+% \href{https://review.opendev.org}{review.opendev.org} & complete \\
+% \href{https://launchpad.net}{launchpad.net} &
+% \href{https://storyboard.openstack.org/}{storyboard.openstack.org} & ongoing \\
+% \bottomrule
+% \end{tabular}
+% \begin{tablenotes}[para,flushleft]
+%      \centering List of platform migrations and their status.
+% \end{tablenotes}
+% \end{threeparttable}
+% \end{adjustbox}
+% \end{table}
+
+% \addcontentsline{toc}{section}{\protect\numberline{}Abbreviations}
+% \section*{Abbreviations}
+
+% \begin{enumerate}
+% 	\item AUAS  - Amsterdam University of Applied Sciences
+% 	\item TI    - Technical Informatics
+% 	\item ALICE - A Large Ion Collider Experiment
+% 	\item RPS   - Resource Provisioning Services
+% 	\item API   - Application Programming Interface
+% 	\item AQMP  - Advanced Message Queuing Protocol
+% 	\item UUID  - Universally unique identifier
+% 	\item R\&D  - Research and Development
+% 	\item IaaS  - Infrastructure as a Service
+% 	\item CERN  - European Organization for Nuclear Research
+% 	\item LHC   - Large Hadron Collider
+% 	\item PTL   - Project Team Lead(er)
+% 	\item REST  - REpresentational State Transfer
+% 	\item RFC   - Request For Comments
+% 	\item HTTP  - HyperText Transfer Protocol
+% 	\item SQL   - Structured Query Language
+% 	\item YAML  - YAML Ain't Markup Language
+% 	\item EOL   - End Of Life
+% 	\item OOM   - Out Of Memory
+% 	\item JSON  - JavaScript Object Notation
+% 	\item PoC   - Proof of Concept
+% 	\item CU    - Compute Unit
+% 	\item RAM   - Random Access Memory
+% \end{enumerate}
+
+% \onecolumn
+
+% \addcontentsline{toc}{section}{\protect\numberline{}Appendix}
+% \section*{\large Appendix}
+
+% \begin{table}[h!]
+% \addcontentsline{toc}{subsection}{\protect\numberline{}Watcher collaboration
+% resources}
+% \caption{Online resources regarding governance \& collaboration for Watcher}
+% \label{table:collabresources}
+% \centering
+% \begin{adjustbox}{width=\textwidth}
+% \begin{threeparttable}[]
+% \begin{tabular}{ll}
+% \toprule 
+% \textbf{Source} &\textbf{Content} \\
+% \midrule
+% https://www.openstack.org/ & Entry into many important other online resources \\
+% https://wiki.openstack.org/wiki/Watcher & Watcher entry for many online 
+% resources \\
+% https://launchpad.net/watcher & Bug tracker for issues of OpenStack components
+% such as Watcher \\
+% https://storyboard.openstack.org/ & New bug tracker to eventual replace 
+% launchdpad \\
+% https://review.openstack.org/ & Patch and review system capable of
+% verifying patches using unit \& functional tests \\
+% https://review.opendev.org/ & Replacement for review.openstack.org introduced
+% around May 2019 \\
+% https://github.com/openstack/watcher & Repository hosting the Watcher source
+% code \\
+% https://opendev.org/openstack/watcher & New repository for hosting source code
+% introduced in May 2019 \\
+% https://governance.openstack.org/ & Information how a set of organizational
+% bodies organizes the governance \\
+% \bottomrule
+% \end{tabular}
+% \begin{tablenotes}[para,flushleft]
+%      \centering This overview lists all online resources used to analyze how
+%      watcher is governed and collaborates.
+% \end{tablenotes}
+% \end{threeparttable}
+% \end{adjustbox}
+% \end{table}
+
+% \subsection*{Meeting suggestion email}
+% \addcontentsline{toc}{subsection}{\protect\numberline{}Meeting suggestion email}
+% \label{appendix:suggestionemail}
+
+% \noindent Hello everyone,
+
+% \noindent We would like to propose reintroducing the meetings after the release
+% of \\ Stein. I feel meetings are important as it allows us to discuss what we \\
+% want to work on and what problems we are experiencing with regards to \\
+% Watcher. A notable example of a topic that I feel we should address is \\
+% the deadlock in python 3.7 with unit tests. \\
+
+% \noindent Currently we have a meeting scheduled every week but in different \\ 
+% channels at different times, however, the documentation is unclear about \\
+% the exact time and channel as the following two web-pages disagree: \\
+% https://docs.openstack.org/watcher/latest/contributor/contributing.html \\
+% https://wiki.openstack.org/wiki/Watcher \\
+
+% \noindent  I would like to propose a meeting on Wednesday at 08:00 UTC on
+% even \\ weeks in \#openstack-meeting-4 as I feel this time work bests for
+% our \\ mixed time-zones. \\
+
+% \noindent I look forward to hearing from you. \\
+
+% \noindent Kind Regards, \\
+% \noindent Corne Lukken \\
+
+% \subsection*{Watcher Drivers team email}
+% \addcontentsline{toc}{subsection}{\protect\numberline{}Watcher Drivers team email}
+% \label{appendix:driveremail}
+
+% \noindent Done. \\
+
+% \noindent Have a nice day!  Thanks for contributing on Watcher ! \\
+
+% \noindent Jean-Emile
+% \noindent DARTOIS \\
+
+% \noindent \{P\}     PhD Student
+% \noindent Cloud Computing \\
+
+% \noindent \{T\}     +33 (0) 2 56 35 8260 \\
+% \noindent \{W\}     www.b-com.com
+
+% \noindent \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\\
+% \noindent De : info@dantalion.nl <info@dantalion.nl> \\
+% \noindent Envoyé : jeudi 13 juin 2019 10:23 \\
+% \noindent À : Jean-Émile DARTOIS \\
+% \noindent Objet : Re: The Watcher Drivers team seems poorly maintained \\
+
+% \noindent Hello, \\
+
+% \noindent Current PTL is Licanwei if you can make him administrator than we \\
+% have regained control that would be much appreciated. \\
+
+% \noindent Kind regards, \\
+% \noindent Corne Lukken (Dantali0n) \\
+
+% \noindent On 6/13/19 10:00 AM, Jean-Émile DARTOIS wrote: \\
+% \noindent > Hello, \\
+% \noindent > \\
+% \noindent > Sorry, I'm not involved anymore in Watcher. I added you as an \\
+% approved member. Who is the current PTL? I can make him administrator. \\
+% \noindent > \\
+% \noindent > Best regards, \\
+% \noindent > \\
+% \noindent > \\
+% \noindent > Jean-Emile \\
+% \noindent > DARTOIS \\
+% \noindent > \\
+% \noindent > \{P\}     PhD Student \\
+% \noindent > Cloud Computing \\
+% \noindent > \\
+% \noindent > \{T\}     +33 (0) 2 56 35 8260 \\
+% \noindent > \{W\}     www.b-com.com \\
+% \noindent > \\
+% \noindent > \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\\
+% \noindent > De : bounces@canonical.com <bounces@canonical.com> de la part de \\
+% Dantali0n < info@dantalion.nl> \\
+% \noindent > Envoyé : jeudi 13 juin 2019 09:18 \\
+% \noindent > À : Jean-Émile DARTOIS \\
+% \noindent > Objet : The Watcher Drivers team seems poorly maintained \\
+% \noindent > \\
+% \noindent > Hello, \\
+% \noindent > \\
+% \noindent > It seems like the administrators in the Watcher Drivers team have \\
+% not be \\
+% \noindent > contributing for a long time. I and several others have requested \\
+% \noindent > membership months ago without a response. \\
+% \noindent > \\
+% \noindent > I was hoping you could make  me or Licanwei administrator so we can \\
+% \noindent > regain control over the managed of this team. \\
+% \noindent > \\
+% \noindent > Kind regards, \\
+% \noindent > Dantali0n \\
+% \noindent > --\\
+% \noindent > This message was sent from Launchpad by \\
+% \noindent > Dantali0n (https://launchpad.net/~dantalion) \\
+% \noindent > using the "Contact this team's admins" link on the Watcher Drivers\\
+% team page \\
+% \noindent > (https://launchpad.net/~watcher-drivers). \\
+% \noindent > For more information see \\
+% \noindent > https://help.launchpad.net/YourAccount/ContactingPeople \\
+
+\end{document}

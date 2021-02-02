@@ -1,0 +1,121 @@
+stages:
+  - build
+  - test
+  - coverage
+  - memory
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+cache:
+  paths:
+    - "dependencies/boost*"
+build-documentation:
+  stage: build
+  tags:
+    - linux
+  script:
+    - cd $CI_PROJECT_DIR/documentation || exit
+    - texi2pdf documentation.tex
+  artifacts:
+    paths:
+      - "*/*.pdf"
+build-source-documentation:
+  stage: build
+  script:
+    - cd $CI_PROJECT_DIR
+    - mkdir -p build
+    - cd build || exit
+    - cmake -DENABLE_DOXYGEN=on ..
+    - make doxygen
+  artifacts:
+    paths:
+      - "docs/*"
+build-binaries:
+  stage: build
+  tags:
+    - linux
+  script:
+    - cd $CI_PROJECT_DIR || exit
+    - mkdir -p build
+    - cd build || exit
+    - cmake -ENABLE_PLAYGROUND=off -DENABLE_DOXYGEN=off ..
+    - make -j $(nproc)
+  artifacts:
+    paths:
+      - "build/airglow/*.so"
+      - "build/airglow/airglow"
+build-binaries-windows:
+  stage: build
+  tags:
+    - windows
+  script:
+    - mkdir -p build
+    - cd build || exit
+    - cmake -G "Visual Studio 16 2019" -ENABLE_PLAYGROUND=on -DENABLE_DOXYGEN=off ..
+    - ls -lah
+    - cmake --build . --target ALL_BUILD
+  artifacts:
+    paths:
+      - "build/airglow/*.so"
+      - "build/airglow/airglow"
+build-playground:
+  stage: build
+  tags:
+    - linux
+  script:
+    - cd $CI_PROJECT_DIR || exit
+    - mkdir -p build
+    - cd build || exit
+    - cmake -DENABLE_PLAYGROUND=on -DENABLE_DOXYGEN=off ..
+    - make playground -j $(nproc)
+  artifacts:
+    paths:
+      - "build/playground/play-*"
+test:
+  stage: test
+  tags:
+    - linux
+  script:
+    - cd $CI_PROJECT_DIR || exit
+    - mkdir -p build
+    - cd build || exit
+    - make check
+test-windows:
+  stage: test
+  tags:
+    - windows
+  script:
+    - cd $CI_PROJECT_DIR || exit
+    - mkdir -p build
+    - cd build || exit
+    - make check
+coverage:
+  stage: coverage
+  tags:
+    - linux
+  script:
+    - cd $CI_PROJECT_DIR || exit
+    - mkdir -p build
+    - cd build || exit
+    - cmake -DENABLE_CODECOV=on ..
+    - make check
+    - make airglow_coverage
+memory-valgrind:
+  stage: memory
+  tags:
+    - linux
+  script:
+    - cd $CI_PROJECT_DIR || exit
+    - mkdir -p build
+    - cd build || exit
+    - make test
+    - valgrind --leak-check=full ctest
+memory-sanitizer:
+  stage: memory
+  tags:
+    - linux
+  script:
+    - cd $CI_PROJECT_DIR || exit
+    - mkdir -p build
+    - cd build || exit
+    - cmake -ENABLE_LEAK_TESTS=on ..
+    - make check
