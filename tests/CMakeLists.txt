@@ -42,13 +42,15 @@ set(TEST_CPP17_HEADERS
 )
 
 message("${PRJ_PRX}: test cpp17 cxx flags:${CMAKE_CXX_FLAGS}")
-add_executable(testcpp17 ${TEST_CPP17_SOURCE} ${TEST_CPP17_HEADERS})
+add_executable(testcpp17 ${TEST_CPP17_SOURCE} ${TEST_CPP17_HEADERS} ${${PRJ_PRX}_SOURCES})
 add_dependencies(testcpp17 boost-build)
 
 target_link_libraries(
 	testcpp17
 	${${PRJ_PRX}_LIBRARIES_PACK}
 )
+
+add_exec_post(testcpp17)
 
 # --------------- #
 # arguments tests #
@@ -64,14 +66,16 @@ set(TEST_ARGUMENTS_HEADERS
 )
 
 message("${PRJ_PRX}: test arguments cxx flags:${CMAKE_CXX_FLAGS}")
-add_executable(testarguments ${TEST_ARGUMENTS_SOURCE} ${TEST_ARGUMENTS_HEADERS})
+add_executable(testarguments ${TEST_ARGUMENTS_SOURCE} ${TEST_ARGUMENTS_HEADERS} ${${PRJ_PRX}_SOURCES})
 add_dependencies(testarguments boost-build)
 
 target_link_libraries(
 	testarguments
-	airglow_arguments
+	qemucsd_arguments
 	${${PRJ_PRX}_LIBRARIES_PACK}
 )
+
+add_exec_post(testarguments)
 
 
 add_test(TestArguments testarguments)

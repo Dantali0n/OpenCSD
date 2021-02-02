@@ -51,3 +51,14 @@ function(qemucsd_include_directories)
         include_directories(${local_include})
     ENDFOREACH()
 endfunction(qemucsd_include_directories)
+
+# ----------------------------------- #
+# add_executable post processing      #
+# ----------------------------------- #
+function(add_exec_post)
+    foreach(arg ${ARGV})
+        if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+            add_backward(${arg})
+        endif()
+    endforeach()
+endfunction(add_exec_post)

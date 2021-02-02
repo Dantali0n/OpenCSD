@@ -80,27 +80,8 @@ OPTION(ENABLE_LEAK_TESTS "Enable address sanitizer" OFF)
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED FATAL_ERROR)
-#find_package(OpenCL 2.0)
-#find_package(Vulkan)
-#find_package(OpenCL 2.0 REQUIRED FATAL_ERROR)
-#find_package(Vulkan REQUIRED FATAL_ERROR)
 
-#find_package(glfw3 REQUIRED FATAL_ERROR)
-
-# Include Commonly required headers
-# include_directories(${ZeroMQ_INCLUDE_DIR})
-# include_directories(${FairMQ_INCDIR}/fairmq) # INCDIR Triggered
 # include_directories(${FairLogger_INCLUDE_DIR})
-# include_directories(${ZOOKEEPER_INCLUDE_DIR})
-
-# Set of required modules that dynamically gets extended
-# TODO (Dantali0n): remove libraries which aren't common to all modules
-set(${PRJ_PRX}_LIBRARIES
-	Threads::Threads
-#	opencl
-#	vulkan
-#	glfw
-)
 
 # -------------------------------------------- #
 # This defines global properties and several   #
@@ -137,6 +118,26 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
 	endif()
 endif()
 message("${PRJ_PRX}: Build type: ${CMAKE_BUILD_TYPE}")
+
+# Include backward
+add_subdirectory(dependencies/backward)
+
+# Enable backward on debug builds
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+	set(${PRJ_PRX}_DBG_SOURCES
+		${BACKWARD_ENABLE}
+	)
+endif()
+
+# Set of required sources that dynamically gets extended
+set(${PRJ_PRX}_SOURCES
+	${${PRJ_PRX}_DBG_SOURCES}
+)
+
+# Set of required modules that dynamically gets extended
+set(${PRJ_PRX}_LIBRARIES
+	Threads::Threads
+)
 
 # Ensure dependencies is the first subdirectory /
 # part of CMake script to define targets.

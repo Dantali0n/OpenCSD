@@ -1,5 +1,5 @@
-#ifndef AIRGLOW_ARGUMENTS_HPP
-#define AIRGLOW_ARGUMENTS_HPP
+#ifndef QEMUCSD_ARGUMENTS_HPP
+#define QEMUCSD_ARGUMENTS_HPP
 
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
@@ -17,7 +17,7 @@
  * everything that is notoriously so will be excluded. This includes
  * functions, templates, classes...
  */
-namespace airglow {
+namespace qemucsd {
 	namespace arguments {
 
 		// Enum to Specify desired window modes
@@ -46,4 +46,4 @@ namespace airglow {
 	}
 }
 
-#endif // AIRGLOW_ARGUMENTS_HPP
+#endif // QEMUCSD_ARGUMENTS_HPP

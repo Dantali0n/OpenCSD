@@ -1,22 +1,19 @@
 # Commandline argument parsing
 add_subdirectory(arguments)
 
-# Entry point for engine
-add_subdirectory(entry)
-
 qemucsd_include_directories()
 
-set(AIRGLOW_SOURCE
+set(QEMUCSD_SOURCE
     main.cxx
 )
 
-message("${PRJ_PRX}: airglow cxx flags:${CMAKE_CXX_FLAGS}")
-add_executable(airglow ${AIRGLOW_SOURCE})
+message("${PRJ_PRX}: qemucsd cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(qemucsd ${QEMUCSD_SOURCE})
 
 get_property(local_modules GLOBAL PROPERTY module_list)
 
 target_link_libraries(
-    airglow
+    qemucsd
     ${local_modules}
 #    ${${PRJ_PRX}_LIBRARIES}
 )

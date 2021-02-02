@@ -46,6 +46,7 @@ qemu-csd/**
 
 #dependencies
 dependencies/**
+!dependencies/backward
 !dependencies/glfw
 !dependencies/vulkan-headers
 !dependencies/vulkan-loader

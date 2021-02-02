@@ -1,17 +1,12 @@
 #include <iostream>
 #include <stdexcept>
 
-#include "entry.hpp"
+#include "arguments.hpp"
 
-int main() {
-	airglow::entry::EntryTriangle app;
+int main(int argc, char* argv[]) {
 
-	try {
-		app.run();
-	} catch (const std::exception& e) {
-		std::cerr << e.what() << std::endl;
-		return EXIT_FAILURE;
-	}
+	qemucsd::arguments::options opts;
+	qemucsd::arguments::parse_args(argc, argv, &opts);
 
 	return EXIT_SUCCESS;
 }

@@ -2,7 +2,7 @@
 
 namespace po = boost::program_options;
 
-namespace airglow::arguments {
+namespace qemucsd::arguments {
 	std::istream &operator>>(std::istream &in, WindowMode &window_mode) {
 		std::string token;
 		in >> token;

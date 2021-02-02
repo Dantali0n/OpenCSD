@@ -41,22 +41,22 @@ build-binaries:
     - make -j $(nproc)
   artifacts:
     paths:
-      - "build/airglow/*.so"
-      - "build/airglow/airglow"
-build-binaries-windows:
-  stage: build
-  tags:
-    - windows
-  script:
-    - mkdir -p build
-    - cd build || exit
-    - cmake -G "Visual Studio 16 2019" -ENABLE_PLAYGROUND=on -DENABLE_DOXYGEN=off ..
-    - ls -lah
-    - cmake --build . --target ALL_BUILD
-  artifacts:
-    paths:
-      - "build/airglow/*.so"
-      - "build/airglow/airglow"
+      - "build/qemucsd/*.so"
+      - "build/qemucsd/qemucsd"
+#build-binaries-windows:
+#  stage: build
+#  tags:
+#    - windows
+#  script:
+#    - mkdir -p build
+#    - cd build || exit
+#    - cmake -G "Visual Studio 16 2019" -ENABLE_PLAYGROUND=on -DENABLE_DOXYGEN=off ..
+#    - ls -lah
+#    - cmake --build . --target ALL_BUILD
+#  artifacts:
+#    paths:
+#      - "build/qemucsd/*.so"
+#      - "build/qemucsd/qemucsd"
 build-playground:
   stage: build
   tags:
@@ -79,15 +79,15 @@ test:
     - mkdir -p build
     - cd build || exit
     - make check
-test-windows:
-  stage: test
-  tags:
-    - windows
-  script:
-    - cd $CI_PROJECT_DIR || exit
-    - mkdir -p build
-    - cd build || exit
-    - make check
+#test-windows:
+#  stage: test
+#  tags:
+#    - windows
+#  script:
+#    - cd $CI_PROJECT_DIR || exit
+#    - mkdir -p build
+#    - cd build || exit
+#    - make check
 coverage:
   stage: coverage
   tags:
@@ -98,7 +98,7 @@ coverage:
     - cd build || exit
     - cmake -DENABLE_CODECOV=on ..
     - make check
-    - make airglow_coverage
+    - make qemucsd_coverage
 memory-valgrind:
   stage: memory
   tags:
