@@ -12,9 +12,9 @@ add_custom_target(
     playground
     DEPENDS
     play-example
-    play-objcopy
-    play-static-dependency
-    play-shared-dependency
+#    play-objcopy
+#    play-static-dependency
+#    play-shared-dependency
 )
 
 set(${PRJ_PRX}_PLAYGROUND_LIBRARIES
@@ -60,7 +60,7 @@ add_executable(play-example ${PLAYGROUND_EXAMPLE_SOURCE})
 
 target_link_libraries(
     play-example
-    airglow_arguments
+    qemucsd_arguments
     ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
 )
 
@@ -90,7 +90,7 @@ target_link_libraries(
 #)
 #
 ## Requires opencl to be build
-#add_dependencies(play-objcopy)
+## add_dependencies(play-objcopy)
 #
 ## remove the objcopy source file after compilation so it always gets recompiled
 #add_custom_command(TARGET play-objcopy
