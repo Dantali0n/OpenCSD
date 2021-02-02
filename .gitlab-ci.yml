@@ -41,8 +41,8 @@ build-binaries:
     - make -j $(nproc)
   artifacts:
     paths:
-      - "build/qemucsd/*.so"
-      - "build/qemucsd/qemucsd"
+      - "build/qemu-csd/*.so"
+      - "build/qemu-csd/qemucsd"
 #build-binaries-windows:
 #  stage: build
 #  tags:
@@ -77,6 +77,7 @@ test:
   script:
     - cd $CI_PROJECT_DIR || exit
     - mkdir -p build
+    - cmake -ENABLE_PLAYGROUND=off -DENABLE_DOXYGEN=off -DENABLE_TESTS=on ..
     - cd build || exit
     - make check
 #test-windows:
@@ -107,6 +108,7 @@ memory-valgrind:
     - cd $CI_PROJECT_DIR || exit
     - mkdir -p build
     - cd build || exit
+    - cmake -ENABLE_PLAYGROUND=off -DENABLE_DOXYGEN=off -DENABLE_TESTS=on ..
     - make test
     - valgrind --leak-check=full ctest
 memory-sanitizer:
