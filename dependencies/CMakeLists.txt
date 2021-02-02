@@ -83,7 +83,7 @@ else()
     set(BOOST_RUN_DEBUG off)
 endif()
 add_custom_command(OUTPUT boost-install PRE_BUILD
-    COMMAND ${boost_source_build} address-model=${BOOST_ADDRESS} link=static runtime-debugging=${BOOST_RUN_DEBUG} variant=${BOOST_BUILD_TYPE} ${boost_source_build_param} install --prefix=${PRJ_ROOT}
+    COMMAND ${boost_source_build} address-model=${BOOST_ADDRESS} runtime-debugging=${BOOST_RUN_DEBUG} variant=${BOOST_BUILD_TYPE} ${boost_source_build_param} install --prefix=${PRJ_ROOT}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/boost/boost_1_74_0
     DEPENDS boost-bootstrap
 )

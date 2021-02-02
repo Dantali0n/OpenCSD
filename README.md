@@ -55,8 +55,10 @@ compiled and linked is shown below.
     * python 3.x
     * virtualenv
     
-The following dependencies are automatically compiled. all dependencies will be
-statically linked given the nature of the project and the expected size of dependencies:
+The following dependencies are automatically compiled. Dependencies are preferably
+linked statically due to the nature of this project. However, for several dependencies
+this is not possible due to various reason. For Boost, it is because the unit test
+framework can not be statically linked (easily):
 
 | Dependency                                                         | Version     |
 |--------------------------------------------------------------------|-------------|
@@ -74,7 +76,7 @@ mkdir build
 cd build
 cmake ..
 cmake --build .
-cmake ..
+cmake .. # this prevents re-compiling dependencies on every next make command
 source qemu-csd/activate.sh
 # run commands and tools as you please
 deactivate
