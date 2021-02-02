@@ -11,10 +11,9 @@ message("Links playground: ${test}")
 add_custom_target(
     playground
     DEPENDS
+    play-boost-locale
     play-example
-#    play-objcopy
-#    play-static-dependency
-#    play-shared-dependency
+    play-libbpf
 )
 
 set(${PRJ_PRX}_PLAYGROUND_LIBRARIES
@@ -61,6 +60,31 @@ add_executable(play-example ${PLAYGROUND_EXAMPLE_SOURCE})
 target_link_libraries(
     play-example
     qemucsd_arguments
+    ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
+)
+
+# ----------------- #
+# Playground libbpf #
+# ----------------- #
+
+set(PLAYGROUND_LIBBPF_SOURCE
+    libbpf/playground-libbpf.cxx
+)
+
+message("${PRJ_PRX}: playground example cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(play-libbpf ${PLAYGROUND_LIBBPF_SOURCE})
+
+add_dependencies(play-libbpf libbpf-build)
+
+target_include_directories(
+    play-libbpf
+    INTERFACE
+    $<BUILD_INTERFACE:${PRJ_ROOT}/include/bpf>
+)
+
+target_link_libraries(
+    play-libbpf
+    bpf
     ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
 )
 

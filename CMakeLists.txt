@@ -51,7 +51,7 @@ include(macros)
 use_cxx17()
 
 # Enable pedantic errors and warnings for c++
-use_cxx_warning_pedantic()
+# use_cxx_warning_pedantic()
 
 # Disable warnings about unused functions, parameters and variables
 disable_unused_cxx_warnings()

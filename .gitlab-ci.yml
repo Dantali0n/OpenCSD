@@ -100,7 +100,7 @@ coverage:
     - cd build || exit
     - cmake -DENABLE_CODECOV=on ..
     - make check
-    - make qemucsd_coverage
+    - make qemu-csd_coverage
 memory-valgrind:
   stage: memory
   tags:

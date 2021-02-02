@@ -14,8 +14,7 @@ else()
     add_custom_target(boost-build DEPENDS boost-install)
 endif()
 
-#add_custom_target(opencl-build DEPENDS opencl-shared-install)
-
+add_custom_target(libbpf-build DEPENDS libbpf-install)
 
 # -------------------- #
 # Copy activate script #
@@ -120,6 +119,15 @@ if(${QEMUCSD_WINDOWS})
         add_custom_target(boost-directory-fix DEPENDS boost-rename-fix)
     endif()
 endif()
+
+# ------ #
+# libbpf #
+# ------ #
+
+add_custom_command(OUTPUT libbpf-install PRE_BUILD
+    COMMAND BUILD_STATIC_ONLY=y PREFIX=${PRJ_ROOT} LIBDIR=${PRJ_ROOT}/lib make install
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/src
+)
 
 ## ----- #
 ## glfw3 #
