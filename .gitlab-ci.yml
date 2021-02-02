@@ -43,20 +43,20 @@ build-binaries:
     paths:
       - "build/qemu-csd/*.so"
       - "build/qemu-csd/qemucsd"
-build-binaries-windows:
-  stage: build
-  tags:
-    - windows
-  script:
-    - mkdir -p build
-    - cd build || exit
-    - cmake -G "Visual Studio 16 2019" -ENABLE_PLAYGROUND=on -DENABLE_DOXYGEN=off ..
-    - ls -lah
-    - cmake --build . --target ALL_BUILD
-  artifacts:
-    paths:
-      - "build/qemu-csd/*.so"
-      - "build/qemu-csd/qemucsd"
+#build-binaries-windows:
+#  stage: build
+#  tags:
+#    - windows
+#  script:
+#    - mkdir -p build
+#    - cd build || exit
+#    - cmake -G "Visual Studio 16 2019" -ENABLE_PLAYGROUND=on -DENABLE_DOXYGEN=off ..
+#    - ls -lah
+#    - cmake --build . --target ALL_BUILD
+#  artifacts:
+#    paths:
+#      - "build/qemu-csd/*.so"
+#      - "build/qemu-csd/qemucsd"
 build-playground:
   stage: build
   tags:
@@ -80,16 +80,16 @@ test:
     - cd build || exit
     - cmake -DENABLE_PLAYGROUND=off -DENABLE_DOXYGEN=off -DENABLE_TESTS=on ..
     - make check
-test-windows:
-  stage: test
-  tags:
-    - windows
-  script:
-    - cd $CI_PROJECT_DIR || exit
-    - mkdir -p build
-    - cd build || exit
-    - cmake -G "Visual Studio 16 2019" -DENABLE_PLAYGROUND=off -DENABLE_DOXYGEN=off -DENABLE_TESTS=on ..
-    - make check
+#test-windows:
+#  stage: test
+#  tags:
+#    - windows
+#  script:
+#    - cd $CI_PROJECT_DIR || exit
+#    - mkdir -p build
+#    - cd build || exit
+#    - cmake -G "Visual Studio 16 2019" -DENABLE_PLAYGROUND=off -DENABLE_DOXYGEN=off -DENABLE_TESTS=on ..
+#    - make check
 coverage:
   stage: coverage
   tags:

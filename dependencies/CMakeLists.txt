@@ -16,6 +16,18 @@ endif()
 
 #add_custom_target(opencl-build DEPENDS opencl-shared-install)
 
+
+# -------------------- #
+# Copy activate script #
+# -------------------- #
+
+add_custom_command(
+    TARGET boost-build POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${CMAKE_SOURCE_DIR}/scripts/activate.sh
+    ${PRJ_ROOT}/activate.sh
+)
+
 # ----------------------------- #
 # Platform dependent attributes #
 # ----------------------------- #

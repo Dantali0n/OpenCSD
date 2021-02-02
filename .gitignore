@@ -47,11 +47,7 @@ qemu-csd/**
 #dependencies
 dependencies/**
 !dependencies/backward
-!dependencies/glfw
-!dependencies/vulkan-headers
-!dependencies/vulkan-loader
-!dependencies/opencl-headers
-!dependencies/opencl-loader
+!dependencies/libbpf
 !dependencies/CMakeLists.txt
 !dependencies/*.sh
 

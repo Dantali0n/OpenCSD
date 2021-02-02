@@ -62,6 +62,7 @@ framework can not be statically linked (easily):
 |--------------------------------------------------------------------|-------------|
 | [backward](https://github.com/bombela/backward-cpp)                | 1.5         |
 | [booost](https://www.boost.org/)                                   | 1.74.0      |
+| [libbpf](hhttps://github.com/libbpf/libbpf)                        | 0.3         |
 
 #### Setup
 

@@ -1,3 +1,6 @@
 [submodule "dependencies/backward"]
 	path = dependencies/backward
 	url = https://github.com/bombela/backward-cpp.git
+[submodule "dependencies/libbpf"]
+	path = dependencies/libbpf
+	url = https://github.com/libbpf/libbpf.git
