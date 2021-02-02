@@ -17,7 +17,6 @@
 * dependencies - project dependencies
 * docs - doxygen generated source code documentation
 * documentation - project documentation written in LaTeX
-[comment]: <> (* lib - support library with functions and definitions)
 * playground - small toy examples or other experiments
 * [python](python/README.md) - python scripts to aid in visualization or measurements
 * tests - unit tests and possibly integration tests
@@ -27,7 +26,6 @@
 | Module     | Optional | Task                                               |
 |------------|----------|----------------------------------------------------|
 | arguments  | Yes      | Parse commandline arguments to relevant components |
-| entry      | No       | Entry function from main                           |
 
 #### Dependencies
 
