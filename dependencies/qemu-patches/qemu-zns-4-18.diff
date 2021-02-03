@@ -1,0 +1,182 @@
+This log page becomes necessary to implement to allow checking for
+Zone Append command support in Zoned Namespace Command Set.
+
+This commit adds the code to report this log page for NVM Command
+Set only. The parts that are specific to zoned operation will be
+added later in the series.
+
+Signed-off-by: Dmitry Fomichev <dmitry.fomichev@wdc.com>
+---
+ hw/block/nvme.c       | 62 +++++++++++++++++++++++++++++++++++++++++++
+ hw/block/trace-events |  4 +++
+ include/block/nvme.h  | 18 +++++++++++++
+ 3 files changed, 84 insertions(+)
+
+diff --git a/hw/block/nvme.c b/hw/block/nvme.c
+index 94110db596..d000c7c9fb 100644
+--- a/hw/block/nvme.c
++++ b/hw/block/nvme.c
+@@ -870,6 +870,66 @@ static uint16_t nvme_set_feature(NvmeCtrl *n, NvmeCmd
+*cmd, NvmeRequest *req)
+     return NVME_SUCCESS;
+ }
+
++static uint16_t nvme_handle_cmd_effects(NvmeCtrl *n, NvmeCmd *cmd,
++    uint64_t prp1, uint64_t prp2, uint64_t ofs, uint32_t len)
++{
++   NvmeEffectsLog cmd_eff_log = {};
++   uint32_t *iocs = cmd_eff_log.iocs;
++
++    trace_pci_nvme_cmd_supp_and_effects_log_read();
++
++    if (ofs != 0) {
++        trace_pci_nvme_err_invalid_effects_log_offset(ofs);
++        return NVME_INVALID_FIELD | NVME_DNR;
++    }
++    if (len != sizeof(cmd_eff_log)) {
++        trace_pci_nvme_err_invalid_effects_log_len(len);
++        return NVME_INVALID_FIELD | NVME_DNR;
++    }
++
++    iocs[NVME_ADM_CMD_DELETE_SQ] = NVME_CMD_EFFECTS_CSUPP;
++    iocs[NVME_ADM_CMD_CREATE_SQ] = NVME_CMD_EFFECTS_CSUPP;
++    iocs[NVME_ADM_CMD_DELETE_CQ] = NVME_CMD_EFFECTS_CSUPP;
++    iocs[NVME_ADM_CMD_CREATE_CQ] = NVME_CMD_EFFECTS_CSUPP;
++    iocs[NVME_ADM_CMD_IDENTIFY] = NVME_CMD_EFFECTS_CSUPP;
++    iocs[NVME_ADM_CMD_SET_FEATURES] = NVME_CMD_EFFECTS_CSUPP;
++    iocs[NVME_ADM_CMD_GET_FEATURES] = NVME_CMD_EFFECTS_CSUPP;
++    iocs[NVME_ADM_CMD_GET_LOG_PAGE] = NVME_CMD_EFFECTS_CSUPP;
++
++    iocs[NVME_CMD_FLUSH] = NVME_CMD_EFFECTS_CSUPP | NVME_CMD_EFFECTS_LBCC;
++    iocs[NVME_CMD_WRITE_ZEROS] = NVME_CMD_EFFECTS_CSUPP |
++                                 NVME_CMD_EFFECTS_LBCC;
++    iocs[NVME_CMD_WRITE] = NVME_CMD_EFFECTS_CSUPP | NVME_CMD_EFFECTS_LBCC;
++    iocs[NVME_CMD_READ] = NVME_CMD_EFFECTS_CSUPP;
++
++    return nvme_dma_read_prp(n, (uint8_t *)&cmd_eff_log, len, prp1, prp2);
++}
++
++static uint16_t nvme_get_log_page(NvmeCtrl *n, NvmeCmd *cmd)
++{
++    uint64_t prp1 = le64_to_cpu(cmd->prp1);
++    uint64_t prp2 = le64_to_cpu(cmd->prp2);
++    uint32_t dw10 = le32_to_cpu(cmd->cdw10);
++    uint32_t dw11 = le32_to_cpu(cmd->cdw11);
++    uint64_t dw12 = le32_to_cpu(cmd->cdw12);
++    uint64_t dw13 = le32_to_cpu(cmd->cdw13);
++    uint64_t ofs = (dw13 << 32) | dw12;
++    uint32_t numdl, numdu, len;
++    uint16_t lid = dw10 & 0xff;
++
++    numdl = dw10 >> 16;
++    numdu = dw11 & 0xffff;
++    len = (((numdu << 16) | numdl) + 1) << 2;
++
++    switch (lid) {
++    case NVME_LOG_CMD_EFFECTS:
++        return nvme_handle_cmd_effects(n, cmd, prp1, prp2, ofs, len);
++    }
++
++    trace_pci_nvme_unsupported_log_page(lid);
++    return NVME_INVALID_FIELD | NVME_DNR;
++}
++
+ static uint16_t nvme_admin_cmd(NvmeCtrl *n, NvmeCmd *cmd, NvmeRequest *req)
+ {
+     switch (cmd->opcode) {
+@@ -887,6 +947,8 @@ static uint16_t nvme_admin_cmd(NvmeCtrl *n, NvmeCmd *cmd,
+NvmeRequest *req)
+         return nvme_set_feature(n, cmd, req);
+     case NVME_ADM_CMD_GET_FEATURES:
+         return nvme_get_feature(n, cmd, req);
++    case NVME_ADM_CMD_GET_LOG_PAGE:
++        return nvme_get_log_page(n, cmd);
+     default:
+         trace_pci_nvme_err_invalid_admin_opc(cmd->opcode);
+         return NVME_INVALID_OPCODE | NVME_DNR;
+diff --git a/hw/block/trace-events b/hw/block/trace-events
+index 958fcc5508..423d491e27 100644
+--- a/hw/block/trace-events
++++ b/hw/block/trace-events
+@@ -58,6 +58,7 @@ pci_nvme_mmio_start_success(void) "setting controller enable
+bit succeeded"
+ pci_nvme_mmio_stopped(void) "cleared controller enable bit"
+ pci_nvme_mmio_shutdown_set(void) "shutdown bit set"
+ pci_nvme_mmio_shutdown_cleared(void) "shutdown bit cleared"
++pci_nvme_cmd_supp_and_effects_log_read(void) "commands supported and effects
+log read"
+
+ # nvme traces for error conditions
+ pci_nvme_err_invalid_dma(void) "PRP/SGL is too small for transfer size"
+@@ -69,6 +70,8 @@ pci_nvme_err_invalid_ns(uint32_t ns, uint32_t limit) "invalid
+namespace %u not w
+ pci_nvme_err_invalid_opc(uint8_t opc) "invalid opcode 0x%"PRIx8""
+ pci_nvme_err_invalid_admin_opc(uint8_t opc) "invalid admin opcode 0x%"PRIx8""
+ pci_nvme_err_invalid_lba_range(uint64_t start, uint64_t len, uint64_t limit)
+"Invalid LBA start=%"PRIu64" len=%"PRIu64" limit=%"PRIu64""
++pci_nvme_err_invalid_effects_log_offset(uint64_t ofs) "commands supported and
+effects log offset must be 0, got %"PRIu64""
++pci_nvme_err_invalid_effects_log_len(uint32_t len) "commands supported and
+effects log size is 4096, got %"PRIu32""
+ pci_nvme_err_invalid_del_sq(uint16_t qid) "invalid submission queue deletion,
+sid=%"PRIu16""
+ pci_nvme_err_invalid_create_sq_cqid(uint16_t cqid) "failed creating submission
+queue, invalid cqid=%"PRIu16""
+ pci_nvme_err_invalid_create_sq_sqid(uint16_t sqid) "failed creating submission
+queue, invalid sqid=%"PRIu16""
+@@ -123,6 +126,7 @@ pci_nvme_ub_db_wr_invalid_cq(uint32_t qid) "completion
+queue doorbell write for
+ pci_nvme_ub_db_wr_invalid_cqhead(uint32_t qid, uint16_t new_head) "completion
+queue doorbell write value beyond queue size, cqid=%"PRIu32",
+new_head=%"PRIu16", ignoring"
+ pci_nvme_ub_db_wr_invalid_sq(uint32_t qid) "submission queue doorbell write
+for nonexistent queue, sqid=%"PRIu32", ignoring"
+ pci_nvme_ub_db_wr_invalid_sqtail(uint32_t qid, uint16_t new_tail) "submission
+queue doorbell write value beyond queue size, sqid=%"PRIu32",
+new_head=%"PRIu16", ignoring"
++pci_nvme_unsupported_log_page(uint16_t lid) "unsupported log page 0x%"PRIx16""
+
+ # xen-block.c
+ xen_block_realize(const char *type, uint32_t disk, uint32_t partition) "%s
+d%up%u"
+diff --git a/include/block/nvme.h b/include/block/nvme.h
+index 3099df99eb..6a58bac0c2 100644
+--- a/include/block/nvme.h
++++ b/include/block/nvme.h
+@@ -691,10 +691,27 @@ enum NvmeSmartWarn {
+     NVME_SMART_FAILED_VOLATILE_MEDIA  = 1 << 4,
+ };
+
++typedef struct NvmeEffectsLog {
++  uint32_t      acs[256];
++  uint32_t      iocs[256];
++  uint8_t       resv[2048];
++} NvmeEffectsLog;
++
++enum {
++   NVME_CMD_EFFECTS_CSUPP             = 1 << 0,
++   NVME_CMD_EFFECTS_LBCC              = 1 << 1,
++   NVME_CMD_EFFECTS_NCC               = 1 << 2,
++   NVME_CMD_EFFECTS_NIC               = 1 << 3,
++   NVME_CMD_EFFECTS_CCC               = 1 << 4,
++   NVME_CMD_EFFECTS_CSE_MASK          = 3 << 16,
++   NVME_CMD_EFFECTS_UUID_SEL          = 1 << 19,
++};
++
+ enum LogIdentifier {
+     NVME_LOG_ERROR_INFO     = 0x01,
+     NVME_LOG_SMART_INFO     = 0x02,
+     NVME_LOG_FW_SLOT_INFO   = 0x03,
++    NVME_LOG_CMD_EFFECTS    = 0x05,
+ };
+
+ typedef struct NvmePSD {
+@@ -898,5 +915,6 @@ static inline void _nvme_check_size(void)
+     QEMU_BUILD_BUG_ON(sizeof(NvmeSmartLog) != 512);
+     QEMU_BUILD_BUG_ON(sizeof(NvmeIdCtrl) != 4096);
+     QEMU_BUILD_BUG_ON(sizeof(NvmeIdNs) != 4096);
++    QEMU_BUILD_BUG_ON(sizeof(NvmeEffectsLog) != 4096);
+ }
+ #endif
+--
+2.21.0

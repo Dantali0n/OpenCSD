@@ -45,7 +45,7 @@ qemu-csd/**
 !qemu-csd/**/CMakeLists.txt
 
 #dependencies
-dependencies/**
+dependencies/*
 !dependencies/*.sh
 !dependencies/backward
 !dependencies/CMakeLists.txt

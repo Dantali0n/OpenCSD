@@ -1,0 +1,91 @@
+Removed unused struct NvmeAerResult and SMART-related async event
+codes. All other event codes are now categorized by their type.
+This avoids having to define the same values in a single enum,
+NvmeAsyncEventRequest, that is now removed.
+
+Later commits in this series will define additional values in some
+of these enums. No functional change.
+
+Signed-off-by: Dmitry Fomichev <dmitry.fomichev@wdc.com>
+---
+ hw/block/nvme.h      |  1 -
+ include/block/nvme.h | 43 ++++++++++++++++++++++---------------------
+ 2 files changed, 22 insertions(+), 22 deletions(-)
+
+diff --git a/hw/block/nvme.h b/hw/block/nvme.h
+index 79513eaa49..dae7b977af 100644
+--- a/hw/block/nvme.h
++++ b/hw/block/nvme.h
+@@ -12,7 +12,6 @@ typedef struct NvmeParams {
+
+ typedef struct NvmeAsyncEvent {
+     QSIMPLEQ_ENTRY(NvmeAsyncEvent) entry;
+-    NvmeAerResult result;
+ } NvmeAsyncEvent;
+
+ enum NvmeRequestFlags {
+diff --git a/include/block/nvme.h b/include/block/nvme.h
+index 9c3a04dcd7..3099df99eb 100644
+--- a/include/block/nvme.h
++++ b/include/block/nvme.h
+@@ -553,28 +553,30 @@ typedef struct NvmeDsmRange {
+     uint64_t    slba;
+ } NvmeDsmRange;
+
+-enum NvmeAsyncEventRequest {
+-    NVME_AER_TYPE_ERROR                     = 0,
+-    NVME_AER_TYPE_SMART                     = 1,
+-    NVME_AER_TYPE_IO_SPECIFIC               = 6,
+-    NVME_AER_TYPE_VENDOR_SPECIFIC           = 7,
+-    NVME_AER_INFO_ERR_INVALID_SQ            = 0,
+-    NVME_AER_INFO_ERR_INVALID_DB            = 1,
+-    NVME_AER_INFO_ERR_DIAG_FAIL             = 2,
+-    NVME_AER_INFO_ERR_PERS_INTERNAL_ERR     = 3,
+-    NVME_AER_INFO_ERR_TRANS_INTERNAL_ERR    = 4,
+-    NVME_AER_INFO_ERR_FW_IMG_LOAD_ERR       = 5,
+-    NVME_AER_INFO_SMART_RELIABILITY         = 0,
+-    NVME_AER_INFO_SMART_TEMP_THRESH         = 1,
+-    NVME_AER_INFO_SMART_SPARE_THRESH        = 2,
++enum NvmeAsyncEventType {
++    NVME_AER_TYPE_ERROR                     = 0x00,
++    NVME_AER_TYPE_SMART                     = 0x01,
++    NVME_AER_TYPE_NOTICE                    = 0x02,
++    NVME_AER_TYPE_CMDSET_SPECIFIC           = 0x06,
++    NVME_AER_TYPE_VENDOR_SPECIFIC           = 0x07,
+ };
+
+-typedef struct NvmeAerResult {
+-    uint8_t event_type;
+-    uint8_t event_info;
+-    uint8_t log_page;
+-    uint8_t resv;
+-} NvmeAerResult;
++enum NvmeAsyncErrorInfo {
++    NVME_AER_ERR_INVALID_SQ                 = 0x00,
++    NVME_AER_ERR_INVALID_DB                 = 0x01,
++    NVME_AER_ERR_DIAG_FAIL                  = 0x02,
++    NVME_AER_ERR_PERS_INTERNAL_ERR          = 0x03,
++    NVME_AER_ERR_TRANS_INTERNAL_ERR         = 0x04,
++    NVME_AER_ERR_FW_IMG_LOAD_ERR            = 0x05,
++};
++
++enum NvmeAsyncNoticeInfo {
++    NVME_AER_NOTICE_NS_CHANGED              = 0x00,
++};
++
++enum NvmeAsyncEventCfg {
++    NVME_AEN_CFG_NS_ATTR                    = 1 << 8,
++};
+
+ typedef struct NvmeCqe {
+     union {
+@@ -881,7 +883,6 @@ enum NvmeIdNsDps {
+
+ static inline void _nvme_check_size(void)
+ {
+-    QEMU_BUILD_BUG_ON(sizeof(NvmeAerResult) != 4);
+     QEMU_BUILD_BUG_ON(sizeof(NvmeCqe) != 16);
+     QEMU_BUILD_BUG_ON(sizeof(NvmeDsmRange) != 16);
+     QEMU_BUILD_BUG_ON(sizeof(NvmeCmd) != 64);
+--
+2.21.0

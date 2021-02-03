@@ -1,0 +1,93 @@
+A new write command, Zone Append, is added as a part of Zoned
+Namespace Command Set. Upon successful completion of this command,
+the controller returns the start LBA of the performed write operation
+in cqe.result field. Therefore, the maximum size of this variable
+needs to be changed from 32 to 64 bit, consuming the reserved 32 bit
+field that follows the result in CQE struct. Since the existing
+commands are expected to return a 32 bit LE value, two separate
+variables, result32 and result64, are now kept in a union.
+
+Signed-off-by: Ajay Joshi <ajay.joshi@wdc.com>
+Signed-off-by: Dmitry Fomichev <dmitry.fomichev@wdc.com>
+---
+ block/nvme.c         | 2 +-
+ block/trace-events   | 2 +-
+ hw/block/nvme.c      | 6 +++---
+ include/block/nvme.h | 6 ++++--
+ 4 files changed, 9 insertions(+), 7 deletions(-)
+
+diff --git a/block/nvme.c b/block/nvme.c
+index eb2f54dd9d..ca245ec574 100644
+--- a/block/nvme.c
++++ b/block/nvme.c
+@@ -287,7 +287,7 @@ static inline int nvme_translate_error(const NvmeCqe *c)
+ {
+     uint16_t status = (le16_to_cpu(c->status) >> 1) & 0xFF;
+     if (status) {
+-        trace_nvme_error(le32_to_cpu(c->result),
++        trace_nvme_error(le64_to_cpu(c->result64),
+                          le16_to_cpu(c->sq_head),
+                          le16_to_cpu(c->sq_id),
+                          le16_to_cpu(c->cid),
+diff --git a/block/trace-events b/block/trace-events
+index 29dff8881c..05c1393943 100644
+--- a/block/trace-events
++++ b/block/trace-events
+@@ -156,7 +156,7 @@ vxhs_get_creds(const char *cacert, const char *client_key,
+const char *client_ce
+ # nvme.c
+ nvme_kick(void *s, int queue) "s %p queue %d"
+ nvme_dma_flush_queue_wait(void *s) "s %p"
+-nvme_error(int cmd_specific, int sq_head, int sqid, int cid, int status)
+"cmd_specific %d sq_head %d sqid %d cid %d status 0x%x"
++nvme_error(uint64_t cmd_specific, int sq_head, int sqid, int cid, int status)
+"cmd_specific %ld sq_head %d sqid %d cid %d status 0x%x"
+ nvme_process_completion(void *s, int index, int inflight) "s %p queue %d
+inflight %d"
+ nvme_process_completion_queue_busy(void *s, int index) "s %p queue %d"
+ nvme_complete_command(void *s, int index, int cid) "s %p queue %d cid %d"
+diff --git a/hw/block/nvme.c b/hw/block/nvme.c
+index 6e8e4ccdb1..94110db596 100644
+--- a/hw/block/nvme.c
++++ b/hw/block/nvme.c
+@@ -822,7 +822,7 @@ static uint16_t nvme_get_feature(NvmeCtrl *n, NvmeCmd *cmd,
+NvmeRequest *req)
+         return NVME_INVALID_FIELD | NVME_DNR;
+     }
+
+-    req->cqe.result = result;
++    req->cqe.result32 = result;
+     return NVME_SUCCESS;
+ }
+
+@@ -858,8 +858,8 @@ static uint16_t nvme_set_feature(NvmeCtrl *n, NvmeCmd *cmd,
+NvmeRequest *req)
+                                     ((dw11 >> 16) & 0xFFFF) + 1,
+                                     n->params.max_ioqpairs,
+                                     n->params.max_ioqpairs);
+-        req->cqe.result = cpu_to_le32((n->params.max_ioqpairs - 1) |
+-                                      ((n->params.max_ioqpairs - 1) << 16));
++        req->cqe.result32 = cpu_to_le32((n->params.max_ioqpairs - 1) |
++                                        ((n->params.max_ioqpairs - 1) << 16));
+         break;
+     case NVME_TIMESTAMP:
+         return nvme_set_feature_timestamp(n, cmd);
+diff --git a/include/block/nvme.h b/include/block/nvme.h
+index 1720ee1d51..9c3a04dcd7 100644
+--- a/include/block/nvme.h
++++ b/include/block/nvme.h
+@@ -577,8 +577,10 @@ typedef struct NvmeAerResult {
+ } NvmeAerResult;
+
+ typedef struct NvmeCqe {
+-    uint32_t    result;
+-    uint32_t    rsvd;
++    union {
++        uint64_t     result64;
++        uint32_t     result32;
++    };
+     uint16_t    sq_head;
+     uint16_t    sq_id;
+     uint16_t    cid;
+--
+2.21.0
