@@ -177,7 +177,7 @@ endif()
 # Unit tests to validate application
 if(ENABLE_TESTS)
 	message("${PRJ_PRX}: Enabling tests")
-	ENABLE_TESTING()
+	enable_testing()
 	add_subdirectory(tests)
 endif()
 

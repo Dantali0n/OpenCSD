@@ -111,7 +111,8 @@ memory-valgrind:
     - cd build || exit
     - cmake -DENABLE_PLAYGROUND=off -DENABLE_DOXYGEN=off -DENABLE_TESTS=on ..
     - make test
-    - valgrind --leak-check=full ctest
+    - valgrind --leak-check=full tests/testcpp17
+    - valgrind --leak-check=full tests/testarguments
 memory-sanitizer:
   stage: memory
   tags:
@@ -120,5 +121,5 @@ memory-sanitizer:
     - cd $CI_PROJECT_DIR || exit
     - mkdir -p build
     - cd build || exit
-    - cmake -ENABLE_LEAK_TESTS=on ..
+    - cmake -DENABLE_LEAK_TESTS=on ..
     - make check

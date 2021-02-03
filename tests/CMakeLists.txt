@@ -17,6 +17,14 @@ qemucsd_include_directories()
 #    REQUIRED
 #)
 
+# Add every playground subdirectory target to this list
+add_custom_target(
+	tests
+	DEPENDS
+	testcpp17
+	testarguments
+)
+
 set(${PRJ_PRX}_TEST_LIBRARIES
 	${PRJ_LIB}
 	boost_timer
