@@ -15,11 +15,13 @@ else()
 endif()
 
 add_custom_target(libbpf-build DEPENDS libbpf-install)
+add_custom_target(qemu-build DEPENDS qemu-install)
 
 # -------------------- #
 # Copy activate script #
 # -------------------- #
 
+# As boost-build target since only this dependency requires it.
 add_custom_command(
     TARGET boost-build POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
@@ -124,9 +126,38 @@ endif()
 # libbpf #
 # ------ #
 
+# Check if libbpf is already build, REQUIRES RE-RUNNING CMAKE COMMAND!
+# Limitations: this only tests the presence of a single file
+file_exists(${PRJ_ROOT}/lib/libbpf.a has_libbpf)
+if(${has_libbpf})
+    add_custom_target(libbpf-install)
+endif()
+
 add_custom_command(OUTPUT libbpf-install PRE_BUILD
     COMMAND BUILD_STATIC_ONLY=y PREFIX=${PRJ_ROOT} LIBDIR=${PRJ_ROOT}/lib make install
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/src
+)
+
+# ---- #
+# qemu #
+# ---- #
+
+# Check if qemu is already build, REQUIRES RE-RUNNING CMAKE COMMAND!
+# Limitations: this only tests the presence of a single file
+file_exists(${PRJ_ROOT}/bin/qemu-system-x86_64 has_qemu)
+if(${has_qemu})
+    add_custom_target(qemu-install)
+endif()
+
+add_custom_command(OUTPUT qemu-install PRE_BUILD
+    COMMAND make -j $(nproc) install
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/qemu
+    DEPENDS qemu-configure
+)
+
+add_custom_command(OUTPUT qemu-configure PRE_BUILD
+    COMMAND ./configure --target-list=x86_64-softmmu --enable-rdma --enable-debug --prefix=${PRJ_ROOT}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/qemu
 )
 
 ## ----- #

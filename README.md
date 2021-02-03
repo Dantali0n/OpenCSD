@@ -52,7 +52,11 @@ compiled and linked is shown below.
 * Python scripts
     * python 3.x
     * virtualenv
-    
+* QEMU
+    * librdmacm
+    * libibverbs
+    * libibumad
+
 The following dependencies are automatically compiled. Dependencies are preferably
 linked statically due to the nature of this project. However, for several dependencies
 this is not possible due to various reason. For Boost, it is because the unit test
@@ -62,7 +66,8 @@ framework can not be statically linked (easily):
 |--------------------------------------------------------------------|-------------|
 | [backward](https://github.com/bombela/backward-cpp)                | 1.5         |
 | [booost](https://www.boost.org/)                                   | 1.74.0      |
-| [libbpf](hhttps://github.com/libbpf/libbpf)                        | 0.3         |
+| [libbpf](https://github.com/libbpf/libbpf)                         | 0.3         |
+| [qemu](https://www.qemu.org/)                                      | 5.2.0       |
 
 #### Setup
 
@@ -99,6 +104,8 @@ specific source files for licensing details.
 
 #### References
 
+* [zoned storage ZNS SSDs introduction](https://zonedstorage.io/introduction/zns/)
+* [NVMe ZNS command set 1.0 ratified TP](https://nvmexpress.org/wp-content/uploads/NVM-Express-1.4-Ratified-TPs-1.zip)
 * [Getting started with ZNS in QEMU](https://www.snia.org/educational-library/getting-started-nvme-zns-qemu-2020)
 
 #### Ideas

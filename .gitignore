@@ -1,8 +1,8 @@
 # ide files and similiar
-.vscode
-cmake-build-*
 .idea
+.vscode
 build
+cmake-build-*
 
 # debuggers and profilers
 .gdb_history
@@ -18,54 +18,55 @@ docs
 # python environment
 python/bin/*
 python/include/*
-python/share/*
 python/lib/*
+python/share/*
 python/pyvenv.cfg
 
 # object files and binaries
 playground/**
 !playground/**/
 !playground*/**/CMakeLists.txt
-!playground/**/*.sh
 !playground/**/*.c
-!playground/**/*.cxx
 !playground/**/*.cl
+!playground/**/*.cxx
 !playground/**/*.h
 !playground/**/*.hpp
+!playground/**/*.sh
 !playground/*-dependency/glfw
 
 # object files and binaries
 qemu-csd/**
 !qemu-csd/**/
-!qemu-csd/**/CMakeLists.txt
 !qemu-csd/**/*.c
-!qemu-csd/**/*.cxx
 !qemu-csd/**/*.cl
+!qemu-csd/**/*.cxx
 !qemu-csd/**/*.h
 !qemu-csd/**/*.hpp
+!qemu-csd/**/CMakeLists.txt
 
 #dependencies
 dependencies/**
-!dependencies/backward
-!dependencies/libbpf
-!dependencies/CMakeLists.txt
 !dependencies/*.sh
+!dependencies/backward
+!dependencies/CMakeLists.txt
+!dependencies/libbpf
+!dependencies/qemu
 
 # test examples and try outs
 tests*/**
 !tests*/**/
-!tests*/**/CMakeLists.txt
 !tests*/**/*.c
-!tests*/**/*.cxx
 !tests*/**/*.cl
+!tests*/**/*.cxx
 !tests*/**/*.h
 !tests*/**/*.hpp
+!tests*/**/CMakeLists.txt
 
 # latex intermediate files
 documentation/*
 !documentation/**/
-!documentation/**/images/
-!documentation/**/bash/
-!documentation/**/python/
-!documentation/**/*.tex
 !documentation/**/*.bib
+!documentation/**/*.tex
+!documentation/**/bash/
+!documentation/**/images/
+!documentation/**/python/

@@ -4,3 +4,6 @@
 [submodule "dependencies/libbpf"]
 	path = dependencies/libbpf
 	url = https://github.com/libbpf/libbpf.git
+[submodule "dependencies/qemu"]
+	path = dependencies/qemu
+	url = git://git.qemu-project.org/qemu.git

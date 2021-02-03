@@ -110,7 +110,7 @@ memory-valgrind:
     - mkdir -p build
     - cd build || exit
     - cmake -DENABLE_PLAYGROUND=off -DENABLE_DOXYGEN=off -DENABLE_TESTS=on ..
-    - make test
+    - make tests
     - valgrind --leak-check=full tests/testcpp17
     - valgrind --leak-check=full tests/testarguments
 memory-sanitizer:
