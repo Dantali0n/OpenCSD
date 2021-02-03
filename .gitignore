@@ -51,6 +51,7 @@ dependencies/**
 !dependencies/CMakeLists.txt
 !dependencies/libbpf
 !dependencies/qemu
+!dependencies/qemu-patches
 
 # test examples and try outs
 tests*/**

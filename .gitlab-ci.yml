@@ -3,8 +3,8 @@ stages:
   - test
   - coverage
   - memory
-variables:
-  GIT_SUBMODULE_STRATEGY: recursive
+# variables:
+#  GIT_SUBMODULE_STRATEGY: recursive
 cache:
   paths:
     - "dependencies/boost*"

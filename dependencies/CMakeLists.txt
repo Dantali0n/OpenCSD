@@ -160,6 +160,16 @@ add_custom_command(OUTPUT qemu-configure PRE_BUILD
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/qemu
 )
 
+# ---------- #
+# Arch image #
+# ---------- #
+
+download_file(
+    https://dancloud.dantalion.nl/index.php/s/qr2RytZoTgzvlHM/download
+    ${PRJ_ROOT}/arch-qemucsd.gcow2
+    SHA256 1762f47e67ec0e4ce052bf122214bdf9cf1c4e4b143b9463ac8fece15fe071cc
+)
+
 ## ----- #
 ## glfw3 #
 ## ----- #

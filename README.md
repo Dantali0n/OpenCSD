@@ -111,3 +111,13 @@ specific source files for licensing details.
 #### Ideas
 
 #### Snippets
+
+Launch QEMU
+```shell
+qemu-img create -f raw znsssd.img 0
+qemu-system-x86_64 -name qemucsd -m 4G -machine -cpu Haswell -smp 2 -hda ./arch-qemucsd.qcow2 \
+-net user,hostfwd=tcp::7777-:22,hostfwd=tcp::2222-:2000 -net nic \
+-drive file=/znsssd.img,id=mynvme,format=raw,if=none -device nvme,drive=mynvme,serial=deadbeef,\
+logical_block_size=4096,physical_block_size=4096,zoned=true,zone_size=128,zone_capacity=128,\
+max_open=0,max_active=0,zone_apped_size_limit=128,zone_descr_ext_size=64,zone_file=./zone_meta 
+```
