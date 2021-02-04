@@ -104,7 +104,9 @@ specific source files for licensing details.
 
 #### References
 
-* [zoned storage ZNS SSDs introduction](https://zonedstorage.io/introduction/zns/)
+* [ZNS SSD QEMU patch v11](http://patchwork.ozlabs.org/project/qemu-devel/list/?series=219344)
+* [ZNS SSD QEMU patch v2](https://patchwork.kernel.org/project/qemu-devel/cover/20200617213415.22417-1-dmitry.fomichev@wdc.com/)
+* [Zoned storage ZNS SSDs introduction](https://zonedstorage.io/introduction/zns/)
 * [NVMe ZNS command set 1.0 ratified TP](https://nvmexpress.org/wp-content/uploads/NVM-Express-1.4-Ratified-TPs-1.zip)
 * [Getting started with ZNS in QEMU](https://www.snia.org/educational-library/getting-started-nvme-zns-qemu-2020)
 
