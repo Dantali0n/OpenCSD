@@ -8,13 +8,19 @@ stages:
 cache:
   paths:
     - "dependencies/boost*"
+    - "build/qemu-csd/bin/*"
+    - "build/qemu-csd/lib/*"
+    - "build/qemu-csd/include/*"
 build-documentation:
   stage: build
   tags:
     - linux
   script:
-    - cd $CI_PROJECT_DIR/documentation || exit
-    - texi2pdf documentation.tex
+    - cd $CI_PROJECT_DIR
+    - mkdir -p build
+    - cd build || exit
+    - cmake -DENABLE_DOXYGEN=off ..
+    - make latex-pdf
   artifacts:
     paths:
       - "*/*.pdf"

@@ -1,0 +1,256 @@
+---
+ hw/block/nvme-ns.h    |  8 +++++++
+ hw/block/nvme-ns.c    | 25 ++++++++++++++++++--
+ hw/block/nvme.c       | 53 +++++++++++++++++++++++++++++++++++++++++--
+ hw/block/trace-events |  2 ++
+ 4 files changed, 84 insertions(+), 4 deletions(-)
+
+diff --git a/hw/block/nvme-ns.h b/hw/block/nvme-ns.h
+index 7e1fd26909..f8f3c28c36 100644
+--- a/hw/block/nvme-ns.h
++++ b/hw/block/nvme-ns.h
+@@ -35,6 +35,7 @@ typedef struct NvmeNamespaceParams {
+     uint64_t zone_cap_bs;
+     uint32_t max_active_zones;
+     uint32_t max_open_zones;
++    uint32_t zd_extension_size;
+ } NvmeNamespaceParams;
+
+ typedef struct NvmeNamespace {
+@@ -56,6 +57,7 @@ typedef struct NvmeNamespace {
+     uint64_t        zone_size;
+     uint64_t        zone_capacity;
+     uint32_t        zone_size_log2;
++    uint8_t         *zd_extensions;
+     int32_t         nr_open_zones;
+     int32_t         nr_active_zones;
+
+@@ -129,6 +131,12 @@ static inline bool nvme_wp_is_valid(NvmeZone *zone)
+            st != NVME_ZONE_STATE_OFFLINE;
+ }
+
++static inline uint8_t *nvme_get_zd_extension(NvmeNamespace *ns,
++                                             uint32_t zone_idx)
++{
++    return &ns->zd_extensions[zone_idx * ns->params.zd_extension_size];
++}
++
+ static inline void nvme_aor_inc_open(NvmeNamespace *ns)
+ {
+     assert(ns->nr_open_zones >= 0);
+diff --git a/hw/block/nvme-ns.c b/hw/block/nvme-ns.c
+index aaef69fb47..c5a7bafcf7 100644
+--- a/hw/block/nvme-ns.c
++++ b/hw/block/nvme-ns.c
+@@ -151,6 +151,18 @@ static int nvme_ns_zoned_check_calc_geometry(NvmeNamespace
+*ns, Error **errp)
+         return -1;
+     }
+
++    if (ns->params.zd_extension_size) {
++        if (ns->params.zd_extension_size & 0x3f) {
++            error_setg(errp,
++                "zone descriptor extension size must be a multiple of 64B");
++            return -1;
++        }
++        if ((ns->params.zd_extension_size >> 6) > 0xff) {
++            error_setg(errp, "zone descriptor extension size is too large");
++            return -1;
++        }
++    }
++
+     return 0;
+ }
+
+@@ -162,6 +174,10 @@ static void nvme_ns_zoned_init_state(NvmeNamespace *ns)
+     int i;
+
+     ns->zone_array = g_new0(NvmeZone, ns->num_zones);
++    if (ns->params.zd_extension_size) {
++        ns->zd_extensions = g_malloc0(ns->params.zd_extension_size *
++                                      ns->num_zones);
++    }
+
+     QTAILQ_INIT(&ns->exp_open_zones);
+     QTAILQ_INIT(&ns->imp_open_zones);
+@@ -204,7 +220,8 @@ static void nvme_ns_init_zoned(NvmeCtrl *n, NvmeNamespace
+*ns, int lba_index)
+     id_ns_z->ozcs = ns->params.cross_zone_read ? 0x01 : 0x00;
+
+     id_ns_z->lbafe[lba_index].zsze = cpu_to_le64(ns->zone_size);
+-    id_ns_z->lbafe[lba_index].zdes = 0;
++    id_ns_z->lbafe[lba_index].zdes =
++        ns->params.zd_extension_size >> 6; /* Units of 64B */
+
+     ns->csi = NVME_CSI_ZONED;
+     ns->id_ns.nsze = cpu_to_le64(ns->num_zones * ns->zone_size);
+@@ -220,7 +237,8 @@ static void nvme_clear_zone(NvmeNamespace *ns, NvmeZone
+*zone)
+
+     zone->w_ptr = zone->d.wp;
+     state = nvme_get_zone_state(zone);
+-    if (zone->d.wp != zone->d.zslba) {
++    if (zone->d.wp != zone->d.zslba ||
++        (zone->d.za & NVME_ZA_ZD_EXT_VALID)) {
+         if (state != NVME_ZONE_STATE_CLOSED) {
+             trace_pci_nvme_clear_ns_close(state, zone->d.zslba);
+             nvme_set_zone_state(zone, NVME_ZONE_STATE_CLOSED);
+@@ -316,6 +334,7 @@ void nvme_ns_cleanup(NvmeNamespace *ns)
+     if (ns->params.zoned) {
+         g_free(ns->id_ns_zoned);
+         g_free(ns->zone_array);
++        g_free(ns->zd_extensions);
+     }
+ }
+
+@@ -347,6 +366,8 @@ static Property nvme_ns_props[] = {
+                        params.max_active_zones, 0),
+     DEFINE_PROP_UINT32("zoned.max_open", NvmeNamespace,
+                        params.max_open_zones, 0),
++    DEFINE_PROP_UINT32("zoned.descr_ext_size", NvmeNamespace,
++                       params.zd_extension_size, 0),
+     DEFINE_PROP_END_OF_LIST(),
+ };
+
+diff --git a/hw/block/nvme.c b/hw/block/nvme.c
+index 8b97b713a3..c2336bfd67 100644
+--- a/hw/block/nvme.c
++++ b/hw/block/nvme.c
+@@ -1715,6 +1715,25 @@ static uint16_t nvme_offline_zone(NvmeNamespace *ns,
+NvmeZone *zone,
+     }
+ }
+
++static uint16_t nvme_set_zd_ext(NvmeNamespace *ns, NvmeZone *zone)
++{
++    uint16_t status;
++    uint8_t state = nvme_get_zone_state(zone);
++
++    if (state == NVME_ZONE_STATE_EMPTY) {
++        status = nvme_aor_check(ns, 1, 0);
++        if (status != NVME_SUCCESS) {
++            return status;
++        }
++        nvme_aor_inc_active(ns);
++        zone->d.za |= NVME_ZA_ZD_EXT_VALID;
++        nvme_assign_zone_state(ns, zone, NVME_ZONE_STATE_CLOSED);
++        return NVME_SUCCESS;
++    }
++
++    return NVME_ZONE_INVAL_TRANSITION;
++}
++
+ static uint16_t nvme_bulk_proc_zone(NvmeNamespace *ns, NvmeZone *zone,
+                                     enum NvmeZoneProcessingMask proc_mask,
+                                     op_handler_t op_hndlr)
+@@ -1813,6 +1832,7 @@ static uint16_t nvme_zone_mgmt_send(NvmeCtrl *n,
+NvmeRequest *req)
+     NvmeCmd *cmd = (NvmeCmd *)&req->cmd;
+     NvmeNamespace *ns = req->ns;
+     NvmeZone *zone;
++    uint8_t *zd_ext;
+     uint32_t dw13 = le32_to_cpu(cmd->cdw13);
+     uint64_t slba = 0;
+     uint32_t zone_idx = 0;
+@@ -1885,7 +1905,22 @@ static uint16_t nvme_zone_mgmt_send(NvmeCtrl *n,
+NvmeRequest *req)
+
+     case NVME_ZONE_ACTION_SET_ZD_EXT:
+         trace_pci_nvme_set_descriptor_extension(slba, zone_idx);
+-        return NVME_INVALID_FIELD | NVME_DNR;
++        if (all || !ns->params.zd_extension_size) {
++            return NVME_INVALID_FIELD | NVME_DNR;
++        }
++        zd_ext = nvme_get_zd_extension(ns, zone_idx);
++        status = nvme_dma(n, zd_ext, ns->params.zd_extension_size,
++                          DMA_DIRECTION_TO_DEVICE, req);
++        if (status) {
++            trace_pci_nvme_err_zd_extension_map_error(zone_idx);
++            return status;
++        }
++
++        status = nvme_set_zd_ext(ns, zone);
++        if (status == NVME_SUCCESS) {
++            trace_pci_nvme_zd_extension_set(zone_idx);
++            return status;
++        }
+         break;
+
+     default:
+@@ -1955,7 +1990,10 @@ static uint16_t nvme_zone_mgmt_recv(NvmeCtrl *n,
+NvmeRequest *req)
+     }
+
+     zra = dw13 & 0xff;
+-    if (zra != NVME_ZONE_REPORT) {
++    if (zra != NVME_ZONE_REPORT && zra != NVME_ZONE_REPORT_EXTENDED) {
++        return NVME_INVALID_FIELD | NVME_DNR;
++    }
++    if (zra == NVME_ZONE_REPORT_EXTENDED && !ns->params.zd_extension_size) {
+         return NVME_INVALID_FIELD | NVME_DNR;
+     }
+
+@@ -1977,6 +2015,9 @@ static uint16_t nvme_zone_mgmt_recv(NvmeCtrl *n,
+NvmeRequest *req)
+     partial = (dw13 >> 16) & 0x01;
+
+     zone_entry_sz = sizeof(NvmeZoneDescr);
++    if (zra == NVME_ZONE_REPORT_EXTENDED) {
++        zone_entry_sz += ns->params.zd_extension_size;
++    }
+
+     max_zones = (data_size - sizeof(NvmeZoneReportHeader)) / zone_entry_sz;
+     buf = g_malloc0(data_size);
+@@ -2012,6 +2053,14 @@ static uint16_t nvme_zone_mgmt_recv(NvmeCtrl *n,
+NvmeRequest *req)
+                 z->wp = cpu_to_le64(~0ULL);
+             }
+
++            if (zra == NVME_ZONE_REPORT_EXTENDED) {
++                if (zone->d.za & NVME_ZA_ZD_EXT_VALID) {
++                    memcpy(buf_p, nvme_get_zd_extension(ns, zone_idx),
++                           ns->params.zd_extension_size);
++                }
++                buf_p += ns->params.zd_extension_size;
++            }
++
+             max_zones--;
+         }
+     }
+diff --git a/hw/block/trace-events b/hw/block/trace-events
+index 0b8564e028..0b7a132c88 100644
+--- a/hw/block/trace-events
++++ b/hw/block/trace-events
+@@ -99,6 +99,7 @@ pci_nvme_finish_zone(uint64_t slba, uint32_t zone_idx, int
+all) "finish zone, sl
+ pci_nvme_reset_zone(uint64_t slba, uint32_t zone_idx, int all) "reset zone,
+slba=%"PRIu64", idx=%"PRIu32", all=%"PRIi32""
+ pci_nvme_offline_zone(uint64_t slba, uint32_t zone_idx, int all) "offline
+zone, slba=%"PRIu64", idx=%"PRIu32", all=%"PRIi32""
+ pci_nvme_set_descriptor_extension(uint64_t slba, uint32_t zone_idx) "set zone
+descriptor extension, slba=%"PRIu64", idx=%"PRIu32""
++pci_nvme_zd_extension_set(uint32_t zone_idx) "set descriptor extension for
+zone_idx=%"PRIu32""
+ pci_nvme_clear_ns_close(uint32_t state, uint64_t slba) "zone state=%"PRIu32",
+slba=%"PRIu64" transitioned to Closed state"
+ pci_nvme_clear_ns_reset(uint32_t state, uint64_t slba) "zone state=%"PRIu32",
+slba=%"PRIu64" transitioned to Empty state"
+
+@@ -128,6 +129,7 @@ pci_nvme_err_zone_read_not_ok(uint64_t slba, uint32_t nlb,
+uint32_t status) "slb
+ pci_nvme_err_append_too_large(uint64_t slba, uint32_t nlb, uint8_t zasl)
+"slba=%"PRIu64", nlb=%"PRIu32", zasl=%"PRIu8""
+ pci_nvme_err_insuff_active_res(uint32_t max_active) "max_active=%"PRIu32" zone
+limit exceeded"
+ pci_nvme_err_insuff_open_res(uint32_t max_open) "max_open=%"PRIu32" zone limit
+exceeded"
++pci_nvme_err_zd_extension_map_error(uint32_t zone_idx) "can't map descriptor
+extension for zone_idx=%"PRIu32""
+ pci_nvme_err_invalid_iocsci(uint32_t idx) "unsupported command set combination
+index %"PRIu32""
+ pci_nvme_err_invalid_del_sq(uint16_t qid) "invalid submission queue deletion,
+sid=%"PRIu16""
+ pci_nvme_err_invalid_create_sq_cqid(uint16_t cqid) "failed creating submission
+queue, invalid cqid=%"PRIu16""
+--
+2.28.0

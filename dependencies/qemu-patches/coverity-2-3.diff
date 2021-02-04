@@ -1,0 +1,19 @@
+---
+ hw/block/nvme.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/hw/block/nvme.c b/hw/block/nvme.c
+index 080d782f1c2b..2bdc50eb6fce 100644
+--- a/hw/block/nvme.c
++++ b/hw/block/nvme.c
+@@ -452,7 +452,7 @@ static uint16_t nvme_map_sgl_data(NvmeCtrl *n, QEMUSGList *qsg,
+              * segments and/or descriptors. The controller might accept
+              * ignoring the rest of the SGL.
+              */
+-            uint16_t sgls = le16_to_cpu(n->id_ctrl.sgls);
++            uint32_t sgls = le32_to_cpu(n->id_ctrl.sgls);
+             if (sgls & NVME_CTRL_SGLS_EXCESS_LENGTH) {
+                 break;
+             }
+--
+2.29.1

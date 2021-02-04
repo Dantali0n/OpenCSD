@@ -1,0 +1,20 @@
+---
+ hw/block/nvme.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/hw/block/nvme.c b/hw/block/nvme.c
+index fa2cba744b57..080d782f1c2b 100644
+--- a/hw/block/nvme.c
++++ b/hw/block/nvme.c
+@@ -2562,8 +2562,7 @@ int nvme_register_namespace(NvmeCtrl *n, NvmeNamespace *ns, Error **errp)
+
+     if (!nsid) {
+         for (int i = 1; i <= n->num_namespaces; i++) {
+-            NvmeNamespace *ns = nvme_ns(n, i);
+-            if (!ns) {
++            if (!nvme_ns(n, i)) {
+                 nsid = ns->params.nsid = i;
+                 break;
+             }
+--
+2.29.1

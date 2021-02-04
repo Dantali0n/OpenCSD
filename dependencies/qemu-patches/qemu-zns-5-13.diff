@@ -1,0 +1,271 @@
+---
+ hw/block/nvme-ns.h    |  1 +
+ include/block/nvme.h  | 19 +++++++++
+ hw/block/nvme.c       | 96 +++++++++++++++++++++++++++++++++++++++----
+ hw/block/trace-events |  1 +
+ 4 files changed, 108 insertions(+), 9 deletions(-)
+
+diff --git a/hw/block/nvme-ns.h b/hw/block/nvme-ns.h
+index aeca810fc7..bdeaf1c0de 100644
+--- a/hw/block/nvme-ns.h
++++ b/hw/block/nvme-ns.h
+@@ -30,6 +30,7 @@ typedef struct NvmeNamespace {
+     int32_t      bootindex;
+     int64_t      size;
+     NvmeIdNs     id_ns;
++    const uint32_t *iocs;
+
+     NvmeNamespaceParams params;
+
+diff --git a/include/block/nvme.h b/include/block/nvme.h
+index e95ff6ca9b..422c98a297 100644
+--- a/include/block/nvme.h
++++ b/include/block/nvme.h
+@@ -746,10 +746,27 @@ enum NvmeSmartWarn {
+     NVME_SMART_FAILED_VOLATILE_MEDIA  = 1 << 4,
+ };
+
++typedef struct NvmeEffectsLog {
++    uint32_t    acs[256];
++    uint32_t    iocs[256];
++    uint8_t     resv[2048];
++} NvmeEffectsLog;
++
++enum {
++    NVME_CMD_EFF_CSUPP      = 1 << 0,
++    NVME_CMD_EFF_LBCC       = 1 << 1,
++    NVME_CMD_EFF_NCC        = 1 << 2,
++    NVME_CMD_EFF_NIC        = 1 << 3,
++    NVME_CMD_EFF_CCC        = 1 << 4,
++    NVME_CMD_EFF_CSE_MASK   = 3 << 16,
++    NVME_CMD_EFF_UUID_SEL   = 1 << 19,
++};
++
+ enum NvmeLogIdentifier {
+     NVME_LOG_ERROR_INFO     = 0x01,
+     NVME_LOG_SMART_INFO     = 0x02,
+     NVME_LOG_FW_SLOT_INFO   = 0x03,
++    NVME_LOG_CMD_EFFECTS    = 0x05,
+ };
+
+ typedef struct QEMU_PACKED NvmePSD {
+@@ -862,6 +879,7 @@ enum NvmeIdCtrlFrmw {
+
+ enum NvmeIdCtrlLpa {
+     NVME_LPA_NS_SMART = 1 << 0,
++    NVME_LPA_CSE      = 1 << 1,
+     NVME_LPA_EXTENDED = 1 << 2,
+ };
+
+@@ -1070,6 +1088,7 @@ static inline void _nvme_check_size(void)
+     QEMU_BUILD_BUG_ON(sizeof(NvmeErrorLog) != 64);
+     QEMU_BUILD_BUG_ON(sizeof(NvmeFwSlotInfoLog) != 512);
+     QEMU_BUILD_BUG_ON(sizeof(NvmeSmartLog) != 512);
++    QEMU_BUILD_BUG_ON(sizeof(NvmeEffectsLog) != 4096);
+     QEMU_BUILD_BUG_ON(sizeof(NvmeIdCtrl) != 4096);
+     QEMU_BUILD_BUG_ON(sizeof(NvmeIdNs) != 4096);
+     QEMU_BUILD_BUG_ON(sizeof(NvmeSglDescriptor) != 16);
+diff --git a/hw/block/nvme.c b/hw/block/nvme.c
+index 986917dabf..0b047f2069 100644
+--- a/hw/block/nvme.c
++++ b/hw/block/nvme.c
+@@ -112,6 +112,28 @@ static const uint32_t nvme_feature_cap[NVME_FID_MAX] = {
+     [NVME_TIMESTAMP]                = NVME_FEAT_CAP_CHANGE,
+ };
+
++static const uint32_t nvme_cse_acs[256] = {
++    [NVME_ADM_CMD_DELETE_SQ]        = NVME_CMD_EFF_CSUPP,
++    [NVME_ADM_CMD_CREATE_SQ]        = NVME_CMD_EFF_CSUPP,
++    [NVME_ADM_CMD_GET_LOG_PAGE]     = NVME_CMD_EFF_CSUPP,
++    [NVME_ADM_CMD_DELETE_CQ]        = NVME_CMD_EFF_CSUPP,
++    [NVME_ADM_CMD_CREATE_CQ]        = NVME_CMD_EFF_CSUPP,
++    [NVME_ADM_CMD_IDENTIFY]         = NVME_CMD_EFF_CSUPP,
++    [NVME_ADM_CMD_ABORT]            = NVME_CMD_EFF_CSUPP,
++    [NVME_ADM_CMD_SET_FEATURES]     = NVME_CMD_EFF_CSUPP,
++    [NVME_ADM_CMD_GET_FEATURES]     = NVME_CMD_EFF_CSUPP,
++    [NVME_ADM_CMD_ASYNC_EV_REQ]     = NVME_CMD_EFF_CSUPP,
++};
++
++static const uint32_t nvme_cse_iocs_none[256];
++
++static const uint32_t nvme_cse_iocs_nvm[256] = {
++    [NVME_CMD_FLUSH]                = NVME_CMD_EFF_CSUPP | NVME_CMD_EFF_LBCC,
++    [NVME_CMD_WRITE_ZEROES]         = NVME_CMD_EFF_CSUPP | NVME_CMD_EFF_LBCC,
++    [NVME_CMD_WRITE]                = NVME_CMD_EFF_CSUPP | NVME_CMD_EFF_LBCC,
++    [NVME_CMD_READ]                 = NVME_CMD_EFF_CSUPP,
++};
++
+ static void nvme_process_sq(void *opaque);
+
+ static uint16_t nvme_cid(NvmeRequest *req)
+@@ -1203,10 +1225,6 @@ static uint16_t nvme_io_cmd(NvmeCtrl *n, NvmeRequest
+*req)
+     trace_pci_nvme_io_cmd(nvme_cid(req), nsid, nvme_sqid(req),
+                           req->cmd.opcode, nvme_io_opc_str(req->cmd.opcode));
+
+-    if (NVME_CC_CSS(n->bar.cc) == NVME_CC_CSS_ADMIN_ONLY) {
+-        return NVME_INVALID_OPCODE | NVME_DNR;
+-    }
+-
+     if (!nvme_nsid_valid(n, nsid)) {
+         return NVME_INVALID_NSID | NVME_DNR;
+     }
+@@ -1216,6 +1234,11 @@ static uint16_t nvme_io_cmd(NvmeCtrl *n, NvmeRequest
+*req)
+         return NVME_INVALID_FIELD | NVME_DNR;
+     }
+
++    if (!(req->ns->iocs[req->cmd.opcode] & NVME_CMD_EFF_CSUPP)) {
++        trace_pci_nvme_err_invalid_opc(req->cmd.opcode);
++        return NVME_INVALID_OPCODE | NVME_DNR;
++    }
++
+     switch (req->cmd.opcode) {
+     case NVME_CMD_FLUSH:
+         return nvme_flush(n, req);
+@@ -1228,8 +1251,7 @@ static uint16_t nvme_io_cmd(NvmeCtrl *n, NvmeRequest *req)
+     case NVME_CMD_DSM:
+         return nvme_dsm(n, req);
+     default:
+-        trace_pci_nvme_err_invalid_opc(req->cmd.opcode);
+-        return NVME_INVALID_OPCODE | NVME_DNR;
++        assert(false);
+     }
+ }
+
+@@ -1466,6 +1488,37 @@ static uint16_t nvme_error_info(NvmeCtrl *n, uint8_t
+rae, uint32_t buf_len,
+                     DMA_DIRECTION_FROM_DEVICE, req);
+ }
+
++static uint16_t nvme_cmd_effects(NvmeCtrl *n, uint32_t buf_len,
++                                 uint64_t off, NvmeRequest *req)
++{
++    NvmeEffectsLog log = {};
++    const uint32_t *src_iocs = NULL;
++    uint32_t trans_len;
++
++    if (off >= sizeof(log)) {
++        trace_pci_nvme_err_invalid_log_page_offset(off, sizeof(log));
++        return NVME_INVALID_FIELD | NVME_DNR;
++    }
++
++    switch (NVME_CC_CSS(n->bar.cc)) {
++    case NVME_CC_CSS_NVM:
++        src_iocs = nvme_cse_iocs_nvm;
++    case NVME_CC_CSS_ADMIN_ONLY:
++        break;
++    }
++
++    memcpy(log.acs, nvme_cse_acs, sizeof(nvme_cse_acs));
++
++    if (src_iocs) {
++        memcpy(log.iocs, src_iocs, sizeof(log.iocs));
++    }
++
++    trans_len = MIN(sizeof(log) - off, buf_len);
++
++    return nvme_dma(n, ((uint8_t *)&log) + off, trans_len,
++                    DMA_DIRECTION_FROM_DEVICE, req);
++}
++
+ static uint16_t nvme_get_log(NvmeCtrl *n, NvmeRequest *req)
+ {
+     NvmeCmd *cmd = &req->cmd;
+@@ -1509,6 +1562,8 @@ static uint16_t nvme_get_log(NvmeCtrl *n, NvmeRequest
+*req)
+         return nvme_smart_info(n, rae, len, off, req);
+     case NVME_LOG_FW_SLOT_INFO:
+         return nvme_fw_log_info(n, len, off, req);
++    case NVME_LOG_CMD_EFFECTS:
++        return nvme_cmd_effects(n, len, off, req);
+     default:
+         trace_pci_nvme_err_invalid_log_page(nvme_cid(req), lid);
+         return NVME_INVALID_FIELD | NVME_DNR;
+@@ -2131,6 +2186,11 @@ static uint16_t nvme_admin_cmd(NvmeCtrl *n, NvmeRequest
+*req)
+     trace_pci_nvme_admin_cmd(nvme_cid(req), nvme_sqid(req), req->cmd.opcode,
+                              nvme_adm_opc_str(req->cmd.opcode));
+
++    if (!(nvme_cse_acs[req->cmd.opcode] & NVME_CMD_EFF_CSUPP)) {
++        trace_pci_nvme_err_invalid_admin_opc(req->cmd.opcode);
++        return NVME_INVALID_OPCODE | NVME_DNR;
++    }
++
+     switch (req->cmd.opcode) {
+     case NVME_ADM_CMD_DELETE_SQ:
+         return nvme_del_sq(n, req);
+@@ -2153,8 +2213,7 @@ static uint16_t nvme_admin_cmd(NvmeCtrl *n, NvmeRequest
+*req)
+     case NVME_ADM_CMD_ASYNC_EV_REQ:
+         return nvme_aer(n, req);
+     default:
+-        trace_pci_nvme_err_invalid_admin_opc(req->cmd.opcode);
+-        return NVME_INVALID_OPCODE | NVME_DNR;
++        assert(false);
+     }
+ }
+
+@@ -2254,6 +2313,23 @@ static void nvme_ctrl_shutdown(NvmeCtrl *n)
+     }
+ }
+
++static void nvme_select_ns_iocs(NvmeCtrl *n)
++{
++    NvmeNamespace *ns;
++    int i;
++
++    for (i = 1; i <= n->num_namespaces; i++) {
++        ns = nvme_ns(n, i);
++        if (!ns) {
++            continue;
++        }
++        ns->iocs = nvme_cse_iocs_none;
++        if (NVME_CC_CSS(n->bar.cc) != NVME_CC_CSS_ADMIN_ONLY) {
++            ns->iocs = nvme_cse_iocs_nvm;
++        }
++    }
++}
++
+ static int nvme_start_ctrl(NvmeCtrl *n)
+ {
+     uint32_t page_bits = NVME_CC_MPS(n->bar.cc) + 12;
+@@ -2352,6 +2428,8 @@ static int nvme_start_ctrl(NvmeCtrl *n)
+
+     QTAILQ_INIT(&n->aer_queue);
+
++    nvme_select_ns_iocs(n);
++
+     return 0;
+ }
+
+@@ -2959,7 +3037,7 @@ static void nvme_init_ctrl(NvmeCtrl *n, PCIDevice
+*pci_dev)
+     id->acl = 3;
+     id->aerl = n->params.aerl;
+     id->frmw = (NVME_NUM_FW_SLOTS << 1) | NVME_FRMW_SLOT1_RO;
+-    id->lpa = NVME_LPA_NS_SMART | NVME_LPA_EXTENDED;
++    id->lpa = NVME_LPA_NS_SMART | NVME_LPA_CSE | NVME_LPA_EXTENDED;
+
+     /* recommended default value (~70 C) */
+     id->wctemp = cpu_to_le16(NVME_TEMPERATURE_WARNING);
+diff --git a/hw/block/trace-events b/hw/block/trace-events
+index 02a7c3044c..22e0108c9d 100644
+--- a/hw/block/trace-events
++++ b/hw/block/trace-events
+@@ -106,6 +106,7 @@ pci_nvme_err_invalid_prp2_align(uint64_t prp2) "PRP2 is not
+page aligned: 0x%"PR
+ pci_nvme_err_invalid_opc(uint8_t opc) "invalid opcode 0x%"PRIx8""
+ pci_nvme_err_invalid_admin_opc(uint8_t opc) "invalid admin opcode 0x%"PRIx8""
+ pci_nvme_err_invalid_lba_range(uint64_t start, uint64_t len, uint64_t limit)
+"Invalid LBA start=%"PRIu64" len=%"PRIu64" limit=%"PRIu64""
++pci_nvme_err_invalid_log_page_offset(uint64_t ofs, uint64_t size) "must be <=
+%"PRIu64", got %"PRIu64""
+ pci_nvme_err_invalid_del_sq(uint16_t qid) "invalid submission queue deletion,
+sid=%"PRIu16""
+ pci_nvme_err_invalid_create_sq_cqid(uint16_t cqid) "failed creating submission
+queue, invalid cqid=%"PRIu16""
+ pci_nvme_err_invalid_create_sq_sqid(uint16_t sqid) "failed creating submission
+queue, invalid sqid=%"PRIu16""
+--
+2.28.0

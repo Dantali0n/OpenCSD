@@ -66,6 +66,7 @@ tests*/**
 # latex intermediate files
 documentation/*
 !documentation/**/
+!documentation/CMakeLists.txt
 !documentation/**/*.bib
 !documentation/**/*.tex
 !documentation/**/bash/

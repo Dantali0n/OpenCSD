@@ -194,6 +194,9 @@ if(ENABLE_CODECOV)
 	setup_target_for_coverage(${PRJ_PRX}_coverage ctest ${local_modules})
 endif(ENABLE_CODECOV)
 
+# Project documentation and report
+add_subdirectory(documentation)
+
 # Generate Doxygen Documentation
 if(ENABLE_DOXYGEN)
 	find_package(Doxygen)

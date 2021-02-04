@@ -1,0 +1,18 @@
+---
+ hw/block/nvme.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/hw/block/nvme.c b/hw/block/nvme.c
+index 2bdc50eb6fce..01b657b1c5e2 100644
+--- a/hw/block/nvme.c
++++ b/hw/block/nvme.c
+@@ -2799,7 +2799,6 @@ static void nvme_exit(PCIDevice *pci_dev)
+     NvmeCtrl *n = NVME(pci_dev);
+
+     nvme_clear_ctrl(n);
+-    g_free(n->namespaces);
+     g_free(n->cq);
+     g_free(n->sq);
+     g_free(n->aer_reqs);
+--
+2.29.1

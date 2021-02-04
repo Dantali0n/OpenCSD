@@ -1,0 +1,94 @@
+---
+ hw/block/nvme-ns.h |  2 +-
+ hw/block/nvme-ns.c |  2 +-
+ hw/block/nvme.c    | 24 ++++++++++++++++++------
+ 3 files changed, 20 insertions(+), 8 deletions(-)
+
+diff --git a/hw/block/nvme-ns.h b/hw/block/nvme-ns.h
+index 44bf6271b7..ed3d7e65d5 100644
+--- a/hw/block/nvme-ns.h
++++ b/hw/block/nvme-ns.h
+@@ -73,6 +73,6 @@ typedef struct NvmeCtrl NvmeCtrl;
+
+ int nvme_ns_setup(NvmeCtrl *n, NvmeNamespace *ns, Error **errp);
+ void nvme_ns_drain(NvmeNamespace *ns);
+-void nvme_ns_flush(NvmeNamespace *ns);
++void nvme_ns_shutdown(NvmeNamespace *ns);
+
+ #endif /* NVME_NS_H */
+diff --git a/hw/block/nvme-ns.c b/hw/block/nvme-ns.c
+index 847069a66e..9b95e2ed33 100644
+--- a/hw/block/nvme-ns.c
++++ b/hw/block/nvme-ns.c
+@@ -130,7 +130,7 @@ void nvme_ns_drain(NvmeNamespace *ns)
+     blk_drain(ns->blkconf.blk);
+ }
+
+-void nvme_ns_flush(NvmeNamespace *ns)
++void nvme_ns_shutdown(NvmeNamespace *ns)
+ {
+     blk_flush(ns->blkconf.blk);
+ }
+diff --git a/hw/block/nvme.c b/hw/block/nvme.c
+index 59990e00bc..10acb7e7f0 100644
+--- a/hw/block/nvme.c
++++ b/hw/block/nvme.c
+@@ -2197,6 +2197,20 @@ static void nvme_clear_ctrl(NvmeCtrl *n)
+     n->aer_queued = 0;
+     n->outstanding_aers = 0;
+     n->qs_created = false;
++}
++
++static void nvme_ctrl_reset(NvmeCtrl *n)
++{
++    nvme_clear_ctrl(n);
++    n->bar.cc = 0;
++}
++
++static void nvme_ctrl_shutdown(NvmeCtrl *n)
++{
++    NvmeNamespace *ns;
++    int i;
++
++    nvme_clear_ctrl(n);
+
+     for (i = 1; i <= n->num_namespaces; i++) {
+         ns = nvme_ns(n, i);
+@@ -2204,10 +2218,8 @@ static void nvme_clear_ctrl(NvmeCtrl *n)
+             continue;
+         }
+
+-        nvme_ns_flush(ns);
++        nvme_ns_shutdown(ns);
+     }
+-
+-    n->bar.cc = 0;
+ }
+
+ static int nvme_start_ctrl(NvmeCtrl *n)
+@@ -2374,12 +2386,12 @@ static void nvme_write_bar(NvmeCtrl *n, hwaddr offset, uint64_t data,
+             }
+         } else if (!NVME_CC_EN(data) && NVME_CC_EN(n->bar.cc)) {
+             trace_pci_nvme_mmio_stopped();
+-            nvme_clear_ctrl(n);
++            nvme_ctrl_reset(n);
+             n->bar.csts &= ~NVME_CSTS_READY;
+         }
+         if (NVME_CC_SHN(data) && !(NVME_CC_SHN(n->bar.cc))) {
+             trace_pci_nvme_mmio_shutdown_set();
+-            nvme_clear_ctrl(n);
++            nvme_ctrl_shutdown(n);
+             n->bar.cc = data;
+             n->bar.csts |= NVME_CSTS_SHST_COMPLETE;
+         } else if (!NVME_CC_SHN(data) && NVME_CC_SHN(n->bar.cc)) {
+@@ -2990,7 +3002,7 @@ static void nvme_exit(PCIDevice *pci_dev)
+ {
+     NvmeCtrl *n = NVME(pci_dev);
+
+-    nvme_clear_ctrl(n);
++    nvme_ctrl_shutdown(n);
+     g_free(n->cq);
+     g_free(n->sq);
+     g_free(n->aer_reqs);
+--
+2.28.0

@@ -1,0 +1,144 @@
+---
+ hw/block/nvme.c       | 78 ++++++++++++++++++++-----------------------
+ hw/block/trace-events |  1 -
+ 2 files changed, 36 insertions(+), 43 deletions(-)
+
+diff --git a/hw/block/nvme.c b/hw/block/nvme.c
+index 897c2d04e5..986917dabf 100644
+--- a/hw/block/nvme.c
++++ b/hw/block/nvme.c
+@@ -1128,32 +1128,7 @@ invalid:
+     return status | NVME_DNR;
+ }
+
+-static uint16_t nvme_write_zeroes(NvmeCtrl *n, NvmeRequest *req)
+-{
+-    NvmeRwCmd *rw = (NvmeRwCmd *)&req->cmd;
+-    NvmeNamespace *ns = req->ns;
+-    uint64_t slba = le64_to_cpu(rw->slba);
+-    uint32_t nlb = (uint32_t)le16_to_cpu(rw->nlb) + 1;
+-    uint64_t offset = nvme_l2b(ns, slba);
+-    uint32_t count = nvme_l2b(ns, nlb);
+-    uint16_t status;
+-
+-    trace_pci_nvme_write_zeroes(nvme_cid(req), nvme_nsid(ns), slba, nlb);
+-
+-    status = nvme_check_bounds(n, ns, slba, nlb);
+-    if (status) {
+-        trace_pci_nvme_err_invalid_lba_range(slba, nlb, ns->id_ns.nsze);
+-        return status;
+-    }
+-
+-    block_acct_start(blk_get_stats(req->ns->blkconf.blk), &req->acct, 0,
+-                     BLOCK_ACCT_WRITE);
+-    req->aiocb = blk_aio_pwrite_zeroes(req->ns->blkconf.blk, offset, count,
+-                                       BDRV_REQ_MAY_UNMAP, nvme_rw_cb, req);
+-    return NVME_NO_COMPLETE;
+-}
+-
+-static uint16_t nvme_write(NvmeCtrl *n, NvmeRequest *req)
++static uint16_t nvme_do_write(NvmeCtrl *n, NvmeRequest *req, bool wrz)
+ {
+     NvmeRwCmd *rw = (NvmeRwCmd *)&req->cmd;
+     NvmeNamespace *ns = req->ns;
+@@ -1167,10 +1142,12 @@ static uint16_t nvme_write(NvmeCtrl *n, NvmeRequest
+*req)
+     trace_pci_nvme_write(nvme_cid(req), nvme_io_opc_str(rw->opcode),
+                          nvme_nsid(ns), nlb, data_size, slba);
+
+-    status = nvme_check_mdts(n, data_size);
+-    if (status) {
+-        trace_pci_nvme_err_mdts(nvme_cid(req), data_size);
+-        goto invalid;
++    if (!wrz) {
++        status = nvme_check_mdts(n, data_size);
++        if (status) {
++            trace_pci_nvme_err_mdts(nvme_cid(req), data_size);
++            goto invalid;
++        }
+     }
+
+     status = nvme_check_bounds(n, ns, slba, nlb);
+@@ -1179,21 +1156,28 @@ static uint16_t nvme_write(NvmeCtrl *n, NvmeRequest
+*req)
+         goto invalid;
+     }
+
+-    status = nvme_map_dptr(n, data_size, req);
+-    if (status) {
+-        goto invalid;
+-    }
+-
+     data_offset = nvme_l2b(ns, slba);
+
+-    block_acct_start(blk_get_stats(blk), &req->acct, data_size,
+-                     BLOCK_ACCT_WRITE);
+-    if (req->qsg.sg) {
+-        req->aiocb = dma_blk_write(blk, &req->qsg, data_offset,
+-                                   BDRV_SECTOR_SIZE, nvme_rw_cb, req);
++    if (!wrz) {
++        status = nvme_map_dptr(n, data_size, req);
++        if (status) {
++            goto invalid;
++        }
++
++        block_acct_start(blk_get_stats(blk), &req->acct, data_size,
++                         BLOCK_ACCT_WRITE);
++        if (req->qsg.sg) {
++            req->aiocb = dma_blk_write(blk, &req->qsg, data_offset,
++                                       BDRV_SECTOR_SIZE, nvme_rw_cb, req);
++        } else {
++            req->aiocb = blk_aio_pwritev(blk, data_offset, &req->iov, 0,
++                                         nvme_rw_cb, req);
++        }
+     } else {
+-        req->aiocb = blk_aio_pwritev(blk, data_offset, &req->iov, 0,
+-                                     nvme_rw_cb, req);
++        block_acct_start(blk_get_stats(blk), &req->acct, 0, BLOCK_ACCT_WRITE);
++        req->aiocb = blk_aio_pwrite_zeroes(blk, data_offset, data_size,
++                                           BDRV_REQ_MAY_UNMAP, nvme_rw_cb,
++                                           req);
+     }
+     return NVME_NO_COMPLETE;
+
+@@ -1202,6 +1186,16 @@ invalid:
+     return status | NVME_DNR;
+ }
+
++static inline uint16_t nvme_write(NvmeCtrl *n, NvmeRequest *req)
++{
++    return nvme_do_write(n, req, false);
++}
++
++static inline uint16_t nvme_write_zeroes(NvmeCtrl *n, NvmeRequest *req)
++{
++    return nvme_do_write(n, req, true);
++}
++
+ static uint16_t nvme_io_cmd(NvmeCtrl *n, NvmeRequest *req)
+ {
+     uint32_t nsid = le32_to_cpu(req->cmd.nsid);
+diff --git a/hw/block/trace-events b/hw/block/trace-events
+index 6233f801e1..02a7c3044c 100644
+--- a/hw/block/trace-events
++++ b/hw/block/trace-events
+@@ -43,7 +43,6 @@ pci_nvme_admin_cmd(uint16_t cid, uint16_t sqid, uint8_t
+opcode, const char *opna
+ pci_nvme_read(uint16_t cid, uint32_t nsid, uint32_t nlb, uint64_t count,
+uint64_t lba) "cid %"PRIu16" nsid %"PRIu32" nlb %"PRIu32" count %"PRIu64" lba
+0x%"PRIx64""
+ pci_nvme_write(uint16_t cid, const char *verb, uint32_t nsid, uint32_t nlb,
+uint64_t count, uint64_t lba) "cid %"PRIu16" opname '%s' nsid %"PRIu32" nlb
+%"PRIu32" count %"PRIu64" lba 0x%"PRIx64""
+ pci_nvme_rw_cb(uint16_t cid, const char *blkname) "cid %"PRIu16" blk '%s'"
+-pci_nvme_write_zeroes(uint16_t cid, uint32_t nsid, uint64_t slba, uint32_t
+nlb) "cid %"PRIu16" nsid %"PRIu32" slba %"PRIu64" nlb %"PRIu32""
+ pci_nvme_block_status(int64_t offset, int64_t bytes, int64_t pnum, int ret,
+bool zeroed) "offset %"PRId64" bytes %"PRId64" pnum %"PRId64" ret 0x%x zeroed
+%d"
+ pci_nvme_dsm(uint16_t cid, uint32_t nsid, uint32_t nr, uint32_t attr) "cid
+%"PRIu16" nsid %"PRIu32" nr %"PRIu32" attr 0x%"PRIx32""
+ pci_nvme_dsm_deallocate(uint16_t cid, uint32_t nsid, uint64_t slba, uint32_t
+nlb) "cid %"PRIu16" nsid %"PRIu32" slba %"PRIu64" nlb %"PRIu32""
+--
+2.28.0
