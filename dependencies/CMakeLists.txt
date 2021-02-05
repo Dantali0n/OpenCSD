@@ -165,9 +165,9 @@ add_custom_command(OUTPUT qemu-configure PRE_BUILD
 # ---------- #
 
 download_file(
-    https://dancloud.dantalion.nl/index.php/s/qr2RytZoTgzvlHM/download
+    https://dancloud.dantalion.nl/index.php/s/lKk8ugkEz7hmq7b/download
     ${PRJ_ROOT}/arch-qemucsd.qcow2
-    SHA256 1762f47e67ec0e4ce052bf122214bdf9cf1c4e4b143b9463ac8fece15fe071cc
+    SHA256 0ecd3854eadf5b637b31905a811b33282e575313feb12e2e7bb01c76d6352157
 )
 
 ## ----- #
