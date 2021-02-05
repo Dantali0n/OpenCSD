@@ -17,13 +17,13 @@
 
 ### Index
 
-* [Directory structure](#Directory-structure)
-* [Modules](#Modules)
-* [Dependencies](#Dependencies)
-* [Setup](#Setup)
-* [Licensing](#Licensing)
-* [References](#References)
-* [Snippets](#Snippets)
+* [Directory structure](#directory-structure)
+* [Modules](#modules)
+* [Dependencies](#dependencies)
+* [Setup](#setup)
+* [Licensing](#licensing)
+* [References](#references)
+* [Snippets](#snippets)
 
 ### Directory structure
 
