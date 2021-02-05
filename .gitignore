@@ -50,6 +50,7 @@ dependencies/*
 !dependencies/backward
 !dependencies/CMakeLists.txt
 !dependencies/libbpf
+!dependencies/spdk
 !dependencies/qemu
 !dependencies/qemu-patches
 

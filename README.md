@@ -6,9 +6,24 @@
 
 ### Project goals
 
-* Perform read / write requests on ZNS SSD in QEMU.
-* Setup Github repository and bi-directional mirroring.
-* Read paper.
+* Week 1
+  * Perform read / write requests on ZNS SSD in QEMU.
+  * Setup Github repository and bi-directional mirroring.
+  * Read blockNDP paper.
+* Week 2
+  * Setup Cmake target to deploy binary into QEMU vm.
+  * SPDK hello world.
+  * Unit tests with basic SPDK.
+
+### Index
+
+* [Directory structure](#Directory-structure)
+* [Modules](#Modules)
+* [Dependencies](#Dependencies)
+* [Setup](#Setup)
+* [Licensing](#Licensing)
+* [References](#References)
+* [Snippets](#Snippets)
 
 ### Directory structure
 
@@ -62,17 +77,18 @@ linked statically due to the nature of this project. However, for several depend
 this is not possible due to various reason. For Boost, it is because the unit test
 framework can not be statically linked (easily):
 
-| Dependency                                                         | Version     |
-|--------------------------------------------------------------------|-------------|
-| [backward](https://github.com/bombela/backward-cpp)                | 1.5         |
-| [booost](https://www.boost.org/)                                   | 1.74.0      |
-| [libbpf](https://github.com/libbpf/libbpf)                         | 0.3         |
-| [qemu](https://www.qemu.org/)                                      | 5.2.0       |
+| Dependency                                                         | Version                                                       |
+|--------------------------------------------------------------------|---------------------------------------------------------------|
+| [backward](https://github.com/bombela/backward-cpp)                | 1.5                                                           |
+| [booost](https://www.boost.org/)                                   | 1.74.0                                                        |
+| [libbpf](https://github.com/libbpf/libbpf)                         | 0.3                                                           |
+| [spdk](https://github.com/spdk/spdk)                               | 2.10                                                          |
+| [qemu](https://www.qemu.org/)                                      | [nvme-next d79d797b0d](git://git.infradead.org/qemu-nvme.git) |
 
 #### Setup
 
 Building tools and dependencies is done by simply executing the following commands
-from the root directory.
+from the root directory. For a more complete list of cmake 
 
 ```shell script
 git submodule update --init --recursive
@@ -104,18 +120,28 @@ specific source files for licensing details.
 
 #### References
 
-* [uNVME](https://github.com/OpenMPDK/uNVMe)
-* [ZNS SSD QEMU patch v11](http://patchwork.ozlabs.org/project/qemu-devel/list/?series=219344)
-* [ZNS SSD QEMU patch v2](https://patchwork.kernel.org/project/qemu-devel/cover/20200617213415.22417-1-dmitry.fomichev@wdc.com/)
+* [SPDK](https://spdk.io/)
 * [Zoned storage ZNS SSDs introduction](https://zonedstorage.io/introduction/zns/)
-* [NVMe ZNS command set 1.0 ratified TP](https://nvmexpress.org/wp-content/uploads/NVM-Express-1.4-Ratified-TPs-1.zip)
 * [Getting started with ZNS in QEMU](https://www.snia.org/educational-library/getting-started-nvme-zns-qemu-2020)
-
-#### Ideas
+* [NVMe ZNS command set 1.0 ratified TP](https://nvmexpress.org/wp-content/uploads/NVM-Express-1.4-Ratified-TPs-1.zip)
+* Repositories / Libraries
+  * [uNVME](https://github.com/OpenMPDK/uNVMe)
+  * [SPDK](https://github.com/spdk/spdk)
+* Patchsets
+  * [ZNS SSD QEMU patch v11](http://patchwork.ozlabs.org/project/qemu-devel/list/?series=219344)
+  * [ZNS SSD QEMU patch v2](https://patchwork.kernel.org/project/qemu-devel/cover/20200617213415.22417-1-dmitry.fomichev@wdc.com/)
 
 #### Snippets
 
-How to configure ZNS SSD devices with QEMU
+* SPDK -> now supports ZNS zone append
+* uNVME
+* OCSSD
+* RMDA
+* p2pdma 
+* ioctl
+* libbpf
+
+Configuration and parameters for QEMU ZNS SSDs:
 ```shell
 Usage:
       -device nvme-subsys,id=subsys0
@@ -124,7 +150,7 @@ Usage:
       -device nvme,serial=baz,id=nvme2,subsys=subsys0
       -device nvme-ns,id=ns1,drive=<drv>,nsid=1,subsys=subsys0  # Shared
       -device nvme-ns,id=ns2,drive=<drv>,nsid=2,bus=nvme2
-      
+
 nvme options:
   addr=<int32>           - Slot and optional function number, example: 06.0 or 06 (default: -1)
   aer_max_queued=<uint32> -  (default: 64)
@@ -154,7 +180,7 @@ nvme options:
   x-pcie-extcap-init=<bool> - on/off (default: true)
   x-pcie-lnksta-dllla=<bool> - on/off (default: true)
   zoned.append_size_limit=<size> -  (default: 131072)
-  
+
 nvme-ns options:
   bootindex=<int32>
   discard_granularity=<size> -  (default: 4294967295)
@@ -177,71 +203,7 @@ nvme-ns options:
   zoned=<bool>           -  (default: false)
 ```
 
-Launch QEMU old
-```shell
-qemu-img create -f raw znsssd.img 0
-qemu-system-x86_64 -name qemucsd -m 4G -cpu Haswell -smp 2 -hda ./arch-qemucsd.qcow2 \
--net user,hostfwd=tcp::7777-:22,hostfwd=tcp::2222-:2000 -net nic \
--drive file=./znsssd.img,id=mynvme,format=raw,if=none -device nvme,drive=mynvme,serial=deadbeef,\
-logical_block_size=4096,physical_block_size=4096,zoned=true,zone_size=128,zone_capacity=128,\
-max_open=0,max_active=0,zone_append_size_limit=128,zone_descr_ext_size=64,zone_file=./zone_meta 
-```
-
-```shell
-qemu-system-x86_64 -name qemucsd -m 4G -cpu Haswell -smp 2 -hda ./arch-qemucsd.qcow2 \
--net user,hostfwd=tcp::7777-:22,hostfwd=tcp::2222-:2000 -net nic \
-\
--drive file=./znsssd.img,id=mynvme,format=raw,if=none \
-\
--device nvme-subsys,id=subsys0 \
--device nvme,serial=deadbeef,id=nvme0,zoned.append_size_limit=128,subsys=subsys0 \
--device nvme-ns,id=ns1,drive=mynvme,nsid=1,logical_block_size=4096,physical_block_size=4096, \
-zoned=true,zoned.zone_size=128,zoned.zone_capacity=128,zoned.max_open=0,zoned.max_active=0, \
-subsys=subsys0
-```
-
-```shell
-qemu-system-x86_64 -name qemucsd -m 4G -cpu Haswell -smp 2 -hda ./arch-qemucsd.qcow2 \
--net user,hostfwd=tcp::7777-:22,hostfwd=tcp::2222-:2000 -net nic \
-\
--drive file=./znsssd.img,id=mynvme,format=raw,if=none \
-\
--device nvme,serial=deadbeef,id=nvme0,zoned.append_size_limit=128 \
--device nvme-ns,id=zns1,drive=mynvme,nsid=1,logical_block_size=4096,physical_block_size=4096, \
-zoned=true,zoned.zone_size=128,zoned.zone_capacity=128,zoned.max_open=0,zoned.max_active=0, \
-bus=nvme0
-```
-
-```shell
-qemu-img create -f raw blank.img 0
-qemu-img create -f raw znsssd.img 16777216
-qemu-system-x86_64 -name qemucsd -m 4G -cpu Haswell -smp 2 -hda ./arch-qemucsd.qcow2 \
--net user,hostfwd=tcp::7777-:22,hostfwd=tcp::2222-:2000 -net nic \
--drive file=./blank.img,id=myblank,format=raw,if=none \
--drive file=./znsssd.img,id=mynvme,format=raw,if=none \
--device nvme-subsys,id=subsys0 \
--device nvme,serial=deadbeef,id=nvme0,drive=myblank,zoned.append_size_limit=128,subsys=subsys0 \
--device nvme-ns,id=zns1,drive=mynvme,nsid=1,logical_block_size=4096,\
-physical_block_size=4096,zoned=true,zoned.zone_size=131072,zoned.zone_capacity=131072,\
-zoned.max_open=0,zoned.max_active=0,bus=nvme0
-```
-
-
-```shell
-qemu-system-x86_64 -name qemucsd -m 4G -cpu Haswell -smp 2 -hda ./arch-qemucsd.qcow2 \
--net user,hostfwd=tcp::7777-:22,hostfwd=tcp::2222-:2000 -net nic \
--drive file=./blank.img,id=myblank,format=raw,if=none \
--drive file=./znsssd.img,id=mynvme,format=raw,if=none \
--device nvme-subsys,id=subsys0 \
--device nvme,serial=foo,id=nvme0,subsys=subsys0 \
--device nvme,serial=bar,id=nvme1,subsys=subsys0 \
--device nvme,serial=baz,id=nvme2,subsys=subsys0 \
--device nvme-ns,id=ns1,drive=mynvme,nsid=1,subsys=subsys0 \
--device nvme-ns,id=ns2,drive=myblank,nsid=2,bus=nvme2
-```
-
-
-
+Create required images and launch QEMU with ZNS SSD:
 ```shell
 qemu-img create -f raw znsssd.img 16777216
 qemu-system-x86_64 -name qemucsd -m 4G -cpu Haswell -smp 2 -hda ./arch-qemucsd.qcow2 \
@@ -254,8 +216,7 @@ physical_block_size=4096,zoned=true,zoned.zone_size=131072,zoned.zone_capacity=1
 zoned.max_open=0,zoned.max_active=0,bus=nvme2
 ```
 
-
-Demo for friday afternoon
+Week 1 friday demo scripts:
 ```shell
 cat /sys/block/nvme0n1/queue/zoned
 cat /sys/block/nvme0n1/queue/chunk_sectors
