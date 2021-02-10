@@ -58,7 +58,7 @@ target_link_libraries(
 	${${PRJ_PRX}_LIBRARIES_PACK}
 )
 
-add_exec_post(testcpp17)
+qemucsd_target_postprocess(testcpp17)
 
 # --------------- #
 # arguments tests #
@@ -83,7 +83,7 @@ target_link_libraries(
 	${${PRJ_PRX}_LIBRARIES_PACK}
 )
 
-add_exec_post(testarguments)
+qemucsd_target_postprocess(testarguments)
 
 
 add_test(TestArguments testarguments)

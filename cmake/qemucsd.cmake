@@ -52,13 +52,14 @@ function(qemucsd_include_directories)
     ENDFOREACH()
 endfunction(qemucsd_include_directories)
 
-# ----------------------------------- #
-# add_executable post processing      #
-# ----------------------------------- #
-function(add_exec_post)
+# ---------------------------------------- #
+# perform post_processing for added target #
+# ---------------------------------------- #
+function(qemucsd_target_postprocess)
     foreach(arg ${ARGV})
         if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+            target_compile_definitions(${arg} PUBLIC QEMUCSD_DEBUG)
             add_backward(${arg})
         endif()
     endforeach()
-endfunction(add_exec_post)
+endfunction(qemucsd_target_postprocess)

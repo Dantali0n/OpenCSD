@@ -76,6 +76,8 @@ OPTION(ENABLE_DOXYGEN "Generate documentation" ON)
 OPTION(ENABLE_PLAYGROUND "Enable playground build targets" OFF)
 OPTION(ENABLE_LEAK_TESTS "Enable address sanitizer" OFF)
 
+OPTION(IS_DEPLOYED "Indicate if cmake is being run inside qemu" OFF)
+
 # Required packages
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
@@ -92,6 +94,7 @@ find_package(Threads REQUIRED FATAL_ERROR)
 #   - add_qemucsd_module					   #
 #   - add_qemucsd_include					   #
 #   - qemucsd_include_directories			   #
+#   - qemucsd_target_postprocess			   #
 include(qemucsd)							   #
 # -------------------------------------------- #
 

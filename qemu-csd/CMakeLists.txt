@@ -15,5 +15,6 @@ get_property(local_modules GLOBAL PROPERTY module_list)
 target_link_libraries(
     qemucsd
     ${local_modules}
-#    ${${PRJ_PRX}_LIBRARIES}
 )
+
+qemucsd_target_postprocess(qemucsd)

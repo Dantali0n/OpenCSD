@@ -11,9 +11,11 @@ message("Links playground: ${test}")
 add_custom_target(
     playground
     DEPENDS
+    play-backward
     play-boost-locale
     play-example
     play-libbpf
+    play-qemu-deploy
 )
 
 set(${PRJ_PRX}_PLAYGROUND_LIBRARIES
@@ -24,6 +26,25 @@ set(${PRJ_PRX}_PLAY_LIBRARIES_PACK
     ${${PRJ_PRX}_LIBRARIES}
     ${${PRJ_PRX}_PLAYGROUND_LIBRARIES}
 )
+
+# ------------------- #
+# Playground backward #
+# ------------------- #
+
+set(PLAYGROUND_BACKWARD_SOURCE
+    backward/playground-backward.cxx
+)
+
+message("${PRJ_PRX}: playground backward cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(play-backward ${PLAYGROUND_BACKWARD_SOURCE})
+
+
+target_link_libraries(
+    play-backward
+    ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
+)
+
+qemucsd_target_postprocess(play-backward)
 
 # ----------------------- #
 # Playground boost_locale #
@@ -46,6 +67,8 @@ target_link_libraries(
 
 add_dependencies(play-boost-locale boost-build)
 
+qemucsd_target_postprocess(play-boost-locale)
+
 # ------------------ #
 # Playground example #
 # ------------------ #
@@ -63,6 +86,8 @@ target_link_libraries(
     ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
 )
 
+qemucsd_target_postprocess(play-example)
+
 # ----------------- #
 # Playground libbpf #
 # ----------------- #
@@ -71,7 +96,7 @@ set(PLAYGROUND_LIBBPF_SOURCE
     libbpf/playground-libbpf.cxx
 )
 
-message("${PRJ_PRX}: playground example cxx flags:${CMAKE_CXX_FLAGS}")
+message("${PRJ_PRX}: playground libbpf cxx flags:${CMAKE_CXX_FLAGS}")
 add_executable(play-libbpf ${PLAYGROUND_LIBBPF_SOURCE})
 
 add_dependencies(play-libbpf libbpf-build)
@@ -87,6 +112,27 @@ target_link_libraries(
     bpf
     ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
 )
+
+qemucsd_target_postprocess(play-libbpf)
+
+# ---------------------- #
+# Playground qemu-deploy #
+# ---------------------- #
+
+set(PLAYGROUND_QEMU_DEPLOY_SOURCE
+    qemu-deploy/qemu-deploy.cxx
+)
+
+message("${PRJ_PRX}: playground qemu deploy cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(play-qemu-deploy ${PLAYGROUND_QEMU_DEPLOY_SOURCE})
+
+target_link_libraries(
+    play-qemu-deploy
+    qemucsd_arguments
+    ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
+)
+
+qemucsd_target_postprocess(play-qemu-deploy)
 
 ## ------------------ #
 ## Playground objcopy #
