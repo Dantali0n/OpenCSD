@@ -10,3 +10,6 @@
 [submodule "dependencies/spdk"]
 	path = dependencies/spdk
 	url = https://github.com/spdk/spdk
+[submodule "dependencies/bcc"]
+	path = dependencies/bcc
+	url = https://github.com/iovisor/bcc.git
