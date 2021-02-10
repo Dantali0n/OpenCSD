@@ -218,11 +218,115 @@ info@dantalion.nl}
 
 \addcontentsline{toc}{section}{\protect\numberline{}INTRODUCTION}
 \section*{INTRODUCTION}
-This is the introduction
 
-\section{Previous Work}
+Recently pieces of literature have been presented about Zones Namespace (ZNS)
+SSDs. These cover a variety of topics such as migrating from Open-Channel
+SSDs to Zoned Namespaces\cite{bjorling2019open}. Other literature addresses
+some of the  functionality these ZNS SSDs introduce\cite{bjorling2020zone}.
+Finally, some works evaluate host-based SSD features such as flash management
+and  garbage collection when implemented using ZNS SSDs\cite{254268,9188086}.
 
-This section regards previous work.
+In this work the use of ZNS SSDs as Computational Storage Device (CSD) will be
+investigated. However, this requires the availability of ZNS SSD devices.
+Currently, the availability of physical ZNS SSDs is problematic, this is
+likely  due to the NVMe Zoned Namespace technical proposal only being ratified
+recently.
+
+This NVMe Zoned Namespace command set specification is what enables ZNS SSDs to
+exist\cite{nvme-zns}. Luckily, the functionality of this NVMe command set is
+already enabled in QEMU. This allows the development of technologies utilizing
+ZNS SSDs in a virtualized environment.
+
+Several online resources exist explaining how this functionality was enabled in
+QEMU\cite{nvme-qemu-1,nvme-qemu-2} as well as resources on general information
+about ZNS SSDs\cite{zns-info}.
+
+This work focuses on documenting the steps necessary to implement CSDs
+utilizing ZNS SSDs with QEMU. The emphasis is on describing not only what works
+well but  also what does not work. The overall work should serve as a
+\textit{getting started} guide to any follow up project.
+
+\section{Enabling ZNS SSD in QEMU}
+
+The first step is getting an install of QEMU that supports ZNS SSDs. It turned
+out that at the time of writing\footnotemark[1] this feature was not actually
+upstream yet. By tracing patches a public repository containing these patches
+is found. This can subsequently be included as git submodule allowing for a
+CMake project to automatically download and install it. The remainder of this
+section describes parameters to configure ZNS SSDs in QEMU. However, first the
+use and features of git submodules are briefly explained.
+
+\footnotetext[1]{Time of writing is $10^{th}$ of February 2021.}
+
+\subsection{Git Submodules}
+
+Throughout this work git submodules are used extensively, these allow for easy
+integration of dependencies into a target project. A submodule can be added by
+executing\bashinline{git submodule add REPO_URL.git PATH}. The subsequent
+module is than added to the \textit{.gitmodules} file. As an example the
+contents of the file for this project is shown in figure
+\ref{fig:example-gitmodules}. Git will keep track of the commit each of these
+submodules are checked out on as long as that commit can be found on the remote
+referenced in the \textit{.gitmodules} file. Git does not automatically download
+submodules upon cloning a repository. Instead, it offers several commands to
+interact with submodules. The most important of these commands
+being\bashinline{git submodule update --init}. If desired the submodules of
+submodules can also be initialized recursively by adding\bashinline{--recursive}
+to this command.
+
+\begin{center}
+	\begin{figure}[H]
+		\bashexternal{resources/bash/gitmodules.sh}
+		\captionsetup{justification=centering}
+		\caption{Contents of \textit{.gitmodules} file for this project.}
+		\label{fig:example-gitmodules}
+	\end{figure}
+\end{center}
+
+\subsection{ZNS SSD Configuration}
+
+In parallel with the development of ZNS SSD patches for QEMU are patches that
+separate the NVMe devices. These patches allow fine grained control over the
+hierarchy of these devices. Among these devices are so called
+\textit{subsystems} and \textit{namespaces}. These subsystems effectively allow
+namespaces to be shared by multiple NVMe devices. While, namespaces are what
+enables ZNS SSDs. The first example shown in figure
+\ref{fig:example-nvme-subsystems} illustrates sharing a namespace with multiple
+devices through a subsystem. These examples shown are incomplete, a complete
+example is shown at the end of this section.
+
+\begin{center}
+	\begin{figure}[H]
+		\bashexternal{resources/bash/nvme-subsystem.sh}
+		\captionsetup{justification=centering}
+		\caption{Example sharing a single NVMe namespace with two NVMe devices.}
+		\label{fig:example-nvme-subsystems}
+	\end{figure}
+\end{center}
+
+Many types of devices expose important configuration parameters including
+NVMe devices. While it would serve little purpose iterating all parameters here,
+it is important to know how these can be queried. By
+executing\bashinline{qemu-system-x86_64 -device nvme-ns,?} , all parameters for
+a NVMe namespace are shown. The type of device can be replaced with any other
+device, although some do not expose any configuration parameters.
+
+This final example, shown in figure \ref{fig:qemu-launch}, is a complete set of
+parameters to boot QEMU and expose a ZNS SSD. Coincidentally, it is the
+command used throughout this project.
+
+\begin{center}
+	\begin{figure}[H]
+		\bashexternal{resources/bash/qemu-launch.sh}
+		\captionsetup{justification=centering}
+		\caption{Command used to launch QEMU in this project.}
+		\label{fig:qemu-launch}
+	\end{figure}
+\end{center}
+
+\section{CMake project}
+
+
 
 %\footnotemark[1]. example\ref{term}.
 %\footnotetext[1]{test}
@@ -296,17 +400,20 @@ how some of these terms are interpreted. Mainly, this section serves to avoid
 confusion.
 
 \begin{enumerate}
-	\item CSD  - Computational Storage Device
-	\item SCSI - Small Computer System Interface
-	\item ATA  - AT Attachment
-	\item ZBC  - (SCSI) Zoned Block Command
-	\item ZAC  - (ATA) Zoned ATA Commands
+	\item ZNS      - Zoned Namespace
+	\item CSD      - Computational Storage Device
+	\item upstream - When a certain patch or feature has been merged into the
+					 main repository of a project.
+	\item SCSI     - Small Computer System Interface
+	\item ATA      - AT Attachment
+	\item ZBC      - (SCSI) Zoned Block Command
+	\item ZAC      - (ATA) Zoned ATA Commands
 \end{enumerate}
 
-% \phantomsection
-% \addcontentsline{toc}{section}{\protect\numberline{}References}
-%\bibliographystyle{IEEEtran}
-%\bibliography{bibliography}
+\phantomsection
+\addcontentsline{toc}{section}{\protect\numberline{}References}
+\bibliographystyle{IEEEtran}
+\bibliography{bibliography}
 
 
 %% \begin{center}

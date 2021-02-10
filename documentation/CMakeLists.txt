@@ -13,7 +13,7 @@ set(MAIN_TEX "${CMAKE_CURRENT_SOURCE_DIR}/documentation.tex")
 if(LATEX_FOUND AND LATEX_PDFLATEX_FOUND)
     # First pass.
     add_custom_target(latex-prebuild
-        COMMAND ${PDFLATEX_COMPILER}  -output-directory ${OUT_DIRECTORY} -draftmode -interaction=nonstopmode ${MAIN_TEX}
+        COMMAND texi2pdf -o ${OUT_DIRECTORY}/report.pdf -b ${MAIN_TEX}
         COMMENT "Starting Prebuild."
         WORKING_DIRECTORY ${WORKINGDIR}
         DEPENDS ${MAIN_TEX}
@@ -21,7 +21,7 @@ if(LATEX_FOUND AND LATEX_PDFLATEX_FOUND)
 
     # Second pass - generate the final pdf.
     add_custom_target(latex-pdf
-        COMMAND ${PDFLATEX_COMPILER} -output-directory ${OUT_DIRECTORY} ${MAIN_TEX}
+        COMMAND texi2pdf -o ${OUT_DIRECTORY}/report.pdf ${MAIN_TEX}
         WORKING_DIRECTORY ${WORKINGDIR}
         COMMENT "Assembling the final pdf file."
         DEPENDS latex-prebuild

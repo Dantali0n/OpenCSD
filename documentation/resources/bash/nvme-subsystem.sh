@@ -1,0 +1,4 @@
+-device nvme-subsys,id=subsys0
+-device nvme,serial=foo,id=nvme0,subsys=subsys0
+-device nvme,serial=bar,id=nvme1,subsys=subsys0
+-device nvme-ns,id=ns1,drive=<drv>,nsid=1,subsys=subsys0
