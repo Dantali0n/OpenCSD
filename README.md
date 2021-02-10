@@ -21,6 +21,7 @@
 * [Modules](#modules)
 * [Dependencies](#dependencies)
 * [Setup](#setup)
+* [Configuration](#configuration)
 * [Licensing](#licensing)
 * [References](#references)
 * [Snippets](#snippets)
@@ -32,7 +33,7 @@
 * dependencies - project dependencies
 * docs - doxygen generated source code documentation
 * documentation - project documentation written in LaTeX
-* playground - small toy examples or other experiments
+* [playground]([playground/README.md]) - small toy examples or other experiments
 * [python](python/README.md) - python scripts to aid in visualization or measurements
 * tests - unit tests and possibly integration tests
 
@@ -88,7 +89,8 @@ framework can not be statically linked (easily):
 #### Setup
 
 Building tools and dependencies is done by simply executing the following commands
-from the root directory. For a more complete list of cmake 
+from the root directory. For a more complete list of cmake options see the
+[Configuration](#configuration) section.
 
 ```shell script
 git submodule update --init --recursive
@@ -112,6 +114,33 @@ cd python
 source bin/activate
 pip install -r requirements.txt
 ```
+
+#### Configuration
+
+This section documents all configuration parameters that the CMake project
+exposes and how they influence the project. For more information about the
+CMake project see the report generated from the documentation folder. Below 
+all parameters are listed along their default value and a brief description.
+
+| Parameter         | Default | Use case                                        |
+|-------------------|---------|-------------------------------------------------|
+| ENABLE_TESTS      | ON      | Enables unit tests and adds tests target        |
+| ENABLE_CODECOV    | OFF     | Produce code coverage report \w unit tests      |
+| ENABLE_DOXYGEN    | ON      | Produce code documentation using doxygen        |
+| ENABLE_PLAYGROUND | OFF     | Enables playground targets                      |
+| ENABLE_LEAK_TESTS | OFF     | Add compile parameter for address sanitizer     |
+| IS_DEPLOYED       | OFF     | Indicate that CMake project is deployed in QEMU |
+
+For several parameters a more in depth explanation is required, primarily
+_IS_DEPLOYED_. This parameter is used as the Cmake project is both used to
+compile QEMU and configure it as well as compile binaries to run inside QEMU. As
+a results, the CMake project needs to be able to identify if it is being
+executed outside of QEMU or not. This is what _IS_DEPLOYED_ facilitates. The
+user typically **does not** have to interact with this. This is because the
+CMake project will automatically be deployed into QEMU and reconfigured, if
+CMake is being run with _IS_DEPLOYED_ off. However, it is of course still
+important to understand when to use this parameter if changes are made to the
+CMake source files.
 
 #### Licensing
 
@@ -137,9 +166,11 @@ specific source files for licensing details.
 * uNVME
 * OCSSD
 * RMDA
-* p2pdma 
-* ioctl
 * libbpf
+* libbpf-tools
+* Linux Kernel:
+  * p2pdma 
+  * ioctl
 
 Configuration and parameters for QEMU ZNS SSDs:
 ```shell
@@ -209,8 +240,7 @@ qemu-img create -f raw znsssd.img 16777216
 qemu-system-x86_64 -name qemucsd -m 4G -cpu Haswell -smp 2 -hda ./arch-qemucsd.qcow2 \
 -net user,hostfwd=tcp::7777-:22,hostfwd=tcp::2222-:2000 -net nic \
 -drive file=./znsssd.img,id=mynvme,format=raw,if=none \
--device nvme-subsys,id=subsys0 \
--device nvme,serial=baz,id=nvme2,zoned.append_size_limit=131072,subsys=subsys0 \
+-device nvme,serial=baz,id=nvme2,zoned.append_size_limit=131072 \
 -device nvme-ns,id=ns2,drive=mynvme,nsid=2,logical_block_size=4096,\
 physical_block_size=4096,zoned=true,zoned.zone_size=131072,zoned.zone_capacity=131072,\
 zoned.max_open=0,zoned.max_active=0,bus=nvme2
