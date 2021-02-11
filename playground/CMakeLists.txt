@@ -15,7 +15,7 @@ add_custom_target(
     play-boost-locale
     play-example
     play-libbpf
-    play-qemu-deploy
+    play-spdk
 )
 
 set(${PRJ_PRX}_PLAYGROUND_LIBRARIES
@@ -101,11 +101,11 @@ add_executable(play-libbpf ${PLAYGROUND_LIBBPF_SOURCE})
 
 add_dependencies(play-libbpf libbpf-build)
 
-target_include_directories(
-    play-libbpf
-    INTERFACE
-    $<BUILD_INTERFACE:${PRJ_ROOT}/include/bpf>
-)
+#target_include_directories(
+#    play-libbpf
+#    INTERFACE
+#    $<BUILD_INTERFACE:${PRJ_ROOT}/include/bpf>
+#)
 
 target_link_libraries(
     play-libbpf
@@ -115,24 +115,31 @@ target_link_libraries(
 
 qemucsd_target_postprocess(play-libbpf)
 
-# ---------------------- #
-# Playground qemu-deploy #
-# ---------------------- #
+# ----------------- #
+# Playground libbpf #
+# ----------------- #
 
-set(PLAYGROUND_QEMU_DEPLOY_SOURCE
-    qemu-deploy/qemu-deploy.cxx
+set(PLAYGROUND_SPDK_SOURCE
+    spdk/playground-spdk.cxx
 )
 
-message("${PRJ_PRX}: playground qemu deploy cxx flags:${CMAKE_CXX_FLAGS}")
-add_executable(play-qemu-deploy ${PLAYGROUND_QEMU_DEPLOY_SOURCE})
+message("${PRJ_PRX}: playground spdk cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(play-spdk ${PLAYGROUND_SPDK_SOURCE})
+
+add_dependencies(play-spdk spdk-build)
+
+#target_include_directories(
+#    play-spdk
+#    INTERFACE
+#    $<BUILD_INTERFACE:${PRJ_ROOT}/include/spdk>
+#)
 
 target_link_libraries(
-    play-qemu-deploy
-    qemucsd_arguments
+    play-spdk
     ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
 )
 
-qemucsd_target_postprocess(play-qemu-deploy)
+qemucsd_target_postprocess(play-spdk)
 
 ## ------------------ #
 ## Playground objcopy #

@@ -15,6 +15,8 @@ else()
 endif()
 
 add_custom_target(libbpf-build DEPENDS libbpf-install)
+add_custom_target(spdk-build DEPENDS spdk-install)
+
 add_custom_target(qemu-build ALL DEPENDS qemu-install)
 
 # -------------------- #
@@ -136,6 +138,40 @@ endif()
 add_custom_command(OUTPUT libbpf-install PRE_BUILD
     COMMAND BUILD_STATIC_ONLY=y PREFIX=${PRJ_ROOT} LIBDIR=${PRJ_ROOT}/lib make install
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/src
+)
+
+# ---- #
+# spdk #
+# ---- #
+
+# Check if spdk is already build, REQUIRES RE-RUNNING CMAKE COMMAND!
+# Limitations: this only tests the presence of a single file
+file_exists(${PRJ_ROOT}/lib/libspdk_nvme.a has_spdk)
+if(${has_spdk})
+    add_custom_target(spdk-install)
+endif()
+
+add_custom_command(OUTPUT spdk-install PRE_BUILD
+        COMMAND make install
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
+        DEPENDS spdk-build
+        )
+
+add_custom_command(OUTPUT spdk-build PRE_BUILD
+    COMMAND make -j $(nproc)
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
+    DEPENDS spdk-configure
+)
+
+add_custom_command(OUTPUT spdk-configure PRE_BUILD
+    COMMAND ./configure --prefix=${PRJ_ROOT}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
+    DEPENDS spdk-init
+)
+
+add_custom_command(OUTPUT spdk-init PRE_BUILD
+    COMMAND git submodule update --init
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
 )
 
 # --------------------- #

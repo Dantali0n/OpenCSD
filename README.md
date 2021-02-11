@@ -53,6 +53,8 @@ compiled and linked is shown below.
 * General
     * compiler with c++17 support
     * cmake 3.13 or higher
+    * python 3.x
+    * mesonbuild (`pip3 install meson`)
 * Windows specific
     * Visual Studio 2019 community
     * cygwin
@@ -66,7 +68,6 @@ compiled and linked is shown below.
 * Continuous Integration
     * valgrind
 * Python scripts
-    * python 3.x
     * virtualenv
 * QEMU
     * librdmacm
