@@ -72,7 +72,7 @@ endif()
 # Configurable options and defaults
 OPTION(ENABLE_TESTS "Enable unit tests" ON)
 OPTION(ENABLE_CODECOV "Measure code coverage, overrides build type Release" OFF)
-OPTION(ENABLE_DOXYGEN "Generate documentation" ON)
+OPTION(ENABLE_DOCUMENTATION "Generate documentation" ON)
 OPTION(ENABLE_PLAYGROUND "Enable playground build targets" OFF)
 OPTION(ENABLE_LEAK_TESTS "Enable address sanitizer" OFF)
 
@@ -198,10 +198,11 @@ if(ENABLE_CODECOV)
 endif(ENABLE_CODECOV)
 
 # Project documentation and report
-add_subdirectory(documentation)
+if(ENABLE_DOCUMENTATION)
 
-# Generate Doxygen Documentation
-if(ENABLE_DOXYGEN)
+	add_subdirectory(documentation)
+
+	# Generate Doxygen Documentation
 	find_package(Doxygen)
 	if (DOXYGEN_FOUND)
 		# set input and output files

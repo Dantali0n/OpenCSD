@@ -120,7 +120,7 @@ source activate.sh
 qemu-img create -f raw znsssd.img 16777216
 ./qemu-start.sh
 # Wait for QEMU VM to fully boot... (might take some time)
-rsync -avz -e "ssh -p 7777" deploy.tar arch@localhost:~/
+rsync -avz -e "ssh -p 7777" deploy.git arch@localhost:~/
 # Type password (arch)
 ssh arch@localhost -p 7777
 # Type password (arch)
@@ -151,14 +151,14 @@ exposes and how they influence the project. For more information about the
 CMake project see the report generated from the documentation folder. Below 
 all parameters are listed along their default value and a brief description.
 
-| Parameter         | Default | Use case                                        |
-|-------------------|---------|-------------------------------------------------|
-| ENABLE_TESTS      | ON      | Enables unit tests and adds tests target        |
-| ENABLE_CODECOV    | OFF     | Produce code coverage report \w unit tests      |
-| ENABLE_DOXYGEN    | ON      | Produce code documentation using doxygen        |
-| ENABLE_PLAYGROUND | OFF     | Enables playground targets                      |
-| ENABLE_LEAK_TESTS | OFF     | Add compile parameter for address sanitizer     |
-| IS_DEPLOYED       | OFF     | Indicate that CMake project is deployed in QEMU |
+| Parameter            | Default | Use case                                         |
+|----------------------|---------|--------------------------------------------------|
+| ENABLE_TESTS         | ON      | Enables unit tests and adds tests target         |
+| ENABLE_CODECOV       | OFF     | Produce code coverage report \w unit tests       |
+| ENABLE_DOCUMENTATION | ON      | Produce code documentation using doxygen & LaTeX |
+| ENABLE_PLAYGROUND    | OFF     | Enables playground targets                       |
+| ENABLE_LEAK_TESTS    | OFF     | Add compile parameter for address sanitizer      |
+| IS_DEPLOYED          | OFF     | Indicate that CMake project is deployed in QEMU  |
 
 For several parameters a more in depth explanation is required, primarily
 _IS_DEPLOYED_. This parameter is used as the Cmake project is both used to
