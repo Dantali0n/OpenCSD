@@ -15,7 +15,7 @@ else()
 endif()
 
 add_custom_target(libbpf-build DEPENDS libbpf-install)
-add_custom_target(qemu-build DEPENDS qemu-install)
+add_custom_target(qemu-build ALL DEPENDS qemu-install)
 
 # -------------------- #
 # Copy activate script #
@@ -138,37 +138,63 @@ add_custom_command(OUTPUT libbpf-install PRE_BUILD
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/src
 )
 
-# ---- #
-# qemu #
-# ---- #
+# --------------------- #
+# qemu build and deploy #
+# --------------------- #
 
 # Check if qemu is already build, REQUIRES RE-RUNNING CMAKE COMMAND!
 # Limitations: this only tests the presence of a single file
+# Do not rebuild qemu if being run inside qemu
 file_exists(${PRJ_ROOT}/bin/qemu-system-x86_64 has_qemu)
-if(${has_qemu})
+if(${has_qemu} OR IS_DEPLOYED)
     add_custom_target(qemu-install)
 endif()
 
 add_custom_command(OUTPUT qemu-install PRE_BUILD
     COMMAND make -j $(nproc) install
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/qemu
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/qemu/build
     DEPENDS qemu-configure
 )
 
 add_custom_command(OUTPUT qemu-configure PRE_BUILD
-    COMMAND ./configure --target-list=x86_64-softmmu --enable-rdma --enable-debug --prefix=${PRJ_ROOT}
+    COMMAND ../configure --target-list=x86_64-softmmu --enable-rdma --enable-debug --prefix=${PRJ_ROOT}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/qemu/build
+    DEPENDS qemu-build-dir
+)
+
+add_custom_command(OUTPUT qemu-build-dir PRE_BUILD
+    COMMAND mkdir build -p
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/qemu
+)
+
+# As qemu-configure target since the script is for qemu.
+add_custom_command(
+    TARGET qemu-build POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${CMAKE_SOURCE_DIR}/scripts/qemu-start.sh
+    ${PRJ_ROOT}/qemu-start.sh
+)
+
+# As qemu-configure target since the script is for qemu.
+add_custom_command(
+    TARGET qemu-build POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${CMAKE_SOURCE_DIR}/scripts/qemu-stop.sh
+    ${PRJ_ROOT}/qemu-stop.sh
 )
 
 # ---------- #
 # Arch image #
 # ---------- #
 
+# Download qemu image if preparing deployment / on host development
+if(NOT IS_DEPLOYED)
 download_file(
-    https://dancloud.dantalion.nl/index.php/s/lKk8ugkEz7hmq7b/download
+    https://dancloud.dantalion.nl/index.php/s/1qpT8JinRS0U4Z2/download
     ${PRJ_ROOT}/arch-qemucsd.qcow2
-    SHA256 0ecd3854eadf5b637b31905a811b33282e575313feb12e2e7bb01c76d6352157
+    SHA256 4556fdff4144c980e2086d631c3bb13506f45feef6fdba81590a6b66362f805e
 )
+endif()
 
 ## ----- #
 ## glfw3 #
