@@ -52,7 +52,7 @@ compiled and linked is shown below.
 
 * General
     * compiler with c++17 support
-    * cmake 3.13 or higher
+    * cmake 3.18 or higher
     * python 3.x
     * mesonbuild (`pip3 install meson`)
 * Windows specific

@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.13)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.18)
 PROJECT(qemu-csd)
 
 # Project name under shorter variable

@@ -15,6 +15,10 @@ function(extract_archive file destination working_directory target depends)
     if(NOT EXISTS "${destination}")
         message("Extracting: ${file}")
         if(${CMAKE_VERSION} VERSION_LESS "3.18.0")
+            message(WARNING
+                "Native ARCHIVE_EXTRACT not supported with this"
+                "version of CMake, archive extraction may fail!"
+            )
             add_custom_command(
                 OUTPUT ${target} PRE_BUILD
                 COMMAND tar -xzvf ${file} -C ${destination}
