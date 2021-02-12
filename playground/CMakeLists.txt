@@ -115,9 +115,12 @@ target_link_libraries(
 
 qemucsd_target_postprocess(play-libbpf)
 
-# ----------------- #
-# Playground libbpf #
-# ----------------- #
+# --------------- #
+# Playground spdk #
+# --------------- #
+
+# Target only available on guest
+if(IS_DEPLOYED)
 
 set(PLAYGROUND_SPDK_SOURCE
     spdk/playground-spdk.cxx
@@ -126,7 +129,7 @@ set(PLAYGROUND_SPDK_SOURCE
 message("${PRJ_PRX}: playground spdk cxx flags:${CMAKE_CXX_FLAGS}")
 add_executable(play-spdk ${PLAYGROUND_SPDK_SOURCE})
 
-add_dependencies(play-spdk spdk-build dpdk-build)
+#add_dependencies(play-spdk spdk-build dpdk-build)
 
 #target_include_directories(
 #    play-spdk
@@ -136,12 +139,19 @@ add_dependencies(play-spdk spdk-build dpdk-build)
 
 target_link_libraries(
     play-spdk
-    spdk_env_dpdk spdk_event_bdev spdk_bdev spdk_bdev_malloc spdk_log
-    spdk_thread spdk_util spdk_event
+    spdk dpdk
+#    spdk_env_dpdk spdk_event_bdev spdk_bdev spdk_bdev_malloc spdk_log
+#    spdk_thread spdk_util spdk_event rte_eal rte_mempool rte_ring rte_pci
+#    rte_bus_pci
     ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
 )
 
 qemucsd_target_postprocess(play-spdk)
+
+else()
+    # Add dummy target to satisfy playground target.
+    add_custom_target(play-spdk)
+endif()
 
 ## ------------------ #
 ## Playground objcopy #

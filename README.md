@@ -55,6 +55,8 @@ compiled and linked is shown below.
     * cmake 3.18 or higher
     * python 3.x
     * mesonbuild (`pip3 install meson`)
+* Inside guest (QEMU) only
+    * spdk 2.10 LTS
 * Windows specific
     * Visual Studio 2019 community
     * cygwin

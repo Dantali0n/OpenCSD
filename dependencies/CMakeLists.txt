@@ -15,8 +15,8 @@ else()
 endif()
 
 add_custom_target(libbpf-build DEPENDS libbpf-install)
-add_custom_target(spdk-build DEPENDS spdk-install)
-add_custom_target(dpdk-build DEPENDS dpdk-compile)
+#add_custom_target(spdk-build DEPENDS spdk-install)
+#add_custom_target(dpdk-build DEPENDS dpdk-copy)
 
 add_custom_target(qemu-build ALL DEPENDS qemu-install)
 
@@ -141,64 +141,64 @@ add_custom_command(OUTPUT libbpf-install PRE_BUILD
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/src
 )
 
-# ---- #
-# dpdk #
-# ---- #
+## ---- #
+## spdk #
+## ---- #
+#
+## Check if spdk is already build, REQUIRES RE-RUNNING CMAKE COMMAND!
+## Limitations: this only tests the presence of a single file
+#file_exists(${PRJ_ROOT}/lib/libspdk_nvme.a has_spdk)
+#if(${has_spdk} OR NOT IS_DEPLOYED)
+#    add_custom_target(spdk-install)
+#endif()
+#
+#add_custom_command(OUTPUT spdk-install PRE_BUILD
+#    COMMAND make install
+#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
+#    DEPENDS spdk-compile
+#)
+#
+#add_custom_command(OUTPUT spdk-compile PRE_BUILD
+#    COMMAND make -j $(nproc)
+#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
+#    DEPENDS spdk-configure
+#)
+#
+#add_custom_command(OUTPUT spdk-configure PRE_BUILD
+#    COMMAND ./configure --prefix=${PRJ_ROOT}
+#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
+#    DEPENDS spdk-init
+#)
+#
+#add_custom_command(OUTPUT spdk-init PRE_BUILD
+#    COMMAND git submodule update --init
+#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
+#)
 
-download_file(
-    https://dancloud.dantalion.nl/index.php/s/WkJTcpJfQ0hE3EN/download
-    ${CMAKE_CURRENT_SOURCE_DIR}/dpdk.tar.gz
-    SHA256 b58ef97f7cf5791bad550112053b03cb07e9e2a83afa49eb4321b565c21555c4
-)
-
-# Extracts an archive in a directory and sets the directory as a file target (Nasty hack)
-extract_archive(
-    ${CMAKE_CURRENT_SOURCE_DIR}/dpdk.tar.gz # archive
-    ${CMAKE_CURRENT_SOURCE_DIR}/dpdk # destination
-    ${CMAKE_CURRENT_SOURCE_DIR} # working directory
-    dpdk-extract # new target to depend on
-    ${CMAKE_CURRENT_SOURCE_DIR}/dpdk.tar.gz # depends on, can't actually depend on file
-)
-
-add_custom_command(OUTPUT dpdk-compile PRE_BUILD
-    COMMAND meson build
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dpdk
-    DEPENDS dpdk-extract
-)
-
-# ---- #
-# spdk #
-# ---- #
-
-# Check if spdk is already build, REQUIRES RE-RUNNING CMAKE COMMAND!
-# Limitations: this only tests the presence of a single file
-file_exists(${PRJ_ROOT}/lib/libspdk_nvme.a has_spdk)
-if(${has_spdk})
-    add_custom_target(spdk-install)
-endif()
-
-add_custom_command(OUTPUT spdk-install PRE_BUILD
-    COMMAND make install
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
-    DEPENDS spdk-compile
-)
-
-add_custom_command(OUTPUT spdk-compile PRE_BUILD
-    COMMAND make -j $(nproc)
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
-    DEPENDS spdk-configure
-)
-
-add_custom_command(OUTPUT spdk-configure PRE_BUILD
-    COMMAND ./configure --prefix=${PRJ_ROOT}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
-    DEPENDS spdk-init
-)
-
-add_custom_command(OUTPUT spdk-init PRE_BUILD
-    COMMAND git submodule update --init
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
-)
+## ---- #
+## dpdk #
+## ---- #
+#
+#file_exists(${PRJ_ROOT}/lib/pkgconfig/libdpdk.pc has_dpdk)
+#if(${has_dpdk})
+#    add_custom_target(dpdk-copy)
+#endif()
+#
+##add_custom_command(OUTPUT dpdk-replace PRE_BUILD
+##    COMMAND sed -i 's/prefix=/prefix=${PRJ_ROOT}/g' libdpdk.pc
+##    COMMAND sed -i 's/prefix=/prefix=${PRJ_ROOT}/g' libdpdk-libs.pc
+##    WORKING_DIRECTORY ${PRJ_ROOT}/lib/pkgconfig
+##    DEPENDS dpdk-copy
+##)
+#
+#add_custom_command(OUTPUT dpdk-copy PRE_BUILD
+#    COMMAND cp -r bin ${PRJ_ROOT}
+#    COMMAND cp -r lib ${PRJ_ROOT}
+#    COMMAND cp -r include ${PRJ_ROOT}
+#    COMMAND cp -r share ${PRJ_ROOT}
+#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk/dpdk/build
+#    DEPENDS spdk-compile
+#)
 
 # --------------------- #
 # qemu build and deploy #
