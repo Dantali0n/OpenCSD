@@ -16,6 +16,7 @@ endif()
 
 add_custom_target(libbpf-build DEPENDS libbpf-install)
 add_custom_target(spdk-build DEPENDS spdk-install)
+add_custom_target(dpdk-build DEPENDS dpdk-compile)
 
 add_custom_target(qemu-build ALL DEPENDS qemu-install)
 
@@ -141,6 +142,31 @@ add_custom_command(OUTPUT libbpf-install PRE_BUILD
 )
 
 # ---- #
+# dpdk #
+# ---- #
+
+download_file(
+    https://dancloud.dantalion.nl/index.php/s/WkJTcpJfQ0hE3EN/download
+    ${CMAKE_CURRENT_SOURCE_DIR}/dpdk.tar.gz
+    SHA256 b58ef97f7cf5791bad550112053b03cb07e9e2a83afa49eb4321b565c21555c4
+)
+
+# Extracts an archive in a directory and sets the directory as a file target (Nasty hack)
+extract_archive(
+    ${CMAKE_CURRENT_SOURCE_DIR}/dpdk.tar.gz # archive
+    ${CMAKE_CURRENT_SOURCE_DIR}/dpdk # destination
+    ${CMAKE_CURRENT_SOURCE_DIR} # working directory
+    dpdk-extract # new target to depend on
+    ${CMAKE_CURRENT_SOURCE_DIR}/dpdk.tar.gz # depends on, can't actually depend on file
+)
+
+add_custom_command(OUTPUT dpdk-compile PRE_BUILD
+    COMMAND meson build
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dpdk
+    DEPENDS dpdk-extract
+)
+
+# ---- #
 # spdk #
 # ---- #
 
@@ -152,12 +178,12 @@ if(${has_spdk})
 endif()
 
 add_custom_command(OUTPUT spdk-install PRE_BUILD
-        COMMAND make install
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
-        DEPENDS spdk-build
-        )
+    COMMAND make install
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
+    DEPENDS spdk-compile
+)
 
-add_custom_command(OUTPUT spdk-build PRE_BUILD
+add_custom_command(OUTPUT spdk-compile PRE_BUILD
     COMMAND make -j $(nproc)
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
     DEPENDS spdk-configure

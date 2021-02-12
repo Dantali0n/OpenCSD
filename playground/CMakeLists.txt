@@ -126,7 +126,7 @@ set(PLAYGROUND_SPDK_SOURCE
 message("${PRJ_PRX}: playground spdk cxx flags:${CMAKE_CXX_FLAGS}")
 add_executable(play-spdk ${PLAYGROUND_SPDK_SOURCE})
 
-add_dependencies(play-spdk spdk-build)
+add_dependencies(play-spdk spdk-build dpdk-build)
 
 #target_include_directories(
 #    play-spdk
@@ -136,6 +136,8 @@ add_dependencies(play-spdk spdk-build)
 
 target_link_libraries(
     play-spdk
+    spdk_env_dpdk spdk_event_bdev spdk_bdev spdk_bdev_malloc spdk_log
+    spdk_thread spdk_util spdk_event
     ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
 )
 
