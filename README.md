@@ -221,9 +221,33 @@ ld-sudo gdbserver localhost:2222 playground/play-spdk
 ```
 
 Note, that when QEMU is running the port _2222_ will be used by QEMU instead.
-The  launch targets in `.vscode/launch.json` can be easily modified or extended.
+The launch targets in `.vscode/launch.json` can be easily modified or extended.
+
+When gdbserver is running simply open vscode and select the root folder of
+qemu-csd, navigate to the source files of interest and set breakpoints and
+select the launch target from the dropdown (top left). The debugging panel in
+vscode can be accessed quickly by pressing _ctrl+shift+d_.
+
+Alternative debugging methods such as using gdb TUI or
+[gdbgui](https://www.gdbgui.com/) should work but will require more manual
+setup.
 
 **Debugging on QEMU:**
+Debugging on QEMU is similar to on host debugging. Primary difference is
+starting the gdbserver inside QEMU using a different port. This port will
+automatically get forwarded and exposed to the host on _2222_. The host can
+perform the same procedure of starting vscode and attaching to the target,
+allowing for debugging on the host using responsive graphical tools while the
+application is running inside QEMU.
+
+Inside QEMU:
+```shell
+source qemu-csd/activate
+# For when the target does not require sudo
+gdbserver localhost:2000 playground/play-boost-locale
+# For when the target requires sudo privileges
+ld-sudo gdbserver localhost:2000 playground/play-spdk
+```
 
 #### Licensing
 
