@@ -4,6 +4,9 @@
 build
 cmake-build-*
 
+# Setup file
+deploy.git
+
 # debuggers and profilers
 .gdb_history
 *.nvvp

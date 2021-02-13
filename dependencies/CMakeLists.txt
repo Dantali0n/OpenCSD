@@ -15,8 +15,8 @@ else()
 endif()
 
 add_custom_target(libbpf-build DEPENDS libbpf-install)
-#add_custom_target(spdk-build DEPENDS spdk-install)
-#add_custom_target(dpdk-build DEPENDS dpdk-copy)
+add_custom_target(spdk-build DEPENDS spdk-install)
+add_custom_target(dpdk-build DEPENDS dpdk-copy)
 
 add_custom_target(qemu-build ALL DEPENDS qemu-install)
 
@@ -141,64 +141,64 @@ add_custom_command(OUTPUT libbpf-install PRE_BUILD
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/src
 )
 
-## ---- #
-## spdk #
-## ---- #
-#
-## Check if spdk is already build, REQUIRES RE-RUNNING CMAKE COMMAND!
-## Limitations: this only tests the presence of a single file
-#file_exists(${PRJ_ROOT}/lib/libspdk_nvme.a has_spdk)
-#if(${has_spdk} OR NOT IS_DEPLOYED)
-#    add_custom_target(spdk-install)
-#endif()
-#
-#add_custom_command(OUTPUT spdk-install PRE_BUILD
-#    COMMAND make install
-#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
-#    DEPENDS spdk-compile
-#)
-#
-#add_custom_command(OUTPUT spdk-compile PRE_BUILD
-#    COMMAND make -j $(nproc)
-#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
-#    DEPENDS spdk-configure
-#)
-#
-#add_custom_command(OUTPUT spdk-configure PRE_BUILD
-#    COMMAND ./configure --prefix=${PRJ_ROOT}
-#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
-#    DEPENDS spdk-init
-#)
-#
-#add_custom_command(OUTPUT spdk-init PRE_BUILD
-#    COMMAND git submodule update --init
-#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
+# ---- #
+# spdk #
+# ---- #
+
+# Check if spdk is already build, REQUIRES RE-RUNNING CMAKE COMMAND!
+# Limitations: this only tests the presence of a single file
+file_exists(${PRJ_ROOT}/lib/libspdk_nvme.a has_spdk)
+if(${has_spdk} OR NOT IS_DEPLOYED)
+    add_custom_target(spdk-install)
+endif()
+
+add_custom_command(OUTPUT spdk-install PRE_BUILD
+    COMMAND make install
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
+    DEPENDS spdk-compile
+)
+
+add_custom_command(OUTPUT spdk-compile PRE_BUILD
+    COMMAND make -j $(nproc)
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
+    DEPENDS spdk-configure
+)
+
+add_custom_command(OUTPUT spdk-configure PRE_BUILD
+    COMMAND ./configure --prefix=${PRJ_ROOT}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
+    DEPENDS spdk-init
+)
+
+add_custom_command(OUTPUT spdk-init PRE_BUILD
+    COMMAND git submodule update --init
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
+)
+
+# ---- #
+# dpdk #
+# ---- #
+
+file_exists(${PRJ_ROOT}/lib/pkgconfig/libdpdk.pc has_dpdk)
+if(${has_dpdk})
+    add_custom_target(dpdk-copy)
+endif()
+
+#add_custom_command(OUTPUT dpdk-replace PRE_BUILD
+#    COMMAND sed -i 's/prefix=/prefix=${PRJ_ROOT}/g' libdpdk.pc
+#    COMMAND sed -i 's/prefix=/prefix=${PRJ_ROOT}/g' libdpdk-libs.pc
+#    WORKING_DIRECTORY ${PRJ_ROOT}/lib/pkgconfig
+#    DEPENDS dpdk-copy
 #)
 
-## ---- #
-## dpdk #
-## ---- #
-#
-#file_exists(${PRJ_ROOT}/lib/pkgconfig/libdpdk.pc has_dpdk)
-#if(${has_dpdk})
-#    add_custom_target(dpdk-copy)
-#endif()
-#
-##add_custom_command(OUTPUT dpdk-replace PRE_BUILD
-##    COMMAND sed -i 's/prefix=/prefix=${PRJ_ROOT}/g' libdpdk.pc
-##    COMMAND sed -i 's/prefix=/prefix=${PRJ_ROOT}/g' libdpdk-libs.pc
-##    WORKING_DIRECTORY ${PRJ_ROOT}/lib/pkgconfig
-##    DEPENDS dpdk-copy
-##)
-#
-#add_custom_command(OUTPUT dpdk-copy PRE_BUILD
-#    COMMAND cp -r bin ${PRJ_ROOT}
-#    COMMAND cp -r lib ${PRJ_ROOT}
-#    COMMAND cp -r include ${PRJ_ROOT}
-#    COMMAND cp -r share ${PRJ_ROOT}
-#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk/dpdk/build
-#    DEPENDS spdk-compile
-#)
+add_custom_command(OUTPUT dpdk-copy PRE_BUILD
+    COMMAND cp -r bin ${PRJ_ROOT}
+    COMMAND cp -r lib ${PRJ_ROOT}
+    COMMAND cp -r include ${PRJ_ROOT}
+    COMMAND cp -r share ${PRJ_ROOT}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk/dpdk/build
+    DEPENDS spdk-compile
+)
 
 # --------------------- #
 # qemu build and deploy #
@@ -252,9 +252,9 @@ add_custom_command(
 # Download qemu image if preparing deployment / on host development
 if(NOT IS_DEPLOYED)
 download_file(
-    https://dancloud.dantalion.nl/index.php/s/1qpT8JinRS0U4Z2/download
+    https://dancloud.dantalion.nl/index.php/s/gmg1rthg1PSb3YK/download
     ${PRJ_ROOT}/arch-qemucsd.qcow2
-    SHA256 4556fdff4144c980e2086d631c3bb13506f45feef6fdba81590a6b66362f805e
+    SHA256 d74b99031d2465fa1299ede58aea6ba179afc40ba27627b0875c913d244a8e18
 )
 endif()
 
