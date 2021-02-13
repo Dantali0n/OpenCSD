@@ -1,6 +1,5 @@
 # ide files and similiar
 .idea
-.vscode
 build
 cmake-build-*
 

@@ -15,6 +15,7 @@ deactivate () {
         PATH="$_OLD_VIRTUAL_PATH"
         export PATH
         unset _OLD_VIRTUAL_PATH
+        unalias ld-sudo
     fi
 
     if ! [ -z "${_OLD_LD_PATH:+_}" ] ; then
@@ -73,6 +74,8 @@ else
 fi
 
 export LD_LIBRARY_PATH;
+
+alias ld-sudo='sudo PATH="$PATH" HOME="$HOME" LD_LIBRARY_PATH="$LD_LIBRARY_PATH"'
 
 # This should detect bash and zsh, which have a hash command that must
 # be called to get it to forget past commands.  Without forgetting

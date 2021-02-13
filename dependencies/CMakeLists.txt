@@ -28,8 +28,8 @@ add_custom_target(qemu-build ALL DEPENDS qemu-install)
 add_custom_command(
     TARGET boost-build POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-    ${CMAKE_SOURCE_DIR}/scripts/activate.sh
-    ${PRJ_ROOT}/activate.sh
+    ${CMAKE_SOURCE_DIR}/scripts/activate
+    ${PRJ_ROOT}/activate
 )
 
 # ----------------------------- #
