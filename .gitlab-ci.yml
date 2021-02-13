@@ -19,7 +19,7 @@ build-documentation:
     - cd $CI_PROJECT_DIR
     - mkdir -p build
     - cd build || exit
-    - cmake -DENABLE_DOXYGEN=off ..
+    - cmake -DENABLE_DOCUMENTATION=off ..
     - make latex-pdf
   artifacts:
     paths:
@@ -30,7 +30,7 @@ build-source-documentation:
     - cd $CI_PROJECT_DIR
     - mkdir -p build
     - cd build || exit
-    - cmake -DENABLE_DOXYGEN=on ..
+    - cmake -DENABLE_DOCUMENTATION=on ..
     - make doxygen
   artifacts:
     paths:
@@ -43,7 +43,7 @@ build-binaries:
     - cd $CI_PROJECT_DIR || exit
     - mkdir -p build
     - cd build || exit
-    - cmake -ENABLE_PLAYGROUND=off -DENABLE_DOXYGEN=off ..
+    - cmake -ENABLE_PLAYGROUND=off -DENABLE_DOCUMENTATION=off ..
     - make -j $(nproc)
   artifacts:
     paths:
@@ -71,7 +71,7 @@ build-playground:
     - cd $CI_PROJECT_DIR || exit
     - mkdir -p build
     - cd build || exit
-    - cmake -DENABLE_PLAYGROUND=on -DENABLE_DOXYGEN=off ..
+    - cmake -DENABLE_PLAYGROUND=on -DENABLE_DOCUMENTATION=off ..
     - make playground -j $(nproc)
   artifacts:
     paths:
@@ -84,7 +84,7 @@ test:
     - cd $CI_PROJECT_DIR || exit
     - mkdir -p build
     - cd build || exit
-    - cmake -DENABLE_PLAYGROUND=off -DENABLE_DOXYGEN=off -DENABLE_TESTS=on ..
+    - cmake -DENABLE_PLAYGROUND=off -DENABLE_DOCUMENTATION=off -DENABLE_TESTS=on ..
     - make check
 #test-windows:
 #  stage: test
@@ -115,7 +115,7 @@ memory-valgrind:
     - cd $CI_PROJECT_DIR || exit
     - mkdir -p build
     - cd build || exit
-    - cmake -DENABLE_PLAYGROUND=off -DENABLE_DOXYGEN=off -DENABLE_TESTS=on ..
+    - cmake -DENABLE_PLAYGROUND=off -DENABLE_DOCUMENTATION=off -DENABLE_TESTS=on ..
     - make tests
     - valgrind --leak-check=full tests/testcpp17
     - valgrind --leak-check=full tests/testarguments
