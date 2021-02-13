@@ -219,7 +219,7 @@ add_custom_command(OUTPUT qemu-install PRE_BUILD
 )
 
 add_custom_command(OUTPUT qemu-configure PRE_BUILD
-    COMMAND ../configure --target-list=x86_64-softmmu --enable-rdma --enable-debug --prefix=${PRJ_ROOT}
+    COMMAND ../configure --target-list=x86_64-softmmu --enable-debug --prefix=${PRJ_ROOT}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/qemu/build
     DEPENDS qemu-build-dir
 )
