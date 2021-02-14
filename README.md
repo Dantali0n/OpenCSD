@@ -233,20 +233,26 @@ Alternative debugging methods such as using gdb TUI or
 setup.
 
 **Debugging on QEMU:**
-Debugging on QEMU is similar to on host debugging. Primary difference is
-starting the gdbserver inside QEMU using a different port. This port will
-automatically get forwarded and exposed to the host on _2222_. The host can
-perform the same procedure of starting vscode and attaching to the target,
-allowing for debugging on the host using responsive graphical tools while the
-application is running inside QEMU.
+Debugging on QEMU is similar but uses different launch targets in vscode. This
+target automatically logs-in using SSH and forwards the gdbserver connection.
 
-Inside QEMU:
+More native debugging sessions are also supported. Simply login to QEMU and
+start the gdbserver manually. On the host connect to this gdbserver and set up
+`substitute-path`.
+
+On QEMU:
 ```shell
+# from the root of the project folder.
+cd  build
 source qemu-csd/activate
-# For when the target does not require sudo
-gdbserver localhost:2000 playground/play-boost-locale
-# For when the target requires sudo privileges
-ld-sudo gdbserver localhost:2000 playground/play-spdk
+ld-sudo gdbserver localhost:2222 playground/play-spdk
+```
+
+On host:
+```shell
+gdb
+target remote localhost:2222
+set substitute-path /home/arch/qemu-csd/ /path/to/root/of/project
 ```
 
 #### Licensing

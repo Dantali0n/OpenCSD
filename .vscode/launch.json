@@ -5,9 +5,9 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Local attach play-spdk",
             "type": "gdb",
             "request": "attach",
-            "name": "playground spdk attach",
             "executable": "${workspaceFolder}/build/playground/play-spdk",
             "target": "localhost:2222",
             "remote": true,
@@ -15,6 +15,22 @@
             "autorun": [
                 "set sysroot ${workspaceRoot}"
             ]
+        },
+        {
+            "name": "SSH attach play-spdk",
+            "type": "gdb",
+            "request": "launch",
+            "target": "./build/playground/play-spdk",
+            "cwd": "${workspaceRoot}",
+            "ssh": {
+                "host": "127.0.0.1",
+                "port": 7777,
+                "cwd": "/home/arch/qemu-csd/",
+                "password": "arch",
+                "user": "arch",
+                "bootstrap": "source /home/arch/qemu-csd/build/qemu-csd/activate",
+                "forwardX11": false
+            },
         }
     ]
 }
