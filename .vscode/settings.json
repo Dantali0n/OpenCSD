@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "type_traits": "cpp",
+        "typeinfo": "cpp"
+    },
+    "editor.rulers": [80]
+}

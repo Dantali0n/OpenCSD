@@ -1,3 +1,36 @@
+/*-
+ *   BSD LICENSE
+ *
+ *   Copyright (c) Intel Corporation.
+ *   All rights reserved.
+ *
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
+ *   are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
+ *       distribution.
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
+ *
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #include "spdk/stdinc.h"
 
 #include "spdk/nvme.h"
@@ -8,12 +41,12 @@
 struct ctrlr_entry {
 	struct spdk_nvme_ctrlr		*ctrlr;
 	TAILQ_ENTRY(ctrlr_entry)	link;
-	char						name[1024];
+	char				name[1024];
 };
 
 struct ns_entry {
 	struct spdk_nvme_ctrlr	*ctrlr;
-	struct spdk_nvme_ns		*ns;
+	struct spdk_nvme_ns	*ns;
 	TAILQ_ENTRY(ns_entry)	link;
 	struct spdk_nvme_qpair	*qpair;
 };
@@ -23,8 +56,8 @@ static TAILQ_HEAD(, ns_entry) g_namespaces = TAILQ_HEAD_INITIALIZER(g_namespaces
 
 static bool g_vmd = false;
 
-static void register_ns(
-	struct spdk_nvme_ctrlr *ctrlr, struct spdk_nvme_ns *ns)
+static void
+register_ns(struct spdk_nvme_ctrlr *ctrlr, struct spdk_nvme_ns *ns)
 {
 	struct ns_entry *entry;
 
@@ -32,7 +65,7 @@ static void register_ns(
 		return;
 	}
 
-	entry = (ns_entry*) malloc(sizeof(struct ns_entry));
+	entry = malloc(sizeof(struct ns_entry));
 	if (entry == NULL) {
 		perror("ns_entry malloc");
 		exit(1);
@@ -43,17 +76,19 @@ static void register_ns(
 	TAILQ_INSERT_TAIL(&g_namespaces, entry, link);
 
 	printf("  Namespace ID: %d size: %juGB\n", spdk_nvme_ns_get_id(ns),
-		   spdk_nvme_ns_get_size(ns) / 1000000000);
+	       spdk_nvme_ns_get_size(ns) / 1000000000);
 }
 
 struct hello_world_sequence {
 	struct ns_entry	*ns_entry;
-	char			*buf;
+	char		*buf;
 	unsigned        using_cmb_io;
-	int				is_completed;
+	int		is_completed;
 };
 
-static void read_complete(void *arg, const struct spdk_nvme_cpl *completion) {
+static void
+read_complete(void *arg, const struct spdk_nvme_cpl *completion)
+{
 	struct hello_world_sequence *sequence = (hello_world_sequence*) arg;
 
 	/* Assume the I/O was successful */
@@ -80,20 +115,20 @@ static void read_complete(void *arg, const struct spdk_nvme_cpl *completion) {
 	spdk_free(sequence->buf);
 }
 
-static void write_complete(void *arg, const struct spdk_nvme_cpl *completion) {
+static void
+write_complete(void *arg, const struct spdk_nvme_cpl *completion)
+{
 	struct hello_world_sequence	*sequence = (hello_world_sequence*) arg;
-	struct ns_entry	*ns_entry = sequence->ns_entry;
-	int	rc;
+	struct ns_entry			*ns_entry = sequence->ns_entry;
+	int				rc;
 
 	/* See if an error occurred. If so, display information
 	 * about it, and set completion value so that I/O
 	 * caller is aware that an error occurred.
 	 */
 	if (spdk_nvme_cpl_is_error(completion)) {
-		spdk_nvme_qpair_print_completion(
-			sequence->ns_entry->qpair, (struct spdk_nvme_cpl *)completion);
-		fprintf(stderr, "I/O error status: %s\n",
-		  	spdk_nvme_cpl_get_status_string(&completion->status));
+		spdk_nvme_qpair_print_completion(sequence->ns_entry->qpair, (struct spdk_nvme_cpl *)completion);
+		fprintf(stderr, "I/O error status: %s\n", spdk_nvme_cpl_get_status_string(&completion->status));
 		fprintf(stderr, "Write I/O failed, aborting run\n");
 		sequence->is_completed = 2;
 		exit(1);
@@ -108,21 +143,20 @@ static void write_complete(void *arg, const struct spdk_nvme_cpl *completion) {
 	} else {
 		spdk_free(sequence->buf);
 	}
-	sequence->buf = (char*) spdk_zmalloc(
-		0x1000, 0x1000, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
+	sequence->buf = (char*) spdk_zmalloc(0x1000, 0x1000, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
 
 	rc = spdk_nvme_ns_cmd_read(ns_entry->ns, ns_entry->qpair, sequence->buf,
-							   0, /* LBA start */
-							   1, /* number of LBAs */
-							   read_complete, (void *)sequence, 0);
+				   0, /* LBA start */
+				   1, /* number of LBAs */
+				   read_complete, (void *)sequence, 0);
 	if (rc != 0) {
 		fprintf(stderr, "starting read I/O failed\n");
 		exit(1);
 	}
 }
 
-static void reset_zone_complete(
-	void *arg, const struct spdk_nvme_cpl *completion)
+static void
+reset_zone_complete(void *arg, const struct spdk_nvme_cpl *completion)
 {
 	struct hello_world_sequence *sequence = (hello_world_sequence*) arg;
 
@@ -133,26 +167,22 @@ static void reset_zone_complete(
 	 * caller is aware that an error occurred.
 	 */
 	if (spdk_nvme_cpl_is_error(completion)) {
-		spdk_nvme_qpair_print_completion(
-				sequence->ns_entry->qpair, (struct spdk_nvme_cpl *)completion);
-		fprintf(stderr, "I/O error status: %s\n",
-		  	spdk_nvme_cpl_get_status_string(&completion->status));
+		spdk_nvme_qpair_print_completion(sequence->ns_entry->qpair, (struct spdk_nvme_cpl *)completion);
+		fprintf(stderr, "I/O error status: %s\n", spdk_nvme_cpl_get_status_string(&completion->status));
 		fprintf(stderr, "Reset zone I/O failed, aborting run\n");
 		sequence->is_completed = 2;
 		exit(1);
 	}
 }
 
-static void reset_zone_and_wait_for_completion(
-	struct hello_world_sequence *sequence)
+static void
+reset_zone_and_wait_for_completion(struct hello_world_sequence *sequence)
 {
-	if (spdk_nvme_zns_reset_zone(
-			sequence->ns_entry->ns, sequence->ns_entry->qpair,
-			0, /* starting LBA of the zone to reset */
-			false, /* don't reset all zones */
-			reset_zone_complete,
-			sequence))
-	{
+	if (spdk_nvme_zns_reset_zone(sequence->ns_entry->ns, sequence->ns_entry->qpair,
+				     0, /* starting LBA of the zone to reset */
+				     false, /* don't reset all zones */
+				     reset_zone_complete,
+				     sequence)) {
 		fprintf(stderr, "starting reset zone I/O failed\n");
 		exit(1);
 	}
@@ -162,11 +192,13 @@ static void reset_zone_and_wait_for_completion(
 	sequence->is_completed = 0;
 }
 
-static void hello_world() {
+static void
+hello_world(void)
+{
 	struct ns_entry			*ns_entry;
 	struct hello_world_sequence	sequence;
-	int		rc;
-	size_t	sz;
+	int				rc;
+	size_t				sz;
 
 	TAILQ_FOREACH(ns_entry, &g_namespaces, link) {
 		/*
@@ -181,8 +213,7 @@ static void hello_world() {
 		 *  qpair.  This enables extremely efficient I/O processing by making all
 		 *  I/O operations completely lockless.
 		 */
-		ns_entry->qpair = spdk_nvme_ctrlr_alloc_io_qpair(
-				ns_entry->ctrlr, NULL, 0);
+		ns_entry->qpair = spdk_nvme_ctrlr_alloc_io_qpair(ns_entry->ctrlr, NULL, 0);
 		if (ns_entry->qpair == NULL) {
 			printf("ERROR: spdk_nvme_ctrlr_alloc_io_qpair() failed\n");
 			return;
@@ -197,8 +228,7 @@ static void hello_world() {
 		sequence.buf = (char*) spdk_nvme_ctrlr_map_cmb(ns_entry->ctrlr, &sz);
 		if (sequence.buf == NULL || sz < 0x1000) {
 			sequence.using_cmb_io = 0;
-			sequence.buf = (char*) spdk_zmalloc(
-				0x1000, 0x1000,NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
+			sequence.buf = (char*) spdk_zmalloc(0x1000, 0x1000, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
 		}
 		if (sequence.buf == NULL) {
 			printf("ERROR: write buffer allocation failed\n");
@@ -243,9 +273,9 @@ static void hello_world() {
 		 *  process.
 		 */
 		rc = spdk_nvme_ns_cmd_write(ns_entry->ns, ns_entry->qpair, sequence.buf,
-									0, /* LBA start */
-									1, /* number of LBAs */
-									write_complete, &sequence, 0);
+					    0, /* LBA start */
+					    1, /* number of LBAs */
+					    write_complete, &sequence, 0);
 		if (rc != 0) {
 			fprintf(stderr, "starting write I/O failed\n");
 			exit(1);
@@ -278,8 +308,9 @@ static void hello_world() {
 	}
 }
 
-static bool probe_cb(void *cb_ctx, const struct spdk_nvme_transport_id *trid,
-	struct spdk_nvme_ctrlr_opts *opts)
+static bool
+probe_cb(void *cb_ctx, const struct spdk_nvme_transport_id *trid,
+	 struct spdk_nvme_ctrlr_opts *opts)
 {
 	printf("Attaching to %s\n", trid->traddr);
 
@@ -288,14 +319,14 @@ static bool probe_cb(void *cb_ctx, const struct spdk_nvme_transport_id *trid,
 
 static void
 attach_cb(void *cb_ctx, const struct spdk_nvme_transport_id *trid,
-		  struct spdk_nvme_ctrlr *ctrlr, const struct spdk_nvme_ctrlr_opts *opts)
+	  struct spdk_nvme_ctrlr *ctrlr, const struct spdk_nvme_ctrlr_opts *opts)
 {
 	int nsid, num_ns;
 	struct ctrlr_entry *entry;
 	struct spdk_nvme_ns *ns;
 	const struct spdk_nvme_ctrlr_data *cdata;
 
-	entry = (ctrlr_entry*) malloc(sizeof(struct ctrlr_entry));
+	entry = malloc(sizeof(struct ctrlr_entry));
 	if (entry == NULL) {
 		perror("ctrlr_entry malloc");
 		exit(1);
@@ -376,12 +407,12 @@ parse_args(int argc, char **argv)
 
 	while ((op = getopt(argc, argv, "V")) != -1) {
 		switch (op) {
-			case 'V':
-				g_vmd = true;
-				break;
-			default:
-				usage(argv[0]);
-				return 1;
+		case 'V':
+			g_vmd = true;
+			break;
+		default:
+			usage(argv[0]);
+			return 1;
 		}
 	}
 
@@ -416,7 +447,7 @@ int main(int argc, char **argv)
 
 	if (g_vmd && spdk_vmd_init()) {
 		fprintf(stderr, "Failed to initialize VMD."
-						" Some NVMe devices can be unavailable.\n");
+			" Some NVMe devices can be unavailable.\n");
 	}
 
 	/*
