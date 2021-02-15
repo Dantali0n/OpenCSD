@@ -139,9 +139,11 @@ add_dependencies(play-spdk spdk-build dpdk-build)
 
 target_link_libraries(
     play-spdk
-    spdk_env_dpdk spdk_event_bdev spdk_bdev spdk_bdev_malloc spdk_log
-    spdk_thread spdk_util spdk_event rte_eal rte_mempool rte_ring rte_pci
-    rte_bus_pci
+    spdk_conf.a spdk_env_dpdk.a spdk_bdev_nvme.a spdk_event_bdev.a spdk_bdev.a spdk_bdev_malloc.a
+    spdk_log.a spdk_thread.a libspdk_util.a spdk_conf.a spdk_accel.a spdk_vmd.a spdk_nvme.a
+    spdk_vhost.a
+    rte_eal rte_mempool rte_ring rte_pci rte_bus_pci
+    uuid
     ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
 )
 
