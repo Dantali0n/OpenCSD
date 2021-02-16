@@ -87,8 +87,9 @@ framework can not be statically linked (easily):
 | [backward](https://github.com/bombela/backward-cpp)                | 1.5                                                           |
 | [booost](https://www.boost.org/)                                   | 1.74.0                                                        |
 | [libbpf](https://github.com/libbpf/libbpf)                         | 0.3                                                           |
-| [spdk](https://github.com/spdk/spdk)                               | 2.10                                                          |
-| [dpdk](https://www.dpdk.org/)                                      | 2.10                                                          |
+| [spdk](https://github.com/spdk/spdk)                               | 21.01                                                         |
+| [dpdk](https://www.dpdk.org/)                                      | 20.11.0                                                       |
+| [isa-l](https://github.com/intel/isa-l)                            | spdk-v2.30.0                                                  |
 | [qemu](https://www.qemu.org/)                                      | [nvme-next d79d797b0d](git://git.infradead.org/qemu-nvme.git) |
 
 #### Setup
@@ -116,7 +117,11 @@ deactivate
 
 From the root directory execute the following commands for the one time
 deployment into the QEMU guest. These command assume the previous section of
-commands has successfully been executed.
+commands has successfully been executed. The QEMU guest will automatically start
+an SSH server reachable on port 7777. Both the _arch_ and _root_ user can be
+used to login. In both cases the password is _arch_ as well. By default the QEMU
+script will only bind the guest ports on localhost to reduce security concerns
+due to these basic passwords.
 
 ```shell
 git bundle create deploy.git HEAD
@@ -255,6 +260,9 @@ gdb
 target remote localhost:2222
 set substitute-path /home/arch/qemu-csd/ /path/to/root/of/project
 ```
+
+More detailed information about development & debugging for this project can be
+found in the report.
 
 #### Licensing
 
