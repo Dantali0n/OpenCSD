@@ -19,7 +19,7 @@ build-documentation:
     - cd $CI_PROJECT_DIR
     - mkdir -p build
     - cd build || exit
-    - cmake -DENABLE_DOCUMENTATION=off ..
+    - cmake -DENABLE_DOCUMENTATION=on ..
     - make latex-pdf
   artifacts:
     paths:
