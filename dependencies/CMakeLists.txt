@@ -17,6 +17,7 @@ endif()
 add_custom_target(libbpf-build DEPENDS libbpf-install)
 add_custom_target(spdk-build DEPENDS spdk-install)
 add_custom_target(dpdk-build DEPENDS dpdk-copy)
+add_custom_target(isa-l-build DEPENDS isa-l-install)
 
 add_custom_target(qemu-build ALL DEPENDS qemu-install)
 
@@ -147,8 +148,8 @@ add_custom_command(OUTPUT libbpf-install PRE_BUILD
 
 # Check if spdk is already build, REQUIRES RE-RUNNING CMAKE COMMAND!
 # Limitations: this only tests the presence of a single file
-file_exists(${PRJ_ROOT}/lib/libspdk_nvme.a has_spdk)
-if(${has_spdk} OR NOT IS_DEPLOYED)
+file_exists(${PRJ_ROOT}/lib/libspdk.so has_spdk)
+if(${has_spdk})
     add_custom_target(spdk-install)
 endif()
 
@@ -165,7 +166,7 @@ add_custom_command(OUTPUT spdk-compile PRE_BUILD
 )
 
 add_custom_command(OUTPUT spdk-configure PRE_BUILD
-    COMMAND ./configure --prefix=${PRJ_ROOT}
+    COMMAND ./configure --prefix=${PRJ_ROOT} --with-shared
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
     DEPENDS spdk-init
 )
@@ -197,6 +198,39 @@ add_custom_command(OUTPUT dpdk-copy PRE_BUILD
     COMMAND cp -r include ${PRJ_ROOT}
     COMMAND cp -r share ${PRJ_ROOT}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk/dpdk/build
+    DEPENDS spdk-compile
+)
+
+# ----- #
+# isa-l #
+# ----- #
+
+file_exists(${PRJ_ROOT}/lib/libisal.a has_isal)
+if(${has_isal})
+    add_custom_target(isa-l-install)
+endif()
+
+add_custom_command(OUTPUT isa-l-install PRE_BUILD
+    COMMAND make install
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk/isa-l
+    DEPENDS isa-l-compile
+)
+
+add_custom_command(OUTPUT isa-l-compile PRE_BUILD
+    COMMAND make -j $(nproc)
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk/isa-l
+    DEPENDS isa-l-configure
+)
+
+add_custom_command(OUTPUT isa-l-configure PRE_BUILD
+    COMMAND ./configure --prefix=${PRJ_ROOT}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk/isa-l
+    DEPENDS isa-l-autogen
+)
+
+add_custom_command(OUTPUT isa-l-autogen PRE_BUILD
+    COMMAND ./autogen.sh
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk/isa-l
     DEPENDS spdk-compile
 )
 
@@ -252,9 +286,9 @@ add_custom_command(
 # Download qemu image if preparing deployment / on host development
 if(NOT IS_DEPLOYED)
 download_file(
-    https://dancloud.dantalion.nl/index.php/s/gmg1rthg1PSb3YK/download
+    https://dancloud.dantalion.nl/index.php/s/s8F7ferBrUZfgtU/download
     ${PRJ_ROOT}/arch-qemucsd.qcow2
-    SHA256 d74b99031d2465fa1299ede58aea6ba179afc40ba27627b0875c913d244a8e18
+    SHA256 9e4e4ba764b625cf33ea76ee2898daa3a5fa4ea32b49d8435cfca24ffa1a68e2
 )
 endif()
 

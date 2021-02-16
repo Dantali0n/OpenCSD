@@ -123,6 +123,7 @@ git bundle create deploy.git HEAD
 cd build/qemu-csd
 source activate
 qemu-img create -f raw znsssd.img 16777216
+# By default qemu will use 4 CPU cores and 8GB of memory
 ./qemu-start.sh
 # Wait for QEMU VM to fully boot... (might take some time)
 rsync -avz -e "ssh -p 7777" ../../deploy.git arch@localhost:~/

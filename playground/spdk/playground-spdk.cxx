@@ -41,12 +41,12 @@
 struct ctrlr_entry {
 	struct spdk_nvme_ctrlr		*ctrlr;
 	TAILQ_ENTRY(ctrlr_entry)	link;
-	char				name[1024];
+	char						name[1024];
 };
 
 struct ns_entry {
 	struct spdk_nvme_ctrlr	*ctrlr;
-	struct spdk_nvme_ns	*ns;
+	struct spdk_nvme_ns		*ns;
 	TAILQ_ENTRY(ns_entry)	link;
 	struct spdk_nvme_qpair	*qpair;
 };
@@ -56,8 +56,8 @@ static TAILQ_HEAD(, ns_entry) g_namespaces = TAILQ_HEAD_INITIALIZER(g_namespaces
 
 static bool g_vmd = false;
 
-static void
-register_ns(struct spdk_nvme_ctrlr *ctrlr, struct spdk_nvme_ns *ns)
+static void register_ns(
+	struct spdk_nvme_ctrlr *ctrlr, struct spdk_nvme_ns *ns)
 {
 	struct ns_entry *entry;
 
@@ -81,14 +81,12 @@ register_ns(struct spdk_nvme_ctrlr *ctrlr, struct spdk_nvme_ns *ns)
 
 struct hello_world_sequence {
 	struct ns_entry	*ns_entry;
-	char		*buf;
+	char			*buf;
 	unsigned        using_cmb_io;
-	int		is_completed;
+	int				is_completed;
 };
 
-static void
-read_complete(void *arg, const struct spdk_nvme_cpl *completion)
-{
+static void read_complete(void *arg, const struct spdk_nvme_cpl *completion) {
 	struct hello_world_sequence *sequence = (hello_world_sequence*) arg;
 
 	/* Assume the I/O was successful */
@@ -98,8 +96,10 @@ read_complete(void *arg, const struct spdk_nvme_cpl *completion)
 	 * caller is aware that an error occurred.
 	 */
 	if (spdk_nvme_cpl_is_error(completion)) {
-		spdk_nvme_qpair_print_completion(sequence->ns_entry->qpair, (struct spdk_nvme_cpl *)completion);
-		fprintf(stderr, "I/O error status: %s\n", spdk_nvme_cpl_get_status_string(&completion->status));
+		spdk_nvme_qpair_print_completion(
+			sequence->ns_entry->qpair, (struct spdk_nvme_cpl *)completion);
+		fprintf(stderr, "I/O error status: %s\n",
+		  spdk_nvme_cpl_get_status_string(&completion->status));
 		fprintf(stderr, "Read I/O failed, aborting run\n");
 		sequence->is_completed = 2;
 		exit(1);
@@ -115,20 +115,20 @@ read_complete(void *arg, const struct spdk_nvme_cpl *completion)
 	spdk_free(sequence->buf);
 }
 
-static void
-write_complete(void *arg, const struct spdk_nvme_cpl *completion)
-{
+static void write_complete(void *arg, const struct spdk_nvme_cpl *completion) {
 	struct hello_world_sequence	*sequence = (hello_world_sequence*) arg;
-	struct ns_entry			*ns_entry = sequence->ns_entry;
-	int				rc;
+	struct ns_entry				*ns_entry = sequence->ns_entry;
+	int							rc;
 
 	/* See if an error occurred. If so, display information
 	 * about it, and set completion value so that I/O
 	 * caller is aware that an error occurred.
 	 */
 	if (spdk_nvme_cpl_is_error(completion)) {
-		spdk_nvme_qpair_print_completion(sequence->ns_entry->qpair, (struct spdk_nvme_cpl *)completion);
-		fprintf(stderr, "I/O error status: %s\n", spdk_nvme_cpl_get_status_string(&completion->status));
+		spdk_nvme_qpair_print_completion(
+			sequence->ns_entry->qpair, (struct spdk_nvme_cpl *)completion);
+		fprintf(stderr, "I/O error status: %s\n",
+			spdk_nvme_cpl_get_status_string(&completion->status));
 		fprintf(stderr, "Write I/O failed, aborting run\n");
 		sequence->is_completed = 2;
 		exit(1);
@@ -143,20 +143,22 @@ write_complete(void *arg, const struct spdk_nvme_cpl *completion)
 	} else {
 		spdk_free(sequence->buf);
 	}
-	sequence->buf = (char*) spdk_zmalloc(0x1000, 0x1000, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
+	sequence->buf = (char*) spdk_zmalloc(
+		0x1000, 0x1000, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
 
-	rc = spdk_nvme_ns_cmd_read(ns_entry->ns, ns_entry->qpair, sequence->buf,
-							   0, /* LBA start */
-							   1, /* number of LBAs */
-							   read_complete, (void *)sequence, 0);
+	rc = spdk_nvme_ns_cmd_read(
+		ns_entry->ns, ns_entry->qpair, sequence->buf,
+		0, /* LBA start */
+		1, /* number of LBAs */
+		read_complete, (void *)sequence, 0);
 	if (rc != 0) {
 		fprintf(stderr, "starting read I/O failed\n");
 		exit(1);
 	}
 }
 
-static void
-reset_zone_complete(void *arg, const struct spdk_nvme_cpl *completion)
+static void reset_zone_complete(
+	void *arg, const struct spdk_nvme_cpl *completion)
 {
 	struct hello_world_sequence *sequence = (hello_world_sequence*) arg;
 
@@ -167,22 +169,26 @@ reset_zone_complete(void *arg, const struct spdk_nvme_cpl *completion)
 	 * caller is aware that an error occurred.
 	 */
 	if (spdk_nvme_cpl_is_error(completion)) {
-		spdk_nvme_qpair_print_completion(sequence->ns_entry->qpair, (struct spdk_nvme_cpl *)completion);
-		fprintf(stderr, "I/O error status: %s\n", spdk_nvme_cpl_get_status_string(&completion->status));
+		spdk_nvme_qpair_print_completion(
+			sequence->ns_entry->qpair, (struct spdk_nvme_cpl *)completion);
+		fprintf(stderr, "I/O error status: %s\n",
+			spdk_nvme_cpl_get_status_string(&completion->status));
 		fprintf(stderr, "Reset zone I/O failed, aborting run\n");
 		sequence->is_completed = 2;
 		exit(1);
 	}
 }
 
-static void
-reset_zone_and_wait_for_completion(struct hello_world_sequence *sequence)
+static void reset_zone_and_wait_for_completion(
+	struct hello_world_sequence *sequence)
 {
-	if (spdk_nvme_zns_reset_zone(sequence->ns_entry->ns, sequence->ns_entry->qpair,
-								 0, /* starting LBA of the zone to reset */
-								 false, /* don't reset all zones */
-								 reset_zone_complete,
-								 sequence)) {
+	if (spdk_nvme_zns_reset_zone(
+		sequence->ns_entry->ns, sequence->ns_entry->qpair,
+		0, /* starting LBA of the zone to reset */
+		false, /* don't reset all zones */
+		reset_zone_complete,
+		sequence))
+	{
 		fprintf(stderr, "starting reset zone I/O failed\n");
 		exit(1);
 	}
@@ -192,13 +198,11 @@ reset_zone_and_wait_for_completion(struct hello_world_sequence *sequence)
 	sequence->is_completed = 0;
 }
 
-static void
-hello_world(void)
-{
-	struct ns_entry			*ns_entry;
+static void hello_world() {
+	struct ns_entry				*ns_entry;
 	struct hello_world_sequence	sequence;
-	int				rc;
-	size_t				sz;
+	int							rc;
+	size_t						sz;
 
 	TAILQ_FOREACH(ns_entry, &g_namespaces, link) {
 		/*
@@ -213,7 +217,8 @@ hello_world(void)
 		 *  qpair.  This enables extremely efficient I/O processing by making all
 		 *  I/O operations completely lockless.
 		 */
-		ns_entry->qpair = spdk_nvme_ctrlr_alloc_io_qpair(ns_entry->ctrlr, NULL, 0);
+		ns_entry->qpair = spdk_nvme_ctrlr_alloc_io_qpair(
+			ns_entry->ctrlr, NULL, 0);
 		if (ns_entry->qpair == NULL) {
 			printf("ERROR: spdk_nvme_ctrlr_alloc_io_qpair() failed\n");
 			return;
@@ -228,7 +233,8 @@ hello_world(void)
 		sequence.buf = (char*) spdk_nvme_ctrlr_map_cmb(ns_entry->ctrlr, &sz);
 		if (sequence.buf == NULL || sz < 0x1000) {
 			sequence.using_cmb_io = 0;
-			sequence.buf = (char*) spdk_zmalloc(0x1000, 0x1000, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
+			sequence.buf = (char*) spdk_zmalloc(
+				0x1000, 0x1000, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
 		}
 		if (sequence.buf == NULL) {
 			printf("ERROR: write buffer allocation failed\n");
@@ -272,10 +278,11 @@ hello_world(void)
 		 *  It is the responsibility of the application to trigger the polling
 		 *  process.
 		 */
-		rc = spdk_nvme_ns_cmd_write(ns_entry->ns, ns_entry->qpair, sequence.buf,
-									0, /* LBA start */
-									1, /* number of LBAs */
-									write_complete, &sequence, 0);
+		rc = spdk_nvme_ns_cmd_write(
+			ns_entry->ns, ns_entry->qpair, sequence.buf,
+			0, /* LBA start */
+			1, /* number of LBAs */
+			write_complete, &sequence, 0);
 		if (rc != 0) {
 			fprintf(stderr, "starting write I/O failed\n");
 			exit(1);
@@ -308,18 +315,18 @@ hello_world(void)
 	}
 }
 
-static bool
-probe_cb(void *cb_ctx, const struct spdk_nvme_transport_id *trid,
-		 struct spdk_nvme_ctrlr_opts *opts)
+static bool probe_cb(
+	void *cb_ctx, const struct spdk_nvme_transport_id *trid,
+	struct spdk_nvme_ctrlr_opts *opts)
 {
 	printf("Attaching to %s\n", trid->traddr);
 
 	return true;
 }
 
-static void
-attach_cb(void *cb_ctx, const struct spdk_nvme_transport_id *trid,
-		  struct spdk_nvme_ctrlr *ctrlr, const struct spdk_nvme_ctrlr_opts *opts)
+static void attach_cb(
+	void *cb_ctx, const struct spdk_nvme_transport_id *trid,
+	struct spdk_nvme_ctrlr *ctrlr, const struct spdk_nvme_ctrlr_opts *opts)
 {
 	int nsid, num_ns;
 	struct ctrlr_entry *entry;
@@ -344,7 +351,8 @@ attach_cb(void *cb_ctx, const struct spdk_nvme_transport_id *trid,
 	 */
 	cdata = spdk_nvme_ctrlr_get_data(ctrlr);
 
-	snprintf(entry->name, sizeof(entry->name), "%-20.20s (%-20.20s)", cdata->mn, cdata->sn);
+	snprintf(entry->name, sizeof(entry->name), "%-20.20s (%-20.20s)",
+		cdata->mn, cdata->sn);
 
 	entry->ctrlr = ctrlr;
 	TAILQ_INSERT_TAIL(&g_controllers, entry, link);
@@ -358,7 +366,8 @@ attach_cb(void *cb_ctx, const struct spdk_nvme_transport_id *trid,
 	 * Note that in NVMe, namespace IDs start at 1, not 0.
 	 */
 	num_ns = spdk_nvme_ctrlr_get_num_ns(ctrlr);
-	printf("Using controller %s with %d namespaces.\n", entry->name, num_ns);
+	printf("Using controller %s with %d namespaces.\n",
+		entry->name, num_ns);
 	for (nsid = 1; nsid <= num_ns; nsid++) {
 		ns = spdk_nvme_ctrlr_get_ns(ctrlr, nsid);
 		if (ns == NULL) {
@@ -368,9 +377,7 @@ attach_cb(void *cb_ctx, const struct spdk_nvme_transport_id *trid,
 	}
 }
 
-static void
-cleanup(void)
-{
+static void cleanup() {
 	struct ns_entry *ns_entry, *tmp_ns_entry;
 	struct ctrlr_entry *ctrlr_entry, *tmp_ctrlr_entry;
 	struct spdk_nvme_detach_ctx *detach_ctx = NULL;
@@ -391,18 +398,14 @@ cleanup(void)
 	}
 }
 
-static void
-usage(const char *program_name)
-{
+static void usage(const char *program_name) {
 	printf("%s [options]", program_name);
 	printf("\n");
 	printf("options:\n");
 	printf(" -V         enumerate VMD\n");
 }
 
-static int
-parse_args(int argc, char **argv)
-{
+static int parse_args(int argc, char **argv) {
 	int op;
 
 	while ((op = getopt(argc, argv, "V")) != -1) {
@@ -419,8 +422,7 @@ parse_args(int argc, char **argv)
 	return 0;
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
 	int rc;
 	struct spdk_env_opts opts;
 
