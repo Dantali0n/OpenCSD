@@ -1,0 +1,10 @@
+[Unit]
+Description=Setup hugepages and assign drivers to devices as required by SPDK
+
+[Service]
+Type=simple
+Environment="HUGEMEM=512"
+ExecStart=/home/arch/qemu-csd/dependencies/spdk/scripts/setup.sh
+
+[Install]
+WantedBy=multi-user.target

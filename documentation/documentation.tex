@@ -264,12 +264,12 @@ Throughout this work git submodules are used extensively, these allow for easy
 integration of dependencies into a target project. A submodule can be added by
 executing\bashinline{git submodule add REPO_URL.git PATH}. The subsequent
 module is than added to the \textit{.gitmodules} file. As an example the
-contents of the file for this project is shown in figure
-\ref{fig:example-gitmodules}. Git will keep track of the commit each of these
-submodules are checked out on as long as that commit can be found on the remote
-referenced in the \textit{.gitmodules} file. Git does not automatically download
-submodules upon cloning a repository. Instead, it offers several commands to
-interact with submodules. The most important of these commands
+contents of the file for this project is shown in
+figure \ref{fig:example-gitmodules}. Git will keep track of the commit each of
+these  submodules are checked out on as long as that commit can be found on the
+remote referenced in the \textit{.gitmodules} file. Git does not automatically
+download  submodules upon cloning a repository. Instead, it offers several
+commands to  interact with submodules. The most important of these commands
 being\bashinline{git submodule update --init}. If desired the submodules of
 submodules can also be initialized recursively by adding\bashinline{--recursive}
 to this command.
@@ -290,10 +290,10 @@ separate the NVMe devices. These patches allow fine grained control over the
 hierarchy of these devices. Among these devices are so called
 \textit{subsystems} and \textit{namespaces}. These subsystems effectively allow
 namespaces to be shared by multiple NVMe devices. While, namespaces are what
-enables ZNS SSDs. The first example shown in figure
-\ref{fig:example-nvme-subsystems} illustrates sharing a namespace with multiple
-devices through a subsystem. These examples shown are incomplete, a complete
-example is shown at the end of this section.
+enables ZNS SSDs. The first example shown in
+figure \ref{fig:example-nvme-subsystems} illustrates sharing a namespace with
+multiple  devices through a subsystem. These examples shown are incomplete, a
+complete  example is shown at the end of this section.
 
 \begin{center}
 	\begin{figure}[H]
@@ -315,6 +315,13 @@ This final example, shown in figure \ref{fig:qemu-launch}, is a complete set of
 parameters to boot QEMU and expose a ZNS SSD. Coincidentally, it is the
 command used throughout this project.
 
+Important parameters include \textit{zoned=true} which configures the namespace
+to be zoned as well as \textit{bus=nvme2} to link the namespace to the NVMe
+device. Additionally, \textit{max\_open} and \textit{max\_active} configure the
+maximum number of open and active zones, respectively. Importantly,
+\textit{append\_size}, \textit{zone\_size} and \textit{zone\_capacity} must all
+be at least 4096.
+
 \begin{center}
 	\begin{figure}[H]
 		\bashexternal{resources/bash/qemu-launch.sh}
@@ -324,9 +331,95 @@ command used throughout this project.
 	\end{figure}
 \end{center}
 
-\section{CMake project}
+\section{SPDK}
 
+Another problematic dependency of this project is SPDK. This
+framework\footnotemark[2] serves as user space driver for storage devices,
+including NVMe. All though, there is abundant documentation for SPDK it is
+not trivial to make sense of it all. Important to know is that SPDK itself has
+several dependencies it requires to operate. These include DPDK and isa-l among
+others.
 
+\footnotetext[2]{The term library would be misleading given the scale of SPDK.}
+
+\subsection{Static vs Dynamic Linking}
+
+Initially, the CMake project was configured to statically compile and install
+SPDK, however, this resulted in erratic runtime behavior. When instead compiling
+SPDK as shared library this behavior was resolved. A bug report has been
+submitted to the SPDK repository describing the issue in more
+details\cite{spdk-bug}. The likely cause of this behavior is that runtime checks
+ensure the availability of a certain set of features, the library to enable
+PCI-e is likely missing from the statically linked set. Since the shared
+library links to all other shared libraries of SPDK, the library to enable
+PCI-e is automatically linked as well. If this is indeed the case, a good
+suggestion would be to improve the documentation to show which libraries enable
+which drivers and interfaces. Alteratively, the targets could be linked against
+all static libraries
+
+\subsection{Periodic Setup}
+
+Before SPDK can be used the NVMe devices have to be assigned to the correct
+driver as well as requiring that several hugepages are setup. The SPDK source
+provides a simple shell script that allows to perform these actions easily.
+These  changes are restored upon reboot, meaning the script has to be run again
+after each reboot. This setup can be performed by
+executing\bashinline{sudo HUGEMEM=512 /home/arch/qemu-csd/dependencies/spdk/scripts/setup.sh},
+Alternatively, a systemd service can be created to automatically perform this
+setup upon boot. An example of such a systemd service file is shown in
+figure \ref{fig:spdk-service}.
+
+\begin{center}
+	\begin{figure}[H]
+		\bashexternal{resources/bash/spdk.service}
+		\captionsetup{justification=centering}
+		\caption{Systemd service file to setup SPDK requirements upon boot.}
+		\label{fig:spdk-service}
+	\end{figure}
+\end{center}
+
+Several locations can be chosen to install a systemd service file, all of which
+are valid. The most commonly used onces are listed here \begin{enumerate*}
+\item \textit{/etc/systemd/system/} \item \textit{/usr/lib/systemd/system/}
+\end{enumerate*}. The use of \textit{system} subdirectories is preferred as it
+will involve a service that runs without using \textit{User=}. Essentially, this
+means that environment variables such as \textit{\$HOME} will not be configured.
+After creating a new systemd service file in an appropriate directory, the
+daemon must be reloaded for it to be listed. This can be done by
+executing\bashinline{sudo systemctl daemon-reload}. The usual \textit{enable}
+and \textit{start} commands can now be used to configure the service to start
+on boot and start it manually, respectively.
+
+To test that this setup has been performed correctly the examples from the spdk
+directory can be used. The identify example should report an output comparable
+to the example shown in figure \ref{fig:spdk-identify}. This identify binary can
+be found in
+\textit{/home/arch/qemu-csd/dependencies/spdk/build/examples/identify}, note
+that it needs to be run with sudo privileges and \textit{\$LD\_LIBRARY\_PATH}
+configured. If the build environment is activated the \textit{ld-sudo} alias can
+be used for this.
+
+\begin{center}
+	\begin{figure}[H]
+		\bashexternal{resources/bash/identify-output.sh}
+		\captionsetup{justification=centering}
+		\caption{Partial output of SPDK identify binary when running QEMU with default
+			parameters.}
+		\label{fig:spdk-identify}
+	\end{figure}
+\end{center}
+
+\section{Development \& Debugging}
+
+Clion \& Vscode
+
+Clion -> Library header inspection
+
+Vscode -> On guest debugging through SSH
+
+% backtraces with backward-cpp
+% debugging on the remote in vscode
+% searching through libraries and headers in clion
 
 %\footnotemark[1]. example\ref{term}.
 %\footnotetext[1]{test}
@@ -370,16 +463,16 @@ command used throughout this project.
 %	\end{adjustbox}
 %\end{table}
 
-\section{Target Hardware}
-
-\begin{center}
-	\begin{figure}[H]
-		\bashexternal{resources/bash/inxi.sh}
-		\captionsetup{justification=centering}
-		\caption{Output of inxi showing both CPU and GPU hardware configuration}
-		\label{fig:inxihardware}
-	\end{figure}
-\end{center}
+%\section{Target Hardware}
+%
+%\begin{center}
+%	\begin{figure}[H]
+%		\bashexternal{resources/bash/inxi.sh}
+%		\captionsetup{justification=centering}
+%		\caption{Output of inxi showing both CPU and GPU hardware configuration}
+%		\label{fig:inxihardware}
+%	\end{figure}
+%\end{center}
 
 %\cite{Rius1995,Karp1996,parreverse,Adikaram2014}.
 
@@ -410,9 +503,9 @@ confusion.
 	\item ZAC      - (ATA) Zoned ATA Commands
 \end{enumerate}
 
-\phantomsection
-\addcontentsline{toc}{section}{\protect\numberline{}References}
+\addcontentsline{toc}{section}{\protect\numberline{}REFERENCES}
 \bibliographystyle{IEEEtran}
+\phantomsection
 \bibliography{bibliography}
 
 
