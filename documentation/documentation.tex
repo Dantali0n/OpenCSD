@@ -246,7 +246,9 @@ utilizing ZNS SSDs with QEMU. The emphasis is on describing not only what works
 well but  also what does not work. The overall work should serve as a
 \textit{getting started} guide to any follow up project.
 
-\section{Enabling ZNS SSD in QEMU}
+\section{Setting up Depdencenies}
+
+\subsection{Enabling ZNS SSD in QEMU}
 
 The first step is getting an install of QEMU that supports ZNS SSDs. It turned
 out that at the time of writing\footnotemark[1] this feature was not actually
@@ -283,7 +285,7 @@ to this command.
 	\end{figure}
 \end{center}
 
-\subsection{ZNS SSD Configuration}
+\subsubsection{ZNS SSD Configuration}
 
 In parallel with the development of ZNS SSD patches for QEMU are patches that
 separate the NVMe devices. These patches allow fine grained control over the
@@ -331,7 +333,7 @@ be at least 4096.
 	\end{figure}
 \end{center}
 
-\section{SPDK}
+\subsection{SPDK}
 
 Another problematic dependency of this project is SPDK. This
 framework\footnotemark[2] serves as user space driver for storage devices,
@@ -342,7 +344,7 @@ others.
 
 \footnotetext[2]{The term library would be misleading given the scale of SPDK.}
 
-\subsection{Static vs Dynamic Linking}
+\subsubsection{Static vs Dynamic Linking}
 
 Initially, the CMake project was configured to statically compile and install
 SPDK, however, this resulted in erratic runtime behavior. When instead compiling
@@ -357,7 +359,7 @@ suggestion would be to improve the documentation to show which libraries enable
 which drivers and interfaces. Alteratively, the targets could be linked against
 all static libraries
 
-\subsection{Periodic Setup}
+\subsubsection{Periodic Setup}
 
 Before SPDK can be used the NVMe devices have to be assigned to the correct
 driver as well as requiring that several hugepages are setup. The SPDK source
@@ -411,11 +413,105 @@ be used for this.
 
 \section{Development \& Debugging}
 
-Clion \& Vscode
+Anyone is free to use any developments tools they would like but several are
+more tightly integrated into this project. These primarily are Clion \& vscode.
+Initially, a section to describe the use of development tools might seem trivial
+or redundant. However, fast effective iteration cycles are essential for quickly
+developing projects, such as those in a research settings. The effective use of
+development tools is essential for this fast iteration.
 
-Clion -> Library header inspection
+\subsection{Clion}
 
-Vscode -> On guest debugging through SSH
+Since Clion understands CMake, it is able to find the headers of used
+dependencies. The default key binding for this is \textit{ctrl+b}. This code
+inspection also works across different pars of qemu-csd. From CMake it is also
+able to deduce any compilation targets. Different profiles can be created to
+adjust any configuration parameters of the project, such as
+\textit{-DENALBE\_PLAYGROUND} or \textit{-DIS\_DEPLOYED}. These profiles can be
+found  under \textit{Settings -> Build, Execution, Deployment -> CMake -> Profiles}.
+
+In addition to profiles, CMake also maintains a set of toolchains. By default
+a toolchain is included that uses a bundled version of CMake. This bundled
+version might be insufficient to run this CMake project. New toolchains can be
+configured under \textit{Settings -> Build, Execution, Deployment -> Toolchains}.
+Subsequently, toolchains can be assigned to profiles in the CMake profiles menu.
+
+Some targets, such as \textit{play-spdk}, might require root privileges to run.
+Any target can be configured to run with root privileges. Simply press on the
+target selection bar in the top right corner and select
+\textit{Edit configurations}. For each of the binary targets a toggle with
+\textit{Run with root privileges} should be visible.
+
+One of the limitations of Clion is that it can only debug targets found through
+CMake. This prohibits remote debugging such as required when debugging binaries
+running inside QEMU. For this type of debugging vscode can be used instead.
+
+\subsection{Vscode}
+
+Unlike Clion, vscode does not automatically detect any possible debugging
+targets based on project files in the directory. Instead it manually requires to
+configure a \textit{launch.json} file in the .vscode directory. This allows this
+project to pre-configure any targets that can be debugged in QEMU as well as
+providing an example for possible future extensions.
+
+The \textit{SSH attach play-spdk} target is configured to login over SSH, run
+the bootstrap commands and start a gdb session. The information retrieved from
+gdb will than be used to update the GUI like in many other IDEs. This
+configuration relies on a clever trick that the \textit{cwd} + \textit{target}
+path on the host correspond to the \textit{ssh: cwd} + \textit{target} path on
+the guest. This allows for a translation of paths between host and guest so
+that vscode can  still find the corresponding source files. This behavior is
+very similar if not identical to gdb \textit{set substitute-path}.
+
+\subsection{Gdbserver}
+
+As an alternative to GUI based debuggers, a combination of gdb \& gdbserver can
+be used as well. On QEMU start the gdbserver on port 2000 for
+instance\bashinline{gdbserver localhost:2000 playground/play-spdk}. While on the
+host gdb would be launched. Within gdb the commands shown in
+figure \ref{fig:gdb-qemu} would be executed to setup the debugging. The second
+parameter of \textit{substitute-path} needs to match the absolute path to the
+root of the qemu-csd directory.
+
+\begin{center}
+	\begin{figure}[H]
+		\bashexternal{resources/bash/gdb-qemu.sh}
+		\captionsetup{justification=centering}
+		\caption{Commands to configure gdb for debugging when binary is run
+			within QEMU.}
+		\label{fig:gdb-qemu}
+	\end{figure}
+\end{center}
+
+\subsection{Stacktraces}
+
+Stacktraces can be very informative when debugging runtime exceptions such as
+segmentation faults. When CMake is configured for a Debug build type all binary
+targets will be linked against backward-cpp. This library enables extensive
+stacktraces which include line numbers. An example of how these stracktraces can
+be displayed manually can be found in
+\textit{playground/backward/playground-backward.cxx}. To enable backward on a
+target in CMake the command \textit{qemucsd\_target\_postprocess(\$TARGET)} must
+be  called with the name of the target as argument.
+
+\subsection{CMake build types}
+
+Backward can be disabled by configuring CMake with
+\textit{-DCMAKE\_BUILD\_TYPE=Release}. This will also compile the target to use
+machine specific optimizations such as relying on instruction set extensions
+like AVX512. The release build type is not compatible with code coverage or with
+address sanitizer.
+
+\subsection{Address sanitization}
+
+Sometimes stacktraces are not enough. Memory errors that take several iterations
+or events before they lead to failure or non-determinsm in when an error occurs
+might make it difficult to find the root cause of a problem. For these cases the
+CMake project is configurable with an option that will enable address
+sanitization. Address sanitization will halt the execution of the running binary
+as soon as a single memory error occurs. These runtime detections of memory
+errors will not catch all but most errors. To enable this feature the parameter
+\textit{-DENABLE\_LEAK\_TESTS=on} must be set to on.
 
 % backtraces with backward-cpp
 % debugging on the remote in vscode
@@ -495,8 +591,19 @@ confusion.
 \begin{enumerate}
 	\item ZNS      - Zoned Namespace
 	\item CSD      - Computational Storage Device
-	\item upstream - When a certain patch or feature has been merged into the
+	\item Upstream - When a certain patch or feature has been merged into the
 					 main repository of a project.
+	\item GUI      - Graphical User Interface
+	\item IDE      - Integrated Development Environment
+	\item Target   - A target is something that can be compiled or generated and
+					 sometimes executed. Examples include PDFs using LaTeX,
+					 binaries or libraries.
+	\item Binary   - A binary is a file containing machine instructions that can
+					 be directly executed. A compiled C file containing a main
+					 method is a binary while a shell script is not. Typically
+					 these binaries contain metadata information to aid the
+					 underlying operating system in executing them, a common
+					 format for this metadata is ELF.
 	\item SCSI     - Small Computer System Interface
 	\item ATA      - AT Attachment
 	\item ZBC      - (SCSI) Zoned Block Command

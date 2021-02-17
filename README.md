@@ -187,12 +187,8 @@ For several parameters a more in depth explanation is required, primarily
 _IS_DEPLOYED_. This parameter is used as the Cmake project is both used to
 compile QEMU and configure it as well as compile binaries to run inside QEMU. As
 a results, the CMake project needs to be able to identify if it is being
-executed outside of QEMU or not. This is what _IS_DEPLOYED_ facilitates. The
-user typically **does not** have to interact with this. This is because the
-CMake project will automatically be deployed into QEMU and reconfigured, if
-CMake is being run with _IS_DEPLOYED_ off. However, it is of course still
-important to understand when to use this parameter if changes are made to the
-CMake source files.
+executed outside of QEMU or not. This is what _IS_DEPLOYED_ facilitates.
+Particularly, _IS_DEPLOYED_ prevents the compilation of QEMU from source.
 
 #### Running & Debugging
 
@@ -251,7 +247,7 @@ On QEMU:
 # from the root of the project folder.
 cd  build
 source qemu-csd/activate
-ld-sudo gdbserver localhost:2222 playground/play-spdk
+ld-sudo gdbserver localhost:2000 playground/play-spdk
 ```
 
 On host:
@@ -275,6 +271,7 @@ specific source files for licensing details.
 * [Zoned storage ZNS SSDs introduction](https://zonedstorage.io/introduction/zns/)
 * [Getting started with ZNS in QEMU](https://www.snia.org/educational-library/getting-started-nvme-zns-qemu-2020)
 * [NVMe ZNS command set 1.0 ratified TP](https://nvmexpress.org/wp-content/uploads/NVM-Express-1.4-Ratified-TPs-1.zip)
+* [libnvme presentation](https://www.usenix.org/sites/default/files/conference/protected-files/vault20_slides_busch.pdf)
 * Repositories / Libraries
   * [uNVME](https://github.com/OpenMPDK/uNVMe)
   * [SPDK](https://github.com/spdk/spdk)

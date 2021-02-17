@@ -30,7 +30,7 @@
                 "password": "arch",
                 "bootstrap": "source /home/arch/qemu-csd/build/qemu-csd/activate",
                 "forwardX11": false
-            },
+            }
         }
     ]
 }

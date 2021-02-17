@@ -12,11 +12,6 @@
 #include <string>
 #include <vector>
 
-/**
- * In shared libraries some things are hard to put into a namespace,
- * everything that is notoriously so will be excluded. This includes
- * functions, templates, classes...
- */
 namespace qemucsd {
 	namespace arguments {
 
