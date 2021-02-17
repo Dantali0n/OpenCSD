@@ -4,6 +4,9 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
 
+#include "spdk/stdinc.h"
+#include <spdk/env.h>
+
 #include <chrono>
 #include <cmath>
 #include <complex>
@@ -15,11 +18,10 @@
 namespace qemucsd {
 	namespace arguments {
 
-		// Enum to Specify desired window modes
-		enum WindowMode {
-			WINDOW_BORDERLESS,
-			WINDOW_WINDOWED,
-			WINDOW_FULLSCREEN
+		// Enum to Specify desired method to initialize NVMe device
+		enum DeviceInitMode {
+			DEV_INIT_PRESERVE, // Preserve current device state
+			DEV_INIT_RESET, // Reset all zones of the device upon initialization
 		};
 
 		/**
@@ -27,10 +29,16 @@ namespace qemucsd {
 		 */
 		struct options {
 			/** values */
-			WindowMode window_mode;
+			DeviceInitMode dev_init_mode;
 
 			/** owned / referenced counted */
 			std::shared_ptr<std::string> settings;
+
+			/** SPDK environment options */
+			struct spdk_env_opts spdk;
+
+			/** Containers to prevent SPDK data going out of scope */
+			std::shared_ptr<std::string> _name;
 		};
 
 		/**

@@ -225,7 +225,7 @@ static void hello_world() {
 		}
 
 		/*
-		 * Use spdk_dma_zmalloc to allocate a 4KB zeroed buffer.  This memory
+		 * Use spdk_dma_zmalloc to allocate a 4KB zeroed buffer. This memory
 		 * will be pinned, which is required for data buffers used for SPDK NVMe
 		 * I/O operations.
 		 */
@@ -257,36 +257,55 @@ static void hello_world() {
 			reset_zone_and_wait_for_completion(&sequence);
 		}
 
-		/*
-		 * Print "Hello world!" to sequence.buf.  We will write this data to LBA
-		 *  0 on the namespace, and then later read it back into a separate buffer
-		 *  to demonstrate the full I/O path.
-		 */
-		snprintf(sequence.buf, 0x1000, "%s", "Hello world!\n");
+		uint64_t num_zones = spdk_nvme_zns_ns_get_num_zones(ns_entry->ns);
+		printf("NVMe namespace has %lu zones\n", num_zones);
 
-		/*
-		 * Write the data buffer to LBA 0 of this namespace.  "write_complete" and
-		 *  "&sequence" are specified as the completion callback function and
-		 *  argument respectively.  write_complete() will be called with the
-		 *  value of &sequence as a parameter when the write I/O is completed.
-		 *  This allows users to potentially specify different completion
-		 *  callback routines for each I/O, as well as pass a unique handle
-		 *  as an argument so the application knows which I/O has completed.
-		 *
-		 * Note that the SPDK NVMe driver will only check for completions
-		 *  when the application calls spdk_nvme_qpair_process_completions().
-		 *  It is the responsibility of the application to trigger the polling
-		 *  process.
-		 */
-		rc = spdk_nvme_ns_cmd_write(
-			ns_entry->ns, ns_entry->qpair, sequence.buf,
-			0, /* LBA start */
-			1, /* number of LBAs */
-			write_complete, &sequence, 0);
-		if (rc != 0) {
-			fprintf(stderr, "starting write I/O failed\n");
-			exit(1);
-		}
+		const struct spdk_nvme_ns_data *ref_ns_data =
+			spdk_nvme_ns_get_data(ns_entry->ns);
+		printf("NVMe namespace lba size: %lu\n",
+			ref_ns_data->nsze);
+
+		const struct spdk_nvme_zns_ns_data *ref_ns_zns_data =
+			spdk_nvme_zns_ns_get_data(ns_entry->ns);
+		printf("NVMe namespace zone size %lu (%lu * %lu)\n",
+			spdk_nvme_zns_ns_get_zone_size(ns_entry->ns),
+			ref_ns_zns_data->lbafe->zsze, ref_ns_data->nsze);
+
+		const struct spdk_nvme_zns_ctrlr_data *ref_ctrl_data =
+			spdk_nvme_zns_ctrlr_get_data(ns_entry->ctrlr);
+		printf("NVMe namespace zone append size limit %u\n",
+			spdk_nvme_zns_ctrlr_get_max_zone_append_size(ns_entry->ctrlr));
+
+//		/*
+//		 * Print "Hello world!" to sequence.buf.  We will write this data to LBA
+//		 *  0 on the namespace, and then later read it back into a separate buffer
+//		 *  to demonstrate the full I/O path.
+//		 */
+//		snprintf(sequence.buf, 0x1000, "%s", "Hello world!\n");
+
+//		/*
+//		 * Write the data buffer to LBA 0 of this namespace.  "write_complete" and
+//		 *  "&sequence" are specified as the completion callback function and
+//		 *  argument respectively.  write_complete() will be called with the
+//		 *  value of &sequence as a parameter when the write I/O is completed.
+//		 *  This allows users to potentially specify different completion
+//		 *  callback routines for each I/O, as well as pass a unique handle
+//		 *  as an argument so the application knows which I/O has completed.
+//		 *
+//		 * Note that the SPDK NVMe driver will only check for completions
+//		 *  when the application calls spdk_nvme_qpair_process_completions().
+//		 *  It is the responsibility of the application to trigger the polling
+//		 *  process.
+//		 */
+//		rc = spdk_nvme_ns_cmd_write(
+//			ns_entry->ns, ns_entry->qpair, sequence.buf,
+//			0, /* LBA start */
+//			1, /* number of LBAs */
+//			write_complete, &sequence, 0);
+//		if (rc != 0) {
+//			fprintf(stderr, "starting write I/O failed\n");
+//			exit(1);
+//		}
 
 		/*
 		 * Poll for completions.  0 here means process all available completions.
@@ -301,9 +320,9 @@ static void hello_world() {
 		 *  print the buffer contents and set sequence.is_completed = 1.  That will
 		 *  break this loop and then exit the program.
 		 */
-		while (!sequence.is_completed) {
-			spdk_nvme_qpair_process_completions(ns_entry->qpair, 0);
-		}
+//		while (!sequence.is_completed) {
+//			spdk_nvme_qpair_process_completions(ns_entry->qpair, 0);
+//		}
 
 		/*
 		 * Free the I/O qpair.  This typically is done when an application exits.

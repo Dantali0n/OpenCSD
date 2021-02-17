@@ -80,6 +80,9 @@ add_dependencies(testarguments boost-build)
 target_link_libraries(
 	testarguments
 	qemucsd_arguments
+	# Have to repeat high level shared libraries as these dynamically cross
+	# reference one another.
+	spdk spdk_env_dpdk
 	${${PRJ_PRX}_LIBRARIES_PACK}
 )
 
