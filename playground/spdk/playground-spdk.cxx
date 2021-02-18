@@ -76,7 +76,7 @@ static void register_ns(
 	TAILQ_INSERT_TAIL(&g_namespaces, entry, link);
 
 	printf("  Namespace ID: %d size: %juGB\n", spdk_nvme_ns_get_id(ns),
-		   spdk_nvme_ns_get_size(ns) / 1000000000);
+	   spdk_nvme_ns_get_size(ns) / 1000000000);
 }
 
 struct hello_world_sequence {
@@ -99,7 +99,7 @@ static void read_complete(void *arg, const struct spdk_nvme_cpl *completion) {
 		spdk_nvme_qpair_print_completion(
 			sequence->ns_entry->qpair, (struct spdk_nvme_cpl *)completion);
 		fprintf(stderr, "I/O error status: %s\n",
-		  spdk_nvme_cpl_get_status_string(&completion->status));
+			spdk_nvme_cpl_get_status_string(&completion->status));
 		fprintf(stderr, "Read I/O failed, aborting run\n");
 		sequence->is_completed = 2;
 		exit(1);
@@ -198,11 +198,29 @@ static void reset_zone_and_wait_for_completion(
 	sequence->is_completed = 0;
 }
 
+static void print_zns_zone(struct spdk_nvme_zns_zone_desc *desc) {
+	printf("ZSLBA: 0x%016"PRIx64" ZCAP: 0x%016"PRIx64" WP: 0x%016"PRIx64" ZS: %x ZT: %x ZA: %x\n",
+	   desc->zslba, desc->zcap, desc->wp, desc->zs, desc->zt, desc->za.raw);
+}
+
+static void check_complete(void *arg, const struct spdk_nvme_cpl *completion) {
+	if (spdk_nvme_cpl_is_error(completion)) {
+//		spdk_nvme_qpair_print_completion(
+//			sequence->ns_entry->qpair, (struct spdk_nvme_cpl *)completion);
+		fprintf(stderr, "I/O error status: %s\n",
+			spdk_nvme_cpl_get_status_string(&completion->status));
+//		fprintf(stderr, "Reset zone I/O failed, aborting run\n");
+//		sequence->is_completed = 2;
+		exit(1);
+	}
+}
+
 static void hello_world() {
 	struct ns_entry				*ns_entry;
 	struct hello_world_sequence	sequence;
 	int							rc;
 	size_t						sz;
+	int 						result = 0;
 
 	TAILQ_FOREACH(ns_entry, &g_namespaces, link) {
 		/*
@@ -234,7 +252,7 @@ static void hello_world() {
 		if (sequence.buf == NULL || sz < 0x1000) {
 			sequence.using_cmb_io = 0;
 			sequence.buf = (char*) spdk_zmalloc(
-				0x1000, 0x1000, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
+					0x1000, 0x1000, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
 		}
 		if (sequence.buf == NULL) {
 			printf("ERROR: write buffer allocation failed\n");
@@ -263,66 +281,89 @@ static void hello_world() {
 		const struct spdk_nvme_ns_data *ref_ns_data =
 			spdk_nvme_ns_get_data(ns_entry->ns);
 		printf("NVMe namespace lba size: %lu\n",
-			ref_ns_data->nsze);
+		   ref_ns_data->nsze);
 
 		const struct spdk_nvme_zns_ns_data *ref_ns_zns_data =
 			spdk_nvme_zns_ns_get_data(ns_entry->ns);
 		printf("NVMe namespace zone size %lu (%lu * %lu)\n",
-			spdk_nvme_zns_ns_get_zone_size(ns_entry->ns),
-			ref_ns_zns_data->lbafe->zsze, ref_ns_data->nsze);
+		   spdk_nvme_zns_ns_get_zone_size(ns_entry->ns),
+		   ref_ns_zns_data->lbafe->zsze, ref_ns_data->nsze);
 
-		const struct spdk_nvme_zns_ctrlr_data *ref_ctrl_data =
-			spdk_nvme_zns_ctrlr_get_data(ns_entry->ctrlr);
+//		const struct spdk_nvme_zns_ctrlr_data *ref_ctrl_data =
+//			spdk_nvme_zns_ctrlr_get_data(ns_entry->ctrlr);
 		printf("NVMe namespace zone append size limit %u\n",
-			spdk_nvme_zns_ctrlr_get_max_zone_append_size(ns_entry->ctrlr));
+		   spdk_nvme_zns_ctrlr_get_max_zone_append_size(ns_entry->ctrlr));
 
-//		/*
-//		 * Print "Hello world!" to sequence.buf.  We will write this data to LBA
-//		 *  0 on the namespace, and then later read it back into a separate buffer
-//		 *  to demonstrate the full I/O path.
-//		 */
-//		snprintf(sequence.buf, 0x1000, "%s", "Hello world!\n");
+		// Allocate buffers for getting zone information
+		uint32_t report_bufsize =
+			spdk_nvme_ns_get_max_io_xfer_size(ns_entry->ns);
+		auto *report_buf = (spdk_nvme_zns_zone_report *) malloc(report_bufsize);
 
-//		/*
-//		 * Write the data buffer to LBA 0 of this namespace.  "write_complete" and
-//		 *  "&sequence" are specified as the completion callback function and
-//		 *  argument respectively.  write_complete() will be called with the
-//		 *  value of &sequence as a parameter when the write I/O is completed.
-//		 *  This allows users to potentially specify different completion
-//		 *  callback routines for each I/O, as well as pass a unique handle
-//		 *  as an argument so the application knows which I/O has completed.
-//		 *
-//		 * Note that the SPDK NVMe driver will only check for completions
-//		 *  when the application calls spdk_nvme_qpair_process_completions().
-//		 *  It is the responsibility of the application to trigger the polling
-//		 *  process.
-//		 */
-//		rc = spdk_nvme_ns_cmd_write(
-//			ns_entry->ns, ns_entry->qpair, sequence.buf,
-//			0, /* LBA start */
-//			1, /* number of LBAs */
-//			write_complete, &sequence, 0);
-//		if (rc != 0) {
-//			fprintf(stderr, "starting write I/O failed\n");
-//			exit(1);
-//		}
+		// Queue a command to retrieve information about all zones, this command
+		// might not actually able to get information for ALL zones depending on
+		// the number of zones. Given this small example a single call will be
+		// sufficient.
+		spdk_nvme_zns_report_zones(
+			ns_entry->ns, ns_entry->qpair, report_buf, report_bufsize, 0,
+			SPDK_NVME_ZRA_LIST_ALL, false,
+			check_complete, NULL);
 
-		/*
-		 * Poll for completions.  0 here means process all available completions.
-		 *  In certain usage models, the caller may specify a positive integer
-		 *  instead of 0 to signify the maximum number of completions it should
-		 *  process.  This function will never block - if there are no
-		 *  completions pending on the specified qpair, it will return immediately.
-		 *
-		 * When the write I/O completes, write_complete() will submit a new I/O
-		 *  to read LBA 0 into a separate buffer, specifying read_complete() as its
-		 *  completion routine.  When the read I/O completes, read_complete() will
-		 *  print the buffer contents and set sequence.is_completed = 1.  That will
-		 *  break this loop and then exit the program.
-		 */
-//		while (!sequence.is_completed) {
-//			spdk_nvme_qpair_process_completions(ns_entry->qpair, 0);
-//		}
+		// Wait for the I/O operation to complete
+		result = 0;
+		while (result == 0) {
+			result = spdk_nvme_qpair_process_completions(ns_entry->qpair, 0);
+		}
+
+		// Print the zone information for all zones in the namespace.
+		printf("NVMe zone information:\n");
+		for (uint32_t i = 0; i < report_buf->nr_zones && i < num_zones; i++) {
+			print_zns_zone(&report_buf->descs[i]);
+		}
+
+		// Put hello world into buffer
+		snprintf(sequence.buf, 0x1000, "%s", "Hello world!\n");
+
+		// Write to the first lba of the first zone.
+		struct spdk_nvme_zns_zone_desc first_zone_info = report_buf->descs[0];
+		spdk_nvme_zns_zone_append(ns_entry->ns, ns_entry->qpair, sequence.buf,
+			first_zone_info.zslba, 1, check_complete, NULL, 0);
+
+		// Wait for the I/O operation to complete
+		result = 0;
+		while (result == 0) {
+			result = spdk_nvme_qpair_process_completions(ns_entry->qpair, 0);
+		}
+
+		// Free the old buffer and allocate a new one, this primarily to prove
+		// that the data can not be retained between the write and read.
+		if (sequence.using_cmb_io) {
+			spdk_nvme_ctrlr_unmap_cmb(ns_entry->ctrlr);
+		} else {
+			spdk_free(sequence.buf);
+		}
+		sequence.buf = (char*) spdk_zmalloc(
+			0x1000, 0x1000, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
+
+		// Read back the first lba of the first zone
+		rc = spdk_nvme_ns_cmd_read(
+			ns_entry->ns, ns_entry->qpair, sequence.buf,
+			first_zone_info.zslba, /* LBA start */
+			1, /* number of LBAs */
+			check_complete, NULL, 0);
+		if (rc != 0) {
+			fprintf(stderr, "starting read I/O failed\n");
+			exit(1);
+		}
+
+		// Wait for the I/O operation to complete
+		result = 0;
+		while (result == 0) {
+			result = spdk_nvme_qpair_process_completions(ns_entry->qpair, 0);
+		}
+
+		// Display the read back data and free the buffer
+		printf("Read from first zone: %s", sequence.buf);
+		spdk_free(sequence.buf);
 
 		/*
 		 * Free the I/O qpair.  This typically is done when an application exits.
@@ -386,7 +427,7 @@ static void attach_cb(
 	 */
 	num_ns = spdk_nvme_ctrlr_get_num_ns(ctrlr);
 	printf("Using controller %s with %d namespaces.\n",
-		entry->name, num_ns);
+	   entry->name, num_ns);
 	for (nsid = 1; nsid <= num_ns; nsid++) {
 		ns = spdk_nvme_ctrlr_get_ns(ctrlr, nsid);
 		if (ns == NULL) {
