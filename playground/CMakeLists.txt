@@ -171,6 +171,33 @@ qemucsd_target_postprocess(play-spdk)
 #    add_custom_target(play-spdk)
 #endif()
 
+# ------------------------------------- #
+# Playground play-spdk-find-fill-filter #
+# ------------------------------------- #
+
+set(PLAYGROUND_SPDK_FIND_FILL_FILTER_SOURCE
+    spdk-find-fill-filter/spdk-find-fill-filter.cxx
+)
+
+message("${PRJ_PRX}: playground spdk-find-fill-filter cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(play-spdk-find-fill-filter ${PLAYGROUND_SPDK_FIND_FILL_FILTER_SOURCE})
+
+add_dependencies(play-spdk-find-fill-filter spdk-build dpdk-build isa-l-build)
+
+target_link_libraries(
+    play-spdk
+    -Wl,--whole-archive
+    spdk_log.a spdk_env_dpdk.a spdk_nvme.a spdk_util.a spdk_sock.a spdk_json.a
+    spdk_rpc.a spdk_jsonrpc.a
+    -Wl,--no-whole-archive
+    rte_eal.a rte_mempool.a rte_telemetry.a rte_ring.a rte_kvargs.a rte_bus_pci.a
+    rte_pci.a rte_vhost.a rte_power.a
+    isal.a uuid numa dl
+    ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
+)
+
+qemucsd_target_postprocess(play-spdk-find-fill-filter)
+
 ## ------------------ #
 ## Playground objcopy #
 ## ------------------ #
