@@ -185,7 +185,7 @@ add_executable(play-spdk-find-fill-filter ${PLAYGROUND_SPDK_FIND_FILL_FILTER_SOU
 add_dependencies(play-spdk-find-fill-filter spdk-build dpdk-build isa-l-build)
 
 target_link_libraries(
-    play-spdk
+    play-spdk-find-fill-filter
     -Wl,--whole-archive
     spdk_log.a spdk_env_dpdk.a spdk_nvme.a spdk_util.a spdk_sock.a spdk_json.a
     spdk_rpc.a spdk_jsonrpc.a
