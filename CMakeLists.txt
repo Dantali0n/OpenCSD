@@ -47,6 +47,12 @@ include(platform)
 include(TargetArch)
 include(macros)
 
+find_package(KernelHeaders REQUIRED)
+
+# Kernel include directories for BPF, have to do this top level.
+# include_directories does not propagate up includes / subdirectories.
+include_directories(${CMAKE_SOURCE_DIR}/dependencies/linux/samples/bpf)
+
 # Enable c++17 even when cmake < 3.1
 use_cxx17()
 

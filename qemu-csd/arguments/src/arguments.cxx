@@ -59,6 +59,8 @@ namespace qemucsd::arguments {
 
 		struct spdk_env_opts *opts = &options->spdk;
 		spdk_env_opts_init(opts);
+		// Same default value as identify example
+		opts->shm_id = -1;
 
 		if(vm.count("name")) {
 			options->_name = std::make_shared<std::string>(vm["name"].as<std::string>());

@@ -142,6 +142,36 @@ add_custom_command(OUTPUT libbpf-install PRE_BUILD
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/src
 )
 
+# -------- #
+# bpf_load #
+# -------- #
+
+set(BPFLOAD_LIBRARIES
+    #boost_program_options
+)
+
+set(BPFLOAD_SRC
+    ${CMAKE_SOURCE_DIR}/dependencies/linux/samples/bpf/bpf_load.c
+)
+
+set(BPFLOAD_HEADERS
+    ${CMAKE_SOURCE_DIR}/dependencies/linux/samples/bpf/bpf_load.h
+)
+
+add_library(
+    bpfload STATIC
+    ${BPFLOAD_SRC}
+    ${BPFLOAD_HEADERS}
+)
+
+target_include_directories(bpfload PUBLIC ${KERNELHEADERS_INCLUDE_DIRS})
+target_include_directories(bpfload PUBLIC ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/lib)
+target_include_directories(bpfload PUBLIC ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/perf)
+target_include_directories(bpfload PUBLIC ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/include)
+
+set_target_properties(bpfload PROPERTIES LINKER_LANGUAGE C)
+set_target_properties(bpfload PROPERTIES COMPILER_LANGUAGE C)
+
 # ---- #
 # spdk #
 # ---- #

@@ -13,3 +13,9 @@
 [submodule "dependencies/bcc"]
 	path = dependencies/bcc
 	url = https://github.com/iovisor/bcc.git
+[submodule "dependencies/linux"]
+	path = dependencies/linux
+	url = https://github.com/torvalds/linux.git
+[submodule "dependencies/bpf-examples"]
+	path = dependencies/bpf-examples
+	url = https://github.com/bpftools/linux-observability-with-bpf.git

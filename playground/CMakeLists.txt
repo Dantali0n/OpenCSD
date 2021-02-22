@@ -110,6 +110,7 @@ add_dependencies(play-libbpf libbpf-build)
 target_link_libraries(
     play-libbpf
     bpf
+    bpfload
     ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
 )
 

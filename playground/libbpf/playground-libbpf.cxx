@@ -1,6 +1,6 @@
 #include <iostream>
-#include <bpf/libbpf.h>
+#include <bpf_load.h>
 
 int main(int argc, char* argv[]) {
-
+	load_bpf_file();
 }

@@ -52,6 +52,8 @@ dependencies/*
 !dependencies/backward
 !dependencies/CMakeLists.txt
 !dependencies/libbpf
+!dependencies/linux
+!dependencies/bpf-examples
 !dependencies/spdk
 !dependencies/qemu
 !dependencies/qemu-patches
