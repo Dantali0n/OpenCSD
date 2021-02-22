@@ -158,16 +158,31 @@ set(BPFLOAD_HEADERS
     ${CMAKE_SOURCE_DIR}/dependencies/linux/samples/bpf/bpf_load.h
 )
 
+#set(BPFLOAD_SRC
+#    ${KERNELHEADERS_INCLUDE_DIRS}/samples/bpf/bpf_load.c
+#)
+#
+#set(BPFLOAD_HEADERS
+#    ${KERNELHEADERS_INCLUDE_DIRS}/samples/bpf/bpf_load.h
+#)
+
 add_library(
     bpfload STATIC
     ${BPFLOAD_SRC}
     ${BPFLOAD_HEADERS}
 )
 
-target_include_directories(bpfload PUBLIC ${KERNELHEADERS_INCLUDE_DIRS})
+#target_include_directories(bpfload PUBLIC ${KERNELHEADERS_INCLUDE_DIRS})
+#target_include_directories(bpfload PUBLIC ${KERNELHEADERS_INCLUDE_DIRS}/tools/lib)
+#target_include_directories(bpfload PUBLIC ${KERNELHEADERS_INCLUDE_DIRS}/tools/perf)
+#target_include_directories(bpfload PUBLIC ${KERNELHEADERS_INCLUDE_DIRS}/tools/include)
+
+#target_include_directories(bpfload PUBLIC ${CMAKE_SOURCE_DIR}/dependencies/linux/include)
+#target_include_directories(bpfload PUBLIC ${CMAKE_SOURCE_DIR}/dependencies/linux/arch/x86/include)
 target_include_directories(bpfload PUBLIC ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/lib)
 target_include_directories(bpfload PUBLIC ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/perf)
 target_include_directories(bpfload PUBLIC ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/include)
+target_include_directories(bpfload PUBLIC ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/include/uapi)
 
 set_target_properties(bpfload PROPERTIES LINKER_LANGUAGE C)
 set_target_properties(bpfload PROPERTIES COMPILER_LANGUAGE C)
