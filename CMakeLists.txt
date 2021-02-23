@@ -206,7 +206,9 @@ endif(ENABLE_CODECOV)
 # Project documentation and report
 if(ENABLE_DOCUMENTATION)
 
+	add_custom_target(all-documents ALL)
 	add_subdirectory(documentation)
+	add_subdirectory(presentation)
 
 	# Generate Doxygen Documentation
 	find_package(Doxygen)

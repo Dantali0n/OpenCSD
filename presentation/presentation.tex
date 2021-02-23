@@ -1,0 +1,227 @@
+\documentclass{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[inline]{enumitem}
+\usepackage{pdfpages}
+\usepackage{listings}
+\usepackage{subcaption}
+\usepackage{wasysym}
+\usepackage[export]{adjustbox}[2011/08/13]
+\usetheme{cern}
+
+\newcommand{\btVFill}{\vskip0pt plus 1filll}
+
+% fix tilde
+% \newcommand{\propertilde}{\raise.17ex\hbox{$\scriptstyle\mathtt{\sim}$}}
+
+% \setbeameroption{show notes on second screen=right}
+
+%The CERN logo is legally protected. Please visit http://cern.ch/copyright for
+%information on the terms of use of CERN content, including the CERN logo.
+
+% The optional `\author` command defines the author and is displayed in the
+%slide produced by the `\titlepage` command.
+\author{Corné Kenneth Lukken}
+
+% The optional `\title` command defines the title and is displayed in the slide
+%produced by the `\titlepage` command.
+\title{OpenChannelSSD vs ZNS SSD}
+
+% The optional `\subtitle` command will add a smaller title below the main one,
+%and will not be displayed in any of the slides' footer.
+\subtitle{A SPDK compared to lightnvm story}
+
+% The optional `\date` command will display a custom free text date on the all
+%of the slides' footer. If omitted today's date will be used.
+%\date{Monday, 1st January 2018}
+
+% ------------------------------------------------------------------------%
+% Proper Python Syntax Highlighting                                       %
+% Author: redmode
+% https://tex.stackexchange.com/questions/83882/how-to-highlight-python   %
+% -syntax-in-latex-listings-lstinputlistings-command#83883                %
+% ----------------------------------------------------------------------- %
+
+% Default fixed font does not support bold face
+\DeclareFixedFont{\ttb}{T1}{txtt}{bx}{n}{6} % for bold
+\DeclareFixedFont{\ttm}{T1}{txtt}{m}{n}{6}  % for normal
+
+% Custom colors
+\definecolor{deepblue}{rgb}{0,0,0.5}
+\definecolor{deepred}{rgb}{0.6,0,0}
+\definecolor{deepgreen}{rgb}{0,0.5,0}
+
+% Python style for highlighting
+\newcommand\pythonstyle{
+	\lstset{
+		language=Python,
+		basicstyle=\ttm,
+		showstringspaces=false,
+		tabsize=2,
+		aboveskip=0.1cm,
+		belowskip=0.1cm,
+		otherkeywords={self},             % Add keywords here
+		keywordstyle=\ttb\color{deepblue},
+		emph={MyClass,__init__},          % Custom highlighting
+		emphstyle=\ttb\color{deepred},    % Custom highlighting style
+		stringstyle=\color{deepgreen},
+		frame=tb,                          % Any extra options here
+		prebreak=\textbackslash,
+		linewidth=7.00cm,
+		breaklines=true,
+	}
+}
+
+% Python environment
+\lstnewenvironment{python}[1][] {
+	\pythonstyle\lstset{#1}
+}{}
+
+% Python for inline
+\newcommand\pythoninline[1]{{\pythonstyle\lstinline!#1!}}
+
+% Python for external file
+\newcommand\pythonexternal[2][]{{\pythonstyle\lstinputlisting[#1]{#2}}}
+
+\newcommand\pythonfullstyle{
+	\lstset{
+		language=Python,
+		basicstyle=\ttm,
+		showstringspaces=false,
+		tabsize=2,
+		aboveskip=0.1cm,
+		belowskip=0.1cm,
+		otherkeywords={self},             % Add keywords here
+		keywordstyle=\ttb\color{deepblue},
+		emph={MyClass,__init__},          % Custom highlighting
+		emphstyle=\ttb\color{deepred},    % Custom highlighting style
+		stringstyle=\color{deepgreen},
+		frame=tb,                          % Any extra options here
+		prebreak=\textbackslash,
+		linewidth=11.00cm,
+		breaklines=true,
+	}
+}
+
+% Python environment
+\lstnewenvironment{pythonfull}[1][] {
+	\pythonfullstyle\lstset{#1}
+}{}
+
+% Python for inline
+\newcommand\pythonfullinline[1]{{\pythonfullstyle\lstinline!#1!}}
+
+% Python for external file
+\newcommand\pythonfullexternal[2][]{{\pythonfullstyle\lstinputlisting[#1]{#2}}}
+
+% ----------------------------------------------------------------------- %
+
+% Bash style for highlighting
+\newcommand\bashstyle{
+	\lstset{
+		language=Bash,
+		basicstyle=\ttm,
+		showstringspaces=false,
+		tabsize=2,
+		%commentstyle=itshape,
+		aboveskip=0.1cm,
+		belowskip=0.1cm,
+		prebreak=\textbackslash,
+		extendedchars=true,
+		mathescape=false,
+		% literate= {\$}{{\textcolor{blue}{\$}}}1 {&}{{\textcolor{blue}{\&}}}1 {/n}{{\textcolor{green}{\textbackslash n}}}1,
+		linewidth=11cm,
+		breaklines=true
+	}
+}
+
+% Bash environment
+\lstnewenvironment{bash}[1][] {
+	\bashstyle\lstset{#1}
+}{}
+
+% Bash for inline
+\newcommand\bashinline[1]{{\bashstyle\lstinline!#1!}}
+
+% Bash for external file
+\newcommand\bashexternal[2][]{{\bashstyle\lstinputlisting[#1]{#2}}}
+
+
+\begin{document}
+
+% \frontcover
+
+% The optional `\titlepage` command will create a slide with the presentation's
+%title, subtitle and author.
+\frame{\titlepage}
+
+% The optional `\tableofcontents` command will automatically create a table of
+%contents based pm the sections.
+% \frame{\tableofcontents}
+
+% \section{Introduction}
+
+\begin{frame}{OpenChannelSSD Recap}
+	\begingroup
+	\small
+%	\begin{columns}
+		\begin{itemize}
+			\item Exposed internal structure, Groups, PUs, Chunks, Sectors.
+			\item Implicit chunk state machine.
+			\item Nice direct mapping between LBA \& structure
+				  (assuming values are clean powers of two).
+		\end{itemize}
+%	\end{columns}
+	\endgroup
+\end{frame}
+
+\begin{frame}{ZNS SSD Recap}
+	\begingroup
+	\small
+%	\begin{columns}
+		\begin{itemize}
+			\item Internal structure not clearly exposed, namespaces, zones, LBAs.
+			\item Zone state implicitly managed, querying current zone states easy.
+			\item Limit on the number of commands that can be in
+				  progress across zones (active zones).
+			\item Limit on the number of zones that can be in state
+				  opened (open zones).
+		\end{itemize}
+%	\end{columns}
+	\endgroup
+\end{frame}
+
+\begin{frame}{Comparison off specifications}
+	\begingroup
+	\small
+	\begin{itemize}
+		\item Zone state model \& Chunk state model very similar.
+		\item Zone append provides no guarantees on which write ends up at
+			  which LBA unlike OCSSD vectored write.
+		\item Zoned read, write, flush, etc are part of regular NVMe
+			  specification with slight extension to support zones. While OCSSD
+			  is entirely new specification.
+		\item ZNS SSD expects user to retrieve LBAs of zone append
+			  asynchronously.
+	\end{itemize}
+	\endgroup
+\end{frame}
+
+\begin{frame}{Differences in abstractions}
+	\begingroup
+	\small
+	\begin{itemize}
+		\item SPDK has no regular write / read commands specific to
+			  zones.
+		\item lightnvm supports using internal structure when performing
+			  commands instead of LBA. Support functions \textit{addr\_gen2dev}
+			  \textit{addr\_dev2gen} breakdown if any value for internal
+			  structure is not clean power of two! The anonymous union in
+			  \textit{struct nvm\_addr} should handle this?
+		\item Identifying zone boundaries is much easier compared to OCSSD
+			  structure boundaries.
+		\item lightnvm is blocking, SPDK uses lockless I/O queues and callbacks.
+	\end{itemize}
+	\endgroup
+\end{frame}
+
+\end{document}

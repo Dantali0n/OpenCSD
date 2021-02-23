@@ -54,13 +54,11 @@ compiled and linked is shown below. Note however, **these dependencies
 are already installed on the image used with QEMU**.
 
 * General
+    * Linux 5.0 or higher
     * compiler with c++17 support
     * cmake 3.18 or higher
     * python 3.x
     * mesonbuild (`pip3 install meson`)
-* Windows specific
-    * Visual Studio 2019 community
-    * cygwin
 * Documentation
     * doxygen
     * LaTeX
@@ -146,9 +144,11 @@ cmake -DENABLE_DOCUMENTATION=off -DIS_DEPLOYED=on ..
 make -j $(nproc)
 ```
 
-Optionally, if the intend is to develop on the guest and commit code, the remote
-can be updated. In that case it also best to generate an ssh keypair, be sure to
-start an ssh-agent as well as this needs to be performed manually on Arch.
+Optionally, if the intend is to develop on the guest and commit code, the git 
+remote  can be updated. In that case it also best to generate an ssh keypair, be
+sure to start an ssh-agent as well as this needs to be performed manually on
+Arch. The ssh-agent is only valid for as long as the terminal session that
+started it. Optionally, it can be included in `.bashrc`.
 
 ```shell
 git remote set-url origin git@github.com:Dantali0n/qemu-csd.git

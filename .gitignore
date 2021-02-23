@@ -77,3 +77,13 @@ documentation/*
 !documentation/**/bash/
 !documentation/**/images/
 !documentation/**/python/
+
+# latex intermediate files
+presentation/*
+!presentation/**/
+!presentation/CMakeLists.txt
+!presentation/**/*.bib
+!presentation/**/*.tex
+!presentation/**/bash/
+!presentation/**/images/
+!presentation/**/python/
