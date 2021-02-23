@@ -18,6 +18,9 @@ its current form!**
 * Week 3
   * SPDK hello world cont.d
   * libbpf hello world
+* Week 4
+  * Presentation on lightnvm and SPDK differences.
+  * bpf_load static library.
 
 ### Index
 
@@ -105,8 +108,24 @@ these is compiling and downloading an image for QEMU. Many parts of this project
 can be developed on the host but some require being developed on the guest. See
 the next section for on guest development.
 
-```shell script
+The first step is downloading the dependencies and adjusting them to match your
+own kernel version. The total size required for the entire project with both
+host and QEMU development will be **around 30GB of disk space**.
+
+```shell
 git submodule update --init --recursive
+cd dependencies/linux
+uname -r
+# ensure vX.YY matches the kernel version reported by uname -r
+# replace the first X with the major version and the YY with the minor.
+git checkout vX.YY
+```
+
+Navigate back to the root directory of the project before executing the
+following instructions. These instructions will compile the dependencies on the
+host, these include an out-of-tree version of QEMU.
+
+```shell script
 mkdir build
 cd build
 cmake ..
