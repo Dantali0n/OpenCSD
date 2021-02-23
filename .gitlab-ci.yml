@@ -3,14 +3,17 @@ stages:
   - test
   - coverage
   - memory
-# variables:
-#  GIT_SUBMODULE_STRATEGY: recursive
+ variables:
+  GIT_SUBMODULE_STRATEGY: normal
 cache:
   paths:
-    - "dependencies/boost*"
+    - "dependencies/*"
+    - "build/qemu-csd/arch-qemucsd.qcow2"
     - "build/qemu-csd/bin/*"
     - "build/qemu-csd/lib/*"
     - "build/qemu-csd/include/*"
+#before_script:
+#  - git submodule update --init
 build-documentation:
   stage: build
   tags:
