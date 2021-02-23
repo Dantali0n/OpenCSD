@@ -357,7 +357,14 @@ library links to all other shared libraries of SPDK, the library to enable
 PCI-e is automatically linked as well. If this is indeed the case, a good
 suggestion would be to improve the documentation to show which libraries enable
 which drivers and interfaces. Alteratively, the targets could be linked against
-all static libraries
+all static libraries.
+
+The authors of SPDK are very helpful and provided clear insights into why
+static compilation is not working when used this way. Their framework relies on
+constructor functions to register NVMe transport types. These are only exported
+if the static archive is linked using\bashinline{-Wl,--whole-archive}. The
+improvement to clearly indicate this requirement in the documentation of SPDK
+is ongoing.
 
 \subsubsection{Periodic Setup}
 
@@ -390,7 +397,12 @@ After creating a new systemd service file in an appropriate directory, the
 daemon must be reloaded for it to be listed. This can be done by
 executing\bashinline{sudo systemctl daemon-reload}. The usual \textit{enable}
 and \textit{start} commands can now be used to configure the service to start
-on boot and start it manually, respectively.
+on boot and start it manually, respectively. Take into account that regular
+tools relying on the \textit{nvme} kernel module can no longer be used if this
+procedure is performed on startup. Some of these include \textit{nvme-cli} or
+\textit{blkzone} as well as the block device disappearing from \textit{/dev}.
+An overview of which tools are influenced is shown in figure
+\ref{fig:spdk-landscape}.
 
 To test that this setup has been performed correctly the examples from the spdk
 directory can be used. The identify example should report an output comparable
@@ -439,7 +451,7 @@ Subsequently, toolchains can be assigned to profiles in the CMake profiles menu.
 Some targets, such as \textit{play-spdk}, might require root privileges to run.
 Any target can be configured to run with root privileges. Simply press on the
 target selection bar in the top right corner and select
-\textit{Edit configurations}. For each of the binary targets a toggle with
+\textit{Edit configurations}. For each of the binary targets a toggle witht
 \textit{Run with root privileges} should be visible.
 
 One of the limitations of Clion is that it can only debug targets found through
@@ -512,6 +524,27 @@ sanitization. Address sanitization will halt the execution of the running binary
 as soon as a single memory error occurs. These runtime detections of memory
 errors will not catch all but most errors. To enable this feature the parameter
 \textit{-DENABLE\_LEAK\_TESTS=on} must be set to on.
+
+\section{Technology Backgrounds}
+
+This section highlights how different technologies are realised. This ranges
+from insights about specifications, libraries, frameworks and drivers. Typically
+this includes figures about landscapes that provide an overview of how these
+technologies tie together. However, it does not include any examples or
+recommendation on how all these technologies together can be used to enable
+CSDs in QEMU. The specific case of enabling CSDs in QEMU will be discussed in
+details later.
+
+\subsection{SPDK}
+
+\begin{center}
+	\begin{figure}[H]
+		\includegraphics[width=0.5\textwidth]{resources/images/spdk-zns-ssd-landscape.png}
+		\captionsetup{justification=centering}
+		\caption{Copyright Western Digital 2020, \textbf{NO PERMISSION}}
+		\label{fig:spdk-landscape}
+	\end{figure}
+\end{center}
 
 % backtraces with backward-cpp
 % debugging on the remote in vscode

@@ -2,6 +2,9 @@
 [![coverage report](https://gitlab.dantalion.nl:4443/vrije-universiteit-vu-/qemu-csd/badges/master/coverage.svg)](https://gitlab.dantalion.nl:4443/vrije-universiteit-vu-/qemu-csd/commits/master)
 # QEMU-CSD
 
+**This repository contains copyrighted imagery and can not be open sourced in
+its current form!**
+
 ### Project goals
 
 * Week 1
@@ -262,6 +265,9 @@ More detailed information about development & debugging for this project can be
 found in the report.
 
 #### Licensing
+
+**This repository contains copyrighted imagery and can not be open sourced in
+its current form!**
 
 Some files are licensed under a variety of different licenses please see
 specific source files for licensing details.
