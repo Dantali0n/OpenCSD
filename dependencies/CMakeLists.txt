@@ -158,27 +158,12 @@ set(BPFLOAD_HEADERS
     ${CMAKE_SOURCE_DIR}/dependencies/linux/samples/bpf/bpf_load.h
 )
 
-#set(BPFLOAD_SRC
-#    ${KERNELHEADERS_INCLUDE_DIRS}/samples/bpf/bpf_load.c
-#)
-#
-#set(BPFLOAD_HEADERS
-#    ${KERNELHEADERS_INCLUDE_DIRS}/samples/bpf/bpf_load.h
-#)
-
 add_library(
     bpfload STATIC
     ${BPFLOAD_SRC}
     ${BPFLOAD_HEADERS}
 )
 
-#target_include_directories(bpfload PUBLIC ${KERNELHEADERS_INCLUDE_DIRS})
-#target_include_directories(bpfload PUBLIC ${KERNELHEADERS_INCLUDE_DIRS}/tools/lib)
-#target_include_directories(bpfload PUBLIC ${KERNELHEADERS_INCLUDE_DIRS}/tools/perf)
-#target_include_directories(bpfload PUBLIC ${KERNELHEADERS_INCLUDE_DIRS}/tools/include)
-
-#target_include_directories(bpfload PUBLIC ${CMAKE_SOURCE_DIR}/dependencies/linux/include)
-#target_include_directories(bpfload PUBLIC ${CMAKE_SOURCE_DIR}/dependencies/linux/arch/x86/include)
 target_include_directories(bpfload PUBLIC ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/lib)
 target_include_directories(bpfload PUBLIC ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/perf)
 target_include_directories(bpfload PUBLIC ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/include)
@@ -298,7 +283,7 @@ add_custom_command(OUTPUT qemu-install PRE_BUILD
 )
 
 add_custom_command(OUTPUT qemu-configure PRE_BUILD
-    COMMAND ../configure --target-list=x86_64-softmmu --enable-debug --prefix=${PRJ_ROOT}
+    COMMAND ../configure --target-list=x86_64-softmmu --enable-debug --disable-zstd --prefix=${PRJ_ROOT}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/qemu/build
     DEPENDS qemu-build-dir
 )
