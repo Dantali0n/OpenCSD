@@ -110,6 +110,9 @@ coverage:
     - cmake -DENABLE_CODECOV=on ..
     - make check
     - make qemu-csd_coverage
+  artifacts:
+    reports:
+      cobertura: build/qemucsd_arguments.xml
 memory-valgrind:
   stage: memory
   tags:

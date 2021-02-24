@@ -162,6 +162,9 @@ endif(ENABLE_LEAK_TESTS)
 
 # setup early flags and force build type when code coverage is running
 if(ENABLE_CODECOV)
+	# Need python interpreter to generate coverage report
+	find_package (Python COMPONENTS Interpreter REQUIRED)
+
 	if (MSVC)
 		message(FATAL_ERROR "${PRJ_PRX}: Cannot perform code coverage test with Microsoft Visual Studio")
 	endif()
@@ -200,7 +203,8 @@ if(ENABLE_CODECOV)
 	include(CTest)
 	add_custom_target(ctest COMMAND ${CMAKE_CTEST_COMMAND})
 
-	setup_target_for_coverage(${PRJ_PRX}_coverage ctest ${local_modules})
+	message(${local_modules})
+	SETUP_TARGET_FOR_COVERAGE_COBERTURA(${PRJ_PRX}_coverage ctest ${local_modules})
 endif(ENABLE_CODECOV)
 
 # Project documentation and report
