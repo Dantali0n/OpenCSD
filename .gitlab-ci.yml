@@ -7,7 +7,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: normal
 cache:
   paths:
-    - "dependencies/*"
+#    - "dependencies/*"
     - "build/qemu-csd/arch-qemucsd.qcow2"
     - "build/qemu-csd/bin/*"
     - "build/qemu-csd/lib/*"
