@@ -204,7 +204,9 @@ if(ENABLE_CODECOV)
 	add_custom_target(ctest COMMAND ${CMAKE_CTEST_COMMAND})
 
 	message(${local_modules})
-	SETUP_TARGET_FOR_COVERAGE_COBERTURA(${PRJ_PRX}_coverage ctest ${local_modules})
+#	setup_target_for_coverage(${PRJ_PRX}_coverage ctest ${local_modules})
+	setup_target_for_coverage_cobertura(${PRJ_PRX}_coverage ctest ${local_modules})
+#	SETUP_TARGET_FOR_COVERAGE_COBERTURA(${PRJ_PRX}_coverage ctest ${local_modules})
 endif(ENABLE_CODECOV)
 
 # Project documentation and report

@@ -19,3 +19,6 @@
 [submodule "dependencies/bpf-examples"]
 	path = dependencies/bpf-examples
 	url = https://github.com/bpftools/linux-observability-with-bpf.git
+[submodule "python/lcov-to-cobertura"]
+	path = python/lcov-to-cobertura
+	url = https://github.com/eriwen/lcov-to-cobertura-xml.git

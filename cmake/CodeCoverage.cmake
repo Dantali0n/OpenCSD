@@ -146,7 +146,7 @@ FUNCTION(SETUP_TARGET_FOR_COVERAGE _targetname _testrunner _outputname)
 
             # Capturing lcov counters and generating report
             COMMAND ${LCOV_PATH} --directory . --capture --output-file ${coverage_info}
-            COMMAND ${LCOV_PATH} --remove ${coverage_info} '${CMAKE_BINARY_DIR}/include' 'tests/*' '/usr/*' --output-file ${coverage_cleaned}
+            COMMAND ${LCOV_PATH} --remove ${coverage_info} '${CMAKE_BINARY_DIR}/qemu-csd/include/*' '${CMAKE_SOURCE_DIR}/tests/*' '/usr/*' --output-file ${coverage_cleaned}
             COMMAND ${GENHTML_PATH} -o ${_outputname} ${coverage_cleaned}
             COMMAND ${CMAKE_COMMAND} -E remove ${coverage_info} ${coverage_cleaned}
 
@@ -177,21 +177,31 @@ FUNCTION(SETUP_TARGET_FOR_COVERAGE_COBERTURA _targetname _testrunner _outputname
         MESSAGE(FATAL_ERROR "gcovr not found! Aborting...")
     ENDIF() # NOT GCOVR_PATH
 
+    IF(NOT LCOV_PATH)
+        MESSAGE(FATAL_ERROR "lcov not found! Aborting...")
+    ENDIF() # NOT LCOV_PATH
+
+    SET(coverage_info "${CMAKE_BINARY_DIR}/${_outputname}.info")
+    SET(coverage_cleaned "${coverage_info}.cleaned")
+
     ADD_CUSTOM_TARGET(${_targetname}
 
-            # Run tests
-            ${_testrunner} ${ARGV3}
+        # Run tests
+        ${_testrunner} ${ARGV3}
 
-            # Running gcovr
-            COMMAND ${GCOVR_PATH} -x -r ${CMAKE_SOURCE_DIR} -e '${CMAKE_SOURCE_DIR}/tests/'  -o ${_outputname}.xml
-            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-            COMMENT "Running gcovr to produce Cobertura code coverage report."
-            )
+        # Running gcovr
+        COMMAND ${LCOV_PATH} --directory . --capture --output-file ${coverage_info}
+        COMMAND ${LCOV_PATH} --remove ${coverage_info} '${CMAKE_BINARY_DIR}/qemu-csd/include/*' '${CMAKE_SOURCE_DIR}/tests/*' '/usr/*' --output-file ${coverage_cleaned}
+        COMMAND ${CMAKE_SOURCE_DIR}/python/lcov-to-cobertura/lcov_cobertura/lcov_cobertura.py ${coverage_cleaned}
+        COMMAND ${CMAKE_COMMAND} -E remove ${coverage_info} ${coverage_cleaned}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Running gcovr to produce Cobertura code coverage report."
+    )
 
     # Show info where to find the report
     ADD_CUSTOM_COMMAND(TARGET ${_targetname} POST_BUILD
-            COMMAND ;
-            COMMENT "Cobertura code coverage report saved in ${_outputname}.xml."
-            )
+        COMMAND ;
+        COMMENT "Cobertura code coverage report saved in coverage.xml."
+    )
 
 ENDFUNCTION() # SETUP_TARGET_FOR_COVERAGE_COBERTURA
