@@ -47,7 +47,7 @@ build-binaries:
     - mkdir -p build
     - cd build || exit
     - cmake -ENABLE_PLAYGROUND=off -DENABLE_DOCUMENTATION=off ..
-    - make -j $(nproc)
+    - make
   artifacts:
     paths:
       - "build/qemu-csd/*.so"
@@ -75,7 +75,7 @@ build-playground:
     - mkdir -p build
     - cd build || exit
     - cmake -DENABLE_PLAYGROUND=on -DENABLE_DOCUMENTATION=off ..
-    - make playground -j $(nproc)
+    - make playground
   artifacts:
     paths:
       - "build/playground/play-*"
