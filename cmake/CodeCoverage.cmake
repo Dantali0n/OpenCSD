@@ -181,6 +181,10 @@ FUNCTION(SETUP_TARGET_FOR_COVERAGE_COBERTURA _targetname _testrunner _outputname
         MESSAGE(FATAL_ERROR "lcov not found! Aborting...")
     ENDIF() # NOT LCOV_PATH
 
+    IF(NOT GENHTML_PATH)
+        MESSAGE(FATAL_ERROR "genhtml not found! Aborting...")
+    ENDIF() # NOT GENHTML_PATH
+
     SET(coverage_info "${CMAKE_BINARY_DIR}/${_outputname}.info")
     SET(coverage_cleaned "${coverage_info}.cleaned")
 
@@ -192,6 +196,7 @@ FUNCTION(SETUP_TARGET_FOR_COVERAGE_COBERTURA _targetname _testrunner _outputname
         # Running gcovr
         COMMAND ${LCOV_PATH} --directory . --capture --output-file ${coverage_info}
         COMMAND ${LCOV_PATH} --remove ${coverage_info} '${CMAKE_BINARY_DIR}/qemu-csd/include/*' '${CMAKE_SOURCE_DIR}/tests/*' '/usr/*' --output-file ${coverage_cleaned}
+        COMMAND ${GENHTML_PATH} -o ${_outputname} ${coverage_cleaned}
         COMMAND ${CMAKE_SOURCE_DIR}/python/lcov-to-cobertura/lcov_cobertura/lcov_cobertura.py ${coverage_cleaned}
         COMMAND ${CMAKE_COMMAND} -E remove ${coverage_info} ${coverage_cleaned}
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
