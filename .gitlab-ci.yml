@@ -108,6 +108,7 @@ coverage:
     - mkdir -p build
     - cd build || exit
     - cmake -DENABLE_CODECOV=on ..
+    - make clean
     - make check
     - make qemu-csd_coverage
   artifacts:
