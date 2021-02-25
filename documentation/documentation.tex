@@ -546,6 +546,92 @@ details later.
 	\end{figure}
 \end{center}
 
+\subsection{BPF}
+
+BPF is a complicated and large topic consisting of many different elements. Some
+of these elements are very old but have been revised several times over the
+years. Problematic is that many of these elements have very similar if not
+identical names, yet serve entirely different purposes or are used in an
+entirely different context. Many resources have been written on BPF and these
+elements, so much so that it would make little sense to try and encapsulate that
+in this work.
+
+Instead an overview of resources is provided along with their relative size,
+value and age. These resources are categorized into four groups. Each of these
+groups is briefly introduced along a graphical representation of all the
+different elements. This brief description along with a visual overview should
+lessen the confusion when reading about all these similarly named elements.
+
+The categories include \textit{Linux Kernel}, \textit{BPF-CO-RE \& BTF},
+\textit{libbpf} and \textit{userspace execution / interpretation}. These
+categories are chosen as BPF is an inherit part of the Linux Kernel. It consists
+of several parts including an ABI, virtual machine and bytecode verifier.
+
+This ties into the second category \textit{BPF-CO-RE \& BTF}. Since BPF is
+executed within the kernel it can also access datastructures used by the kernel.
+This introduces a huge compatibility problem as these datastructures typically
+change often with kernel versions. BTF-CO-RE and BTF are technologies used to
+ensure a BPF program can run regardless of kernel version. Although correctly
+using these technologies requires additional programming effort compared to
+writing regular BPF programs.
+
+BPF programs typically aren't run directly using syscalls. Instead a runtime
+library is used. Many of these runtimes exist ranging from large frameworks to
+small bootstrapping libraries. Given the intriquisies of these large frameworks
+they  are not covered in these work. The third category provides resources on
+these runtime libraries and is named \textit{libbpf}.
+
+The final category involves the environments in which to execute these BPF
+programs. As hinted earlier, the Linux kernel contains a virtual machine that
+can execute these programs. However, the Linux kernel is not the only virtual
+machine implementation that can execute these. The last category is named
+\textit{execution / interpretation}.
+
+The overview of all these resources, their categories, value, length and age
+is shown in table \ref{table:bpfresources}. Before continuing with reading the
+next section it is advised to at least read all resources with value
+\textit{high}.
+
+\begin{table}[h!]
+	\caption{BPF resources and their relevance}
+	\label{table:bpfresources}
+	\centering
+	\begin{adjustbox}{width=0.5\textwidth}
+		\begin{threeparttable}[]
+			\begin{tabular}{lllll}
+				\toprule
+				\textbf{Resource} & \textbf{Category} & \textbf{Value} &
+				\textbf{Length} & \textbf{Age} \\
+				\midrule
+				\href{https://www.man7.org/linux/man-pages/man2/bpf.2.html}{Linux bpf manpage} &
+				Linux Kernel & medium & short & timeless \\
+				\href{https://www.kernel.org/doc/Documentation/networking/filter.txt}{BPF kernel documentation} &
+				Linux Kernel & low & long & outdated \\
+				\href{https://www.kernel.org/doc/html/latest/bpf/btf.html}{Linux BTF documentation} &
+				Linux Kernel \& BTF & low & medium & timeless \\
+				\href{https://facebookmicrosites.github.io/bpf/blog/2020/02/19/bpf-portability-and-co-re.html}{BPF portability and CO-RE} &
+				BPF-CO-RE \& BTF & high & medium & relevant \\
+				\href{https://nakryiko.com/posts/libbpf-bootstrap/}{Building BPF applications with libbpf-bootstrap} &
+				libbpf - libbpf-bootstrap & high & short & relevant \\
+				\href{https://www.oreilly.com/library/view/linux-observability-with/9781492050193/}{Linux Observability with BPF} &
+				libbpf - bpf\_load & medium & book & outdated \\
+				\href{https://facebookmicrosites.github.io/bpf/blog/2020/02/19/bpf-portability-and-co-re.html}{Cilium BPF + XDP reference guide} &
+				libbpf & high & long & relevant \\
+				\href{https://facebookmicrosites.github.io/bpf/blog/2020/02/20/bcc-to-libbpf-howto-guide.html}{BCC to libbpf conversion} &
+				libbpf & low & long & relevant \\
+				\href{https://github.com/iovisor/ubpf}{uBPF} &
+				execution / interpretation & medium & short & relevant \\
+				\href{https://github.com/generic-ebpf/generic-ebpf}{generic-ebpf} &
+				execution / interpretation & medium & short & relevant \\
+				\bottomrule
+			\end{tabular}
+			\begin{tablenotes}[para,flushleft]
+				\centering List of resources on BPF and its various elements.
+			\end{tablenotes}
+		\end{threeparttable}
+	\end{adjustbox}
+\end{table}
+
 % backtraces with backward-cpp
 % debugging on the remote in vscode
 % searching through libraries and headers in clion

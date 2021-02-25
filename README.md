@@ -21,6 +21,8 @@ its current form!**
 * Week 4
   * Presentation on lightnvm and SPDK differences.
   * bpf_load static library.
+  * Overview of different resources on BPF and categorization.
+  * BPF landscape.
 
 ### Index
 
@@ -74,14 +76,11 @@ are already installed on the image used with QEMU**.
     * ctest
     * lcov
     * gcov
+    * gcovr
 * Continuous Integration
     * valgrind
 * Python scripts
     * virtualenv
-* QEMU
-    * librdmacm
-    * libibverbs
-    * libibumad
 
 The following dependencies are automatically compiled. Dependencies are preferably
 linked statically due to the nature of this project. However, for several dependencies
@@ -303,24 +302,22 @@ specific source files for licensing details.
 * BPF
   * Linux Kernel related
     * [Linux bpf manpage](https://www.man7.org/linux/man-pages/man2/bpf.2.html)
-      * Short, Medium, Timeless
     * [BPF kernel documentation](https://www.kernel.org/doc/Documentation/networking/filter.txt)
-      * Long, Low, Partially outdated 
   * BPF-CO-RE & BTF
     * [Linux BTF documentation](https://www.kernel.org/doc/html/latest/bpf/btf.html)
-      * Medium, Low, Timeless
+    * [BPF portability and CO-RE](https://facebookmicrosites.github.io/bpf/blog/2020/02/19/bpf-portability-and-co-re.html)  **Highly Recommended Read**
   * libbpf / standalone related
+    * [BCC to libbpf conversion](https://facebookmicrosites.github.io/bpf/blog/2020/02/20/bcc-to-libbpf-howto-guide.html)
     * [Cilium BPF + XDP reference guide](https://docs.cilium.io/en/v1.9/bpf/) **Highly Recommended Read**
-      * Long, 
     * bpf_load
       * [Linux Observability with BPF](https://www.oreilly.com/library/view/linux-observability-with/9781492050193/)
-        * Book, Medium, Partially outdated
     * bpf-bootstrap
       * [Building BPF applications with libbpf-bootstrap](https://nakryiko.com/posts/libbpf-bootstrap/)
   * userspace BPF execution / interpretation
     * [uBPF](https://github.com/iovisor/ubpf)
     * [generic-ebpf](https://github.com/generic-ebpf/generic-ebpf)
   * Various
+    * [BTF sysfs vmlinux ABI](https://www.kernel.org/doc/Documentation/ABI/testing/sysfs-kernel-btf)
     * [BPF features and minimal kernel versions](https://github.com/iovisor/bcc/blob/master/docs/kernel-versions.md)
     * [BPF Performance Tools (Chapters 1, 2, 17.1, 17.5, 18)](http://www.brendangregg.com/bpf-performance-tools-book.html)
     * [eBPF release artile lwn.net](https://lwn.net/Articles/603983/)
