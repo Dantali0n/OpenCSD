@@ -321,6 +321,7 @@ specific source files for licensing details.
     * [BPF features and minimal kernel versions](https://github.com/iovisor/bcc/blob/master/docs/kernel-versions.md)
     * [BPF Performance Tools (Chapters 1, 2, 17.1, 17.5, 18)](http://www.brendangregg.com/bpf-performance-tools-book.html)
     * [eBPF release artile lwn.net](https://lwn.net/Articles/603983/)
+    * [Why pingCAP switched from BCC to libbpf](https://pingcap.com/blog/why-we-switched-from-bcc-to-libbpf-for-linux-bpf-performance-analysis)
 * Repositories / Libraries
   * [uNVME](https://github.com/OpenMPDK/uNVMe)
   * [SPDK](https://github.com/spdk/spdk)

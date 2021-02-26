@@ -42,6 +42,7 @@ endif()
 
 # Add custom cmake modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(compiler)
 include(dependencies)
 include(platform)
 include(TargetArch)

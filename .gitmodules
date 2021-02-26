@@ -22,3 +22,6 @@
 [submodule "python/lcov-to-cobertura"]
 	path = python/lcov-to-cobertura
 	url = https://github.com/eriwen/lcov-to-cobertura-xml.git
+[submodule "dependencies/libbpf-bootstrap"]
+	path = dependencies/libbpf-bootstrap
+	url = https://github.com/libbpf/libbpf-bootstrap.git

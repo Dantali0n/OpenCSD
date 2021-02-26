@@ -1,4 +1,5 @@
 # Copyright (c) 2012 - 2015, Lars Bilke
+# Copyright (c) 2021, Corne Lukken
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -34,6 +35,9 @@
 # 2013-09-17, Joakim Söderberg
 # - Added support for Clang.
 # - Some additional usage instructions.
+#
+# 2021-02-25, Corne Lukken
+# - Changed cobertura to use lcov-to-cobertura instead of gcovr directly.
 #
 # USAGE:
 
