@@ -88,33 +88,49 @@ target_link_libraries(
 
 qemucsd_target_postprocess(play-example)
 
-# ----------------- #
-# Playground libbpf #
-# ----------------- #
+# -------------------------- #
+# Playground libbpf-bpf-load #
+# -------------------------- #
 
-set(PLAYGROUND_LIBBPF_SOURCE
-    libbpf/playground-libbpf.cxx
+set(PLAYGROUND_LIBBPF_BPF_LOAD_BYTECODE_SOURCE
+    libbpf-bpf-load/hello_world.c
 )
 
-message("${PRJ_PRX}: playground libbpf cxx flags:${CMAKE_CXX_FLAGS}")
-add_executable(play-libbpf ${PLAYGROUND_LIBBPF_SOURCE})
+set(BPF_C_FLAGS -O2 -target bpf)
+use_bpf_compiler_c()
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/bpf_program.o
+    COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${PLAYGROUND_LIBBPF_BPF_LOAD_BYTECODE_SOURCE} -o ${CMAKE_CURRENT_BINARY_DIR}/bpf_program.o
+    DEPENDS ${PLAYGROUND_LIBBPF_BPF_LOAD_BYTECODE_SOURCE}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
+add_custom_target(generate_bpf_program DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/bpf_program.o)
+use_default_compiler_c()
 
-add_dependencies(play-libbpf libbpf-build)
+set(PLAYGROUND_LIBBPF_BPF_LOAD_SOURCE
+    libbpf-bpf-load/playground-libbpf.cxx
+)
 
-#target_include_directories(
-#    play-libbpf
-#    INTERFACE
-#    $<BUILD_INTERFACE:${PRJ_ROOT}/include/bpf>
+include_directories(${CMAKE_SOURCE_DIR}/dependencies/linux/samples/bpf)
+include_directories(${CMAKE_SOURCE_DIR}/dependencies/linux/tools/testing/selftests/bpf)
+
+message("${PRJ_PRX}: playground libbpf-bpf-load cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(play-libbpf-bpf-load ${PLAYGROUND_LIBBPF_BPF_LOAD_SOURCE})
+
+add_dependencies(play-libbpf-bpf-load libbpf-build generate_bpf_program)
+
+#add_custom_command(TARGET play-libbpf-bpf-load PRE_BUILD
+#    COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${PLAYGROUND_LIBBPF_BPF_LOAD_BYTECODE_SOURCE} -o ${CMAKE_CURRENT_BINARY_DIR}/bpf_program.o
+#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 #)
 
 target_link_libraries(
-    play-libbpf
-    bpf
+    play-libbpf-bpf-load
     bpfload
     ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
 )
 
-qemucsd_target_postprocess(play-libbpf)
+qemucsd_target_postprocess(play-libbpf-bpf-load)
 
 # --------------- #
 # Playground spdk #

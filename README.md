@@ -64,6 +64,7 @@ are already installed on the image used with QEMU**.
 * General
     * Linux 5.0 or higher
     * compiler with c++17 support
+    * clang 3.9 or higher
     * cmake 3.18 or higher
     * python 3.x
     * mesonbuild (`pip3 install meson`)

@@ -25,3 +25,9 @@
 [submodule "dependencies/libbpf-bootstrap"]
 	path = dependencies/libbpf-bootstrap
 	url = https://github.com/libbpf/libbpf-bootstrap.git
+[submodule "dependencies/ubpf"]
+	path = dependencies/ubpf
+	url = https://github.com/iovisor/ubpf.git
+[submodule "dependencies/generic-ebpf"]
+	path = dependencies/generic-ebpf
+	url = https://github.com/generic-ebpf/generic-ebpf.git

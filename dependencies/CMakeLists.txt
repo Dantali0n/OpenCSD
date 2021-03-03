@@ -152,10 +152,12 @@ set(BPFLOAD_LIBRARIES
 
 set(BPFLOAD_SRC
     ${CMAKE_SOURCE_DIR}/dependencies/linux/samples/bpf/bpf_load.c
+    ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/testing/selftests/bpf/trace_helpers.c
 )
 
 set(BPFLOAD_HEADERS
     ${CMAKE_SOURCE_DIR}/dependencies/linux/samples/bpf/bpf_load.h
+    ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/testing/selftests/bpf/trace_helpers.h
 )
 
 add_library(
@@ -164,7 +166,18 @@ add_library(
     ${BPFLOAD_HEADERS}
 )
 
+target_link_libraries(
+    bpfload
+    bpf
+    elf
+    z
+)
+
+# Yes,  something inside the kernel tree has an external dependency
+add_dependencies(bpfload libbpf-build)
+
 target_include_directories(bpfload PUBLIC ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/lib)
+#target_include_directories(bpfload PUBLIC ${CMAKE_SOURCE_DIR}/dependencies/linux/samples/bpf)
 target_include_directories(bpfload PUBLIC ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/perf)
 target_include_directories(bpfload PUBLIC ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/include)
 target_include_directories(bpfload PUBLIC ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/include/uapi)
