@@ -152,12 +152,12 @@ set(BPFLOAD_LIBRARIES
 
 set(BPFLOAD_SRC
     ${CMAKE_SOURCE_DIR}/dependencies/linux/samples/bpf/bpf_load.c
-    ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/testing/selftests/bpf/trace_helpers.c
+#    ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/testing/selftests/bpf/trace_helpers.c
 )
 
 set(BPFLOAD_HEADERS
     ${CMAKE_SOURCE_DIR}/dependencies/linux/samples/bpf/bpf_load.h
-    ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/testing/selftests/bpf/trace_helpers.h
+#    ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/testing/selftests/bpf/trace_helpers.h
 )
 
 add_library(

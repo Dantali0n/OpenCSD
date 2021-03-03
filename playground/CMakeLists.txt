@@ -14,7 +14,7 @@ add_custom_target(
     play-backward
     play-boost-locale
     play-example
-    play-libbpf
+    play-libbpf-bpf-load
     play-spdk
 )
 

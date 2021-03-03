@@ -23,6 +23,10 @@ its current form!**
   * bpf_load static library.
   * Overview of different resources on BPF and categorization.
   * BPF landscape.
+* Week 5
+  * Explanation of BPF landscape figure and improvement
+  * Basic BPF example using bpf_load
+  * 
 
 ### Index
 
@@ -93,7 +97,7 @@ framework can not be statically linked (easily):
 | [backward](https://github.com/bombela/backward-cpp)                | 1.5                                                           |
 | [booost](https://www.boost.org/)                                   | 1.74.0                                                        |
 | [libbpf](https://github.com/libbpf/libbpf)                         | 0.3                                                           |
-| [linux](https://www.kernel.org/)                                   | Depends on host                                               |
+| [linux](https://www.kernel.org/)                                   | 5.10                                                          |
 | [spdk](https://github.com/spdk/spdk)                               | 21.01                                                         |
 | [dpdk](https://www.dpdk.org/)                                      | 20.11.0                                                       |
 | [isa-l](https://github.com/intel/isa-l)                            | spdk-v2.30.0                                                  |
@@ -110,20 +114,7 @@ these is compiling and downloading an image for QEMU. Many parts of this project
 can be developed on the host but some require being developed on the guest. See
 the next section for on guest development.
 
-The first step is downloading the dependencies and adjusting them to match your
-own kernel version. The total size required for the entire project with both
-host and QEMU development will be **around 30GB of disk space**.
-
-```shell
-git submodule update --init --recursive
-cd dependencies/linux
-uname -r
-# ensure vX.YY matches the kernel version reported by uname -r
-# replace the first X with the major version and the YY with the minor.
-git checkout vX.YY
-```
-
-Navigate back to the root directory of the project before executing the
+Navigate to the root directory of the project before executing the
 following instructions. These instructions will compile the dependencies on the
 host, these include an out-of-tree version of QEMU.
 

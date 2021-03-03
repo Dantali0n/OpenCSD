@@ -632,14 +632,46 @@ next section it is advised to at least read all resources with value
 	\end{adjustbox}
 \end{table}
 
+From these references it should be clear that BPF has been around for a long
+time. Nevertheless, it is continuing to see improvements and new additions
+including the prominent eBPF or the more recent sleepable BPF
+programs \cite{bpf-features}. However, using BPF remains non-trivial due to
+changes between different kernel versions. As shown in references BPF CO-RE
+helps alleviate these issues by providing translation mechanisms. Ensuring
+BPF CO-RE compatibility starts when compiling the BPF program into bytecode with
+clang. This is also illustrated in figure \ref{fig:bpf-landscape} by drawing
+LLVM clang across the border of the compilation and BPF CO-RE stages.
+
+\subsubsection{BPF Landscape}
+
+Initially this figure might appear quite complex. therefore, it is important to
+break it down in a step by step manner. Effectively, the figure shows two
+primary types of relationships. First is a chain of dependencies that is
+irrelevant to the order of steps in which an example BPF program is compiled and
+executed, these are shown using bold white arrows. Secondly, is a step by step
+execution flow to compile and execute a BPF program, these are shown using thin
+arrows with various colors and patterns. A striped arrow pattern is used to
+indicate that the use of this dependency is optional. While the colored arrows
+are used to show alternatives to the basic execution of BPF programs
+inside the Linux kernel. Finally, all thin arrows are numbered to show the
+absolute order of individual steps.
+
+The figure also highlights a clear separation of userspace and kernel space
+components. As well as indicating to which particular stage a technology
+belongs.
+
+\onecolumn
+
 \begin{center}
 	\begin{figure}[H]
-		\includegraphics[width=0.5\textwidth]{resources/images/bpf-landscape.png}
+		\includegraphics[width=1\textwidth]{resources/images/bpf-landscape.png}
 		\captionsetup{justification=centering}
 		\caption{Overview of BPF landscape across various stages of use}
 		\label{fig:bpf-landscape}
 	\end{figure}
 \end{center}
+
+\twocolumn
 
 % backtraces with backward-cpp
 % debugging on the remote in vscode
