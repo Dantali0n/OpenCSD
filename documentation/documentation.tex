@@ -635,14 +635,12 @@ next section it is advised to at least read all resources with value
 From these references it should be clear that BPF has been around for a long
 time. Nevertheless, it is continuing to see improvements and new additions
 including the prominent eBPF or the more recent sleepable BPF
-programs \cite{bpf-features}. However, using BPF remains non-trivial due to
-changes between different kernel versions. As shown in references BPF CO-RE
-helps alleviate these issues by providing translation mechanisms. Ensuring
-BPF CO-RE compatibility starts when compiling the BPF program into bytecode with
-clang. This is also illustrated in figure \ref{fig:bpf-landscape} by drawing
-LLVM clang across the border of the compilation and BPF CO-RE stages.
+programs \cite{bpf-features}.
 
 \subsubsection{BPF Landscape}
+
+This section serves as a detailed explanation for
+figure \ref{fig:bpf-landscape}.
 
 Initially this figure might appear quite complex. therefore, it is important to
 break it down in a step by step manner. Effectively, the figure shows two
@@ -658,7 +656,82 @@ absolute order of individual steps.
 
 The figure also highlights a clear separation of userspace and kernel space
 components. As well as indicating to which particular stage a technology
-belongs.
+belongs. Finally, for each kernel space component the figure highlights the
+kernel version at which this component was introduced.
+
+The following explanation describes the step by step process of executing a BPF
+program. At each step the use of optional dependencies or alternative execution
+environments is discussed. Running a BPF program start by compiling the source
+code using Clang, the use of Clang is recommended as it supports
+generating BPF bytecode directly. With the bytecode generated we now need to
+compile a runtime program that facilitates loading this bytecode and submitting
+it to an execution environment. The compilation of the BPF bytecode and runtime
+program are decoupled as BPF bytecode is only loaded at runtime as a function
+argument.
+
+From this diagram it might be apparent that compiling and running BPF programs
+is non-trivial. One of the reasons is due to differences between different
+kernel versions. As described in references from table \ref{table:bpfresources},
+BPF CO-RE helps  alleviate these issues by providing translation mechanisms.
+Ensuring BPF CO-RE compatibility starts when compiling the BPF program into
+bytecode with clang. This is why LLVM clang is drawn across the border of the
+compilation and BPF CO-RE stages. Specifically, Clang can emit BTF relocations
+metadata that can be used for translation at runtime.
+
+Normally runtimes that support BPF CO-RE require BTF as dependency. This header
+is located in the Linux source, however, since kernel 5.5 a special sysfs file
+is also available. This sysfs file is able to generate a \textit{vmlinux.h}
+header without kernel sources.
+
+Depending on the runtime this \textit{vmlinux.h} header might be used to
+perform the necessary BTF translations. Alternatively the BTF header might be
+used directly, typically it can either be found in the kernel headers or in
+\textit{/usr/include/linux}.
+
+One particular trap is that Ubuntu based Linux
+distributions their \textit{/usr/include/linux} directory will always contain
+headers for the regular release kernel, even if the so called \textit{HWE}
+kernel is installed. For 18.04 releases this can be particularly problematic as
+this directory will now contain headers for 4.15 even if 5.4 is installed and
+running.
+
+So using the \textit{libbpf} runtime might still require installing kernel
+headers depending on the Linux distribution used. Other runtimes have even
+larger requirements such as \textit{bpf\_load}. This is a set of headers and
+source files contained in the Linux source until version 5.10, however, these
+files are not included in kernel header packages or \textit{/usr/include/linux}.
+
+The number of available runtimes as well as their dependencies is quite a
+complicated part of BPF. For simplicity, large standalone runtime frameworks
+such as BCC and bpftrace are excluded. In addition, the concept of running BPF
+programs solely relying on kernel headers is not discussed.
+
+This results in 3 different runtimes of which every runtime is dependent on
+\textit{libbpf} or is \textit{libbpf} itself. Alternatives to \textit{libbpf}
+are \textit{libbpf-bootstrap} and \textit{bpf\_load}. Where the first
+alternative also depends on \textit{vmlinux.h}.
+
+From these runtimes, the use of \textit{libbpf-bootstrap} makes the most
+intuitive sense. This is because the generation of \textit{vmlinux.h} is more
+straightfoward than including kernel headers or even the entire Linux kernel
+sources. Additionally, \textit{bpf\_load} is no longer available as of the most
+recent version of the Linux kernel.
+
+When the runtime is chosen, it can be used to compile a program that will load
+and execute a BPF program. The functions available to achieve this depend on
+the runtime. Typically the runtimes are compiled independently and linked as
+shared or static libraries.
+
+These runtimes will make the necessary syscalls to the Linux kernel under the
+hood. However, the Linux kernel performs static verification steps before
+actually executing the BPF program inside its virtual machine.
+
+Executing BPF programs inside the Linux kernel might actually not be desirable,
+for instance when using a userspace NVMe driver such as SPDK. In these cases
+alternative execution environments such as \textit{uBPF} and
+\textit{generic-ebpf} are available. These, however, do not rely on overriding
+specific kernel syscalls so they have to be explicitly programmed at compile
+them as they offer an alternative API.
 
 \onecolumn
 
@@ -764,6 +837,8 @@ confusion.
 					 these binaries contain metadata information to aid the
 					 underlying operating system in executing them, a common
 					 format for this metadata is ELF.
+	\item ABI      - Application Binary Interface.
+	\item API      - Application Programming Interface.
 	\item SCSI     - Small Computer System Interface
 	\item ATA      - AT Attachment
 	\item ZBC      - (SCSI) Zoned Block Command
