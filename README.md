@@ -26,8 +26,9 @@ its current form!**
 * Week 5
   * Explanation of BPF landscape figure and improvement
   * Basic BPF example using bpf_load
+* Week 6
+  * Investigate https://www.kernel.org/doc/html/latest/filesystems/zonefs.html
   * Investigate how to use libbfp-bootstrap
-  *
 
 ### Index
 
@@ -69,7 +70,7 @@ are already installed on the image used with QEMU**.
 * General
     * Linux 5.0 or higher
     * compiler with c++17 support
-    * clang 3.9 or higher
+    * clang 10 or higher
     * cmake 3.18 or higher
     * python 3.x
     * mesonbuild (`pip3 install meson`)

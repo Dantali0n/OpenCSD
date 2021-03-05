@@ -19,7 +19,7 @@ string(REGEX REPLACE "([a-z]* [a-z]* )|(-.*)" "" CLANG_COMPILER_VERSION ${CLANG_
 
 # Test version against minimal version required for BPF bytecode
 # TODO(Dantali0n): Turn into try_compile
-if(CLANG_COMPILER_VERSION VERSION_LESS "3.9")
+if(CLANG_COMPILER_VERSION VERSION_LESS "10.0")
     message(FATAL_ERROR "${PRJ_PRX}: Insufficient Clang version: ${CLANG_COMPILER_VERSION}")
 else()
     message("${PRJ_PRX}: Found suitable Clang version for BPF: ${CLANG_COMPILER_VERSION}")
