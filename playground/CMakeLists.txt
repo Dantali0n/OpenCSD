@@ -88,23 +88,103 @@ target_link_libraries(
 
 qemucsd_target_postprocess(play-example)
 
+# --------------------------- #
+# Playground libbpf-bootstrap #
+# --------------------------- #
+
+set(PLAYGROUND_LIBBPF_BOOTSTRAP_DIRECTORY
+    ${CMAKE_CURRENT_SOURCE_DIR}/libbpf-bootstrap
+)
+
+# Sources used to generate BPF bytecode
+set(PLAYGROUND_LIBBPF_BOOTSTRAP_BYTECODE_SOURCE
+    libbpf-bootstrap/hello_world.c
+)
+
+# Set custom compiler flags to generate BPF bytecode
+set(BPF_C_FLAGS -O2 -target bpf)
+# Change compiler to BPF compiler, Clang
+use_bpf_compiler_c()
+# Custom commands need to be used when using alternative compiler,
+# add_executable / add_library CAN NOT BE USED!
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/bpf_bootstrap_program.o
+    COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${PLAYGROUND_LIBBPF_BOOTSTRAP_BYTECODE_SOURCE} -o ${CMAKE_CURRENT_BINARY_DIR}/bpf_bootstrap_program.o
+    DEPENDS ${PLAYGROUND_LIBBPF_BOOTSTRAP_BYTECODE_SOURCE}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
+# Generate a target that depends on the output file of the custom command, used
+# for setting up dependency with runtime program. It also depends on the
+# generation bpftool
+add_custom_target(generate_bpf_bootstrap_program
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/bpf_bootstrap_program.o generate_bptfool
+)
+# Chabge back to the regular compiler
+use_default_compiler_c()
+
+# Generate the BPF program header using bpftool
+add_custom_command(
+    OUTPUT ${PLAYGROUND_LIBBPF_BOOTSTRAP_DIRECTORY}/bpf_bootstrap_program.h
+    COMMAND ${PRJ_ROOT}/bin/bpftool gen skeleton ${CMAKE_CURRENT_BINARY_DIR}/bpf_bootstrap_program.o
+    DEPENDS generate_bpf_bootstrap_program
+    WORKING_DIRECTORY ${PLAYGROUND_LIBBPF_BOOTSTRAP_DIRECTORY}
+)
+
+add_custom_target(generate_bpf_bootstrap_header DEPENDS ${PLAYGROUND_LIBBPF_BOOTSTRAP_DIRECTORY}/bpf_bootstrap_program.h)
+
+set(PLAYGROUND_LIBBPF_BOOTSTRAP_SOURCE
+    libbpf-bootstrap/playground-libbpf.cxx
+)
+
+set(PLAYGROUND_LIBBPF_BOOTSTRAP_HEADERS
+    libbpf-bootstrap/bpf_bootstrap_program.h
+)
+
+#include_directories(${CMAKE_SOURCE_DIR}/dependencies/linux/samples/bpf)
+#include_directories(${CMAKE_SOURCE_DIR}/dependencies/linux/tools/testing/selftests/bpf)
+
+message("${PRJ_PRX}: playground play-libbpf-bootstrap cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(play-libbpf-bootstrap ${PLAYGROUND_LIBBPF_BOOTSTRAP_SOURCE} ${PLAYGROUND_LIBBPF_BOOTSTRAP_HEADERS})
+
+add_dependencies(play-libbpf-bootstrap libbpf-build generate_bpf_bootstrap_program)
+
+#add_custom_command(TARGET play-libbpf-bpf-load PRE_BUILD
+#    COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${PLAYGROUND_LIBBPF_BPF_LOAD_BYTECODE_SOURCE} -o ${CMAKE_CURRENT_BINARY_DIR}/bpf_program.o
+#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#)
+
+target_link_libraries(
+    play-libbpf-bootstrap
+    ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
+)
+
+qemucsd_target_postprocess(play-libbpf-bootstrap)
+
 # -------------------------- #
 # Playground libbpf-bpf-load #
 # -------------------------- #
 
+# Sources used to generate BPF bytecoe
 set(PLAYGROUND_LIBBPF_BPF_LOAD_BYTECODE_SOURCE
     libbpf-bpf-load/hello_world.c
 )
 
+# Set custom compiler flags to generate BPF bytecode
 set(BPF_C_FLAGS -O2 -target bpf)
+# Change compiler to BPF compiler, Clang
 use_bpf_compiler_c()
+# Custom commands need to be used when using alternative compiler,
+# add_executable / add_library CAN NOT BE USED!
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/bpf_program.o
     COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${PLAYGROUND_LIBBPF_BPF_LOAD_BYTECODE_SOURCE} -o ${CMAKE_CURRENT_BINARY_DIR}/bpf_program.o
     DEPENDS ${PLAYGROUND_LIBBPF_BPF_LOAD_BYTECODE_SOURCE}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
+# Generate a target that depends on the output file of the custom command, used
+# for setting up dependency with runtime program.
 add_custom_target(generate_bpf_program DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/bpf_program.o)
+# Chabge back to the regular compiler
 use_default_compiler_c()
 
 set(PLAYGROUND_LIBBPF_BPF_LOAD_SOURCE

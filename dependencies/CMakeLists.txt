@@ -142,6 +142,21 @@ add_custom_command(OUTPUT libbpf-install PRE_BUILD
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/src
 )
 
+# ------- #
+# bpftool #
+# ------- #
+
+add_custom_command(
+    OUTPUT ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/bpf/bpftool/bpftool
+    COMMAND make -C tools/bpf/bpftool/
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/dependencies/linux
+)
+add_custom_target(generate_bptfool DEPENDS ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/bpf/bpftool/bpftool)
+
+add_custom_command(TARGET generate_bptfool POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/bpf/bpftool/bpftool ${PRJ_ROOT}/bin
+)
+
 # -------- #
 # bpf_load #
 # -------- #

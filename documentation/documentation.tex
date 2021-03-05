@@ -657,7 +657,17 @@ absolute order of individual steps.
 The figure also highlights a clear separation of userspace and kernel space
 components. As well as indicating to which particular stage a technology
 belongs. Finally, for each kernel space component the figure highlights the
-kernel version at which this component was introduced.
+kernel version at which this component was introduced. A short legend for
+different elements is shown in figure \ref{fig:bpf-landscape-legend}.
+
+\begin{center}
+	\begin{figure}[H]
+		\includegraphics[width=0.5\textwidth]{resources/images/bpf-landscape-legend.png}
+		\captionsetup{justification=centering}
+		\caption{Legend for the BPF landscape figure}
+		\label{fig:bpf-landscape-legend}
+	\end{figure}
+\end{center}
 
 The following explanation describes the step by step process of executing a BPF
 program. At each step the use of optional dependencies or alternative execution
@@ -746,10 +756,6 @@ them as they offer an alternative API.
 
 \twocolumn
 
-% backtraces with backward-cpp
-% debugging on the remote in vscode
-% searching through libraries and headers in clion
-
 %\footnotemark[1]. example\ref{term}.
 %\footnotetext[1]{test}
 %\subsection*{Accelerated Computing Landscape}
@@ -757,42 +763,6 @@ them as they offer an alternative API.
 %GPUOCelot\cite{tired-manycore-architectures-ocelot}
 %\section{LARGER SECTION}
 %$\mathcal{O}(N\log N)$
-
-%\begin{center}
-%	\begin{figure}[H]
-%		\includegraphics[width=0.5\textwidth]{resources/images/example.png}
-%		\captionsetup{justification=centering}
-%		\caption{
-%			\href{https://commons.wikimedia.org/wiki/User:AkanoToE}{AkanoToE}
-%			licensed under CC-BY-SA 4.0}
-%		\label{fig:consampling}
-%	\end{figure}
-%\end{center}
-
-%\begin{table}[h!]
-%	\caption{Input evaluation sizes}
-%	\label{table:files}
-%	\centering
-%	\begin{adjustbox}{width=0.5\textwidth}
-%		\begin{threeparttable}[]
-%			\begin{tabular}{llll}
-%				\toprule
-%				\textbf{Name} & \textbf{Type} & \textbf{Sample rate (kHz)} &
-%				\textbf{Samples} \\
-%				\midrule
-%				test-b & complex & 10000 & 502622 \\
-%				test-t & complex & 5333 & 2654207 \\
-%				\bottomrule
-%			\end{tabular}
-%			\begin{tablenotes}[para,flushleft]
-%				\centering List of input files and parameters used for
-%				performance evaluations.
-%			\end{tablenotes}
-%		\end{threeparttable}
-%	\end{adjustbox}
-%\end{table}
-
-%\section{Target Hardware}
 %
 %\begin{center}
 %	\begin{figure}[H]
