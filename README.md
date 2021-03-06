@@ -68,7 +68,7 @@ compiled and linked is shown below. Note however, **these dependencies
 are already installed on the image used with QEMU**.
 
 * General
-    * Linux 5.0 or higher
+    * Linux 5.5 or higher
     * compiler with c++17 support
     * clang 10 or higher
     * cmake 3.18 or higher

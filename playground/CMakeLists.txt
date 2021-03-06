@@ -15,6 +15,7 @@ add_custom_target(
     play-boost-locale
     play-example
     play-libbpf-bpf-load
+    play-libbpf-bootstrap
     play-spdk
 )
 
@@ -102,7 +103,7 @@ set(PLAYGROUND_LIBBPF_BOOTSTRAP_BYTECODE_SOURCE
 )
 
 # Set custom compiler flags to generate BPF bytecode
-set(BPF_C_FLAGS -g -O2 -target bpf)
+set(BPF_C_FLAGS -g -O2 -target bpf -D__TARGET_ARCH_x86 -I ${PRJ_ROOT}/include)
 # Change compiler to BPF compiler, Clang
 use_bpf_compiler_c()
 # Custom commands need to be used when using alternative compiler,
@@ -110,13 +111,13 @@ use_bpf_compiler_c()
 # Generate the BPF bytecode
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/bpf_bootstrap_program.o
-    COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -I ${PRJ_ROOT}/include -c ${PLAYGROUND_LIBBPF_BOOTSTRAP_BYTECODE_SOURCE} -o ${CMAKE_CURRENT_BINARY_DIR}/bpf_bootstrap_program.o
-    DEPENDS ${PLAYGROUND_LIBBPF_BOOTSTRAP_BYTECODE_SOURCE}
+    COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${PLAYGROUND_LIBBPF_BOOTSTRAP_BYTECODE_SOURCE} -o ${CMAKE_CURRENT_BINARY_DIR}/bpf_bootstrap_program.o
+    DEPENDS ${PLAYGROUND_LIBBPF_BOOTSTRAP_BYTECODE_SOURCE} generate_vmlinux generate_bptfool
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 #add_custom_target(generate_bpf_bootstrap_program
-#    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/bpf_bootstrap_program.o generate_bptfool
+#    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/bpf_bootstrap_program.o generate_vmlinux generate_bptfool
 #)
 
 # Change back to the regular compiler

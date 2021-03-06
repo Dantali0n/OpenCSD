@@ -157,6 +157,17 @@ add_custom_command(TARGET generate_bptfool POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/bpf/bpftool/bpftool ${PRJ_ROOT}/bin
 )
 
+# --------- #
+# vmlinux.h #
+# --------- #
+
+add_custom_command(
+    OUTPUT ${PRJ_ROOT}/include/vmlinux.h
+    COMMAND ${PRJ_ROOT}/bin/bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
+    WORKING_DIRECTORY ${PRJ_ROOT}/include
+)
+add_custom_target(generate_vmlinux DEPENDS generate_bptfool)
+
 # -------- #
 # bpf_load #
 # -------- #
