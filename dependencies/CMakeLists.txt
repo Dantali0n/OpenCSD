@@ -162,11 +162,11 @@ add_custom_command(TARGET generate_bptfool POST_BUILD
 # --------- #
 
 add_custom_command(
-    OUTPUT ${PRJ_ROOT}/include/vmlinux.h
-    COMMAND ${PRJ_ROOT}/bin/bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
-    WORKING_DIRECTORY ${PRJ_ROOT}/include
+    OUTPUT ${PRJ_HEADERS}/vmlinux.h
+    COMMAND ${PRJ_ROOT}/bin/bpftool btf dump file /sys/kernel/btf/vmlinux format c > ${PRJ_HEADERS}/vmlinux.h
+    WORKING_DIRECTORY ${PRJ_HEADERS}
 )
-add_custom_target(generate_vmlinux DEPENDS generate_bptfool)
+add_custom_target(generate_vmlinux DEPENDS ${PRJ_HEADERS}/vmlinux.h generate_bptfool)
 
 # -------- #
 # bpf_load #
@@ -355,9 +355,9 @@ add_custom_command(
 # Download qemu image if preparing deployment / on host development
 if(NOT IS_DEPLOYED)
 download_file(
-    https://dancloud.dantalion.nl/index.php/s/s8F7ferBrUZfgtU/download
+    https://dancloud.dantalion.nl/index.php/s/YqXSNbKvgjW0iG7/download
     ${PRJ_ROOT}/arch-qemucsd.qcow2
-    SHA256 9e4e4ba764b625cf33ea76ee2898daa3a5fa4ea32b49d8435cfca24ffa1a68e2
+    SHA256 e3fc42ddbbb33b193e59315e949ae176361e0c2af8e1f588aa145b38d32e5a42
 )
 endif()
 
