@@ -174,7 +174,7 @@ else()
 
 add_custom_command(
     OUTPUT ${PRJ_HEADERS}/vmlinux.h
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/libbpf-boostrap/src/vmlinux_508.h ${PRJ_HEADERS}/vmlinux.h
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/libbpf-bootstrap/src/vmlinux_508.h ${PRJ_HEADERS}/vmlinux.h
     WORKING_DIRECTORY ${PRJ_HEADERS}
 )
 add_custom_target(generate_vmlinux DEPENDS ${PRJ_HEADERS}/vmlinux.h generate_bptfool)
