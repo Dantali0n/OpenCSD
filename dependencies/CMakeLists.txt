@@ -161,12 +161,25 @@ add_custom_command(TARGET generate_bptfool POST_BUILD
 # vmlinux.h #
 # --------- #
 
+if(EXISTS "/sys/kernel/btf/vmlinux")
+
 add_custom_command(
     OUTPUT ${PRJ_HEADERS}/vmlinux.h
     COMMAND ${PRJ_ROOT}/bin/bpftool btf dump file /sys/kernel/btf/vmlinux format c > ${PRJ_HEADERS}/vmlinux.h
     WORKING_DIRECTORY ${PRJ_HEADERS}
 )
 add_custom_target(generate_vmlinux DEPENDS ${PRJ_HEADERS}/vmlinux.h generate_bptfool)
+
+else()
+
+add_custom_command(
+    OUTPUT ${PRJ_HEADERS}/vmlinux.h
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/libbpf-boostrap/src/vmlinux_508.h ${PRJ_HEADERS}/vmlinux.h
+    WORKING_DIRECTORY ${PRJ_HEADERS}
+)
+add_custom_target(generate_vmlinux DEPENDS ${PRJ_HEADERS}/vmlinux.h generate_bptfool)
+
+endif()
 
 # -------- #
 # bpf_load #
