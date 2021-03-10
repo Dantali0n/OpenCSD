@@ -302,6 +302,86 @@ target_link_libraries(
 qemucsd_target_postprocess(play-libbpf-bpf-load)
 
 # --------------- #
+# Playground ubpf #
+# --------------- #
+
+set(PLAYGROUND_UBPF_DIRECTORY
+    ${CMAKE_CURRENT_SOURCE_DIR}/ubpf
+)
+
+# Sources used to generate BPF bytecode
+set(PLAYGROUND_UBPF_BYTECODE_SOURCE
+    ubpf/hello_world.c
+)
+
+# Set custom compiler flags to generate BPF bytecode
+set(BPF_C_FLAGS -g -O2 -target bpf -D__TARGET_ARCH_x86 -I ${PRJ_ROOT}/include)
+# Change compiler to BPF compiler, Clang
+use_bpf_compiler_c()
+# Custom commands need to be used when using alternative compiler,
+# add_executable / add_library CAN NOT BE USED!
+# Generate the BPF bytecode
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/bpf_ubpf_program.o
+    COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${PLAYGROUND_UBPF_BYTECODE_SOURCE} -o ${CMAKE_CURRENT_BINARY_DIR}/bpf_ubpf_program.o
+    DEPENDS ${PLAYGROUND_UBPF_BYTECODE_SOURCE} generate_vmlinux generate_bptfool
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+#add_custom_target(generate_bpf_bootstrap_program
+#    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/bpf_bootstrap_program.o generate_vmlinux generate_bptfool
+#)
+
+# Change back to the regular compiler
+use_default_compiler_c()
+
+# Generate the BPF program header using bpftool, depend on the bytecode file
+add_custom_command(
+    OUTPUT ${PLAYGROUND_UBPF_DIRECTORY}/bpf_ubpf_program.h
+    COMMAND ${PRJ_ROOT}/bin/bpftool gen skeleton ${CMAKE_CURRENT_BINARY_DIR}/bpf_ubpf_program.o > ${PLAYGROUND_UBPF_DIRECTORY}/bpf_ubpf_program.h
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/bpf_ubpf_program.o
+    WORKING_DIRECTORY ${PLAYGROUND_UBPF_DIRECTORY}
+)
+
+# Generate a target that depends on the output file of the custom command, used
+# for setting up dependency with runtime program.
+add_custom_target(generate_ubpf_header
+    DEPENDS ${PLAYGROUND_UBPF_DIRECTORY}/bpf_ubpf_program.h
+)
+
+set(PLAYGROUND_UBPF_SOURCE
+    ubpf/playground-ubpf.cxx
+)
+
+set(PLAYGROUND_UBPF_HEADERS
+    ${PLAYGROUND_UBPF_DIRECTORY}/bpf_ubpf_program.h
+)
+
+#include_directories(${CMAKE_SOURCE_DIR}/dependencies/linux/samples/bpf)
+#include_directories(${CMAKE_SOURCE_DIR}/dependencies/linux/tools/testing/selftests/bpf)
+
+message("${PRJ_PRX}: playground play-ubpf cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(play-ubpf ${PLAYGROUND_UBPF_SOURCE} ${PLAYGROUND_UBPF_HEADERS})
+
+add_dependencies(play-ubpf ubpf-build libbpf-build generate_ubpf_header)
+
+#add_custom_command(TARGET play-libbpf-bpf-load PRE_BUILD
+#    COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${PLAYGROUND_LIBBPF_BPF_LOAD_BYTECODE_SOURCE} -o ${CMAKE_CURRENT_BINARY_DIR}/bpf_program.o
+#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#)
+
+target_link_libraries(
+    play-ubpf
+    ubpf
+    bpf
+    elf
+    z
+    ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
+)
+
+qemucsd_target_postprocess(play-ubpf)
+
+# --------------- #
 # Playground spdk #
 # --------------- #
 

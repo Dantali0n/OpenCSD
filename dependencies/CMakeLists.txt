@@ -15,6 +15,7 @@ else()
 endif()
 
 add_custom_target(generic-ebpf-build DEPENDS generic-ebpf-copy)
+add_custom_target(ubpf-build DEPENDS ubpf-install)
 add_custom_target(libbpf-build DEPENDS libbpf-install)
 add_custom_target(spdk-build DEPENDS spdk-install)
 add_custom_target(dpdk-build DEPENDS dpdk-copy)
@@ -135,7 +136,7 @@ endif()
 # Limitations: this only tests the presence of a single file
 file_exists(${PRJ_ROOT}/lib/libebpf.so has_genericebpf)
 if(${has_genericebpf})
-    add_custom_target(generic-ebpf-install)
+    add_custom_target(generic-ebpf-copy)
 endif()
 
 add_custom_command(OUTPUT generic-ebpf-compile PRE_BUILD
@@ -339,6 +340,28 @@ add_custom_command(OUTPUT isa-l-autogen PRE_BUILD
     COMMAND ./autogen.sh
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk/isa-l
     DEPENDS spdk-compile
+)
+
+# ---- #
+# ubpf #
+# ---- #
+
+# Check if libubpf.a is already build, REQUIRES RE-RUNNING CMAKE COMMAND!
+# Limitations: this only tests the presence of a single file
+file_exists(${PRJ_ROOT}/lib/libubpf.a has_ubpf)
+if(${has_ubpf})
+    add_custom_target(ubpf-install)
+endif()
+
+add_custom_command(OUTPUT ubpf-compile PRE_BUILD
+    COMMAND make -C vm
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/ubpf
+)
+
+add_custom_command(OUTPUT ubpf-install PRE_BUILD
+    COMMAND PREFIX=${PRJ_ROOT} make -C vm install
+    DEPENDS ubpf-compile
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/ubpf
 )
 
 # --------------------- #
