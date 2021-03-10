@@ -152,7 +152,7 @@ set(PLAYGROUND_GENERIC_EBPF_HEADERS
 message("${PRJ_PRX}: playground play-generic-ebpf cxx flags:${CMAKE_CXX_FLAGS}")
 add_executable(play-generic-ebpf ${PLAYGROUND_GENERIC_EBPF_SOURCE} ${PLAYGROUND_GENERIC_EBPF_HEADERS})
 
-add_dependencies(play-generic-ebpf generic-ebpf-build generate_generic_ebpf_header)
+add_dependencies(play-generic-ebpf generic-ebpf-build libbpf-build generate_generic_ebpf_header)
 
 #add_custom_command(TARGET play-libbpf-bpf-load PRE_BUILD
 #    COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${PLAYGROUND_LIBBPF_BPF_LOAD_BYTECODE_SOURCE} -o ${CMAKE_CURRENT_BINARY_DIR}/bpf_program.o
@@ -162,9 +162,9 @@ add_dependencies(play-generic-ebpf generic-ebpf-build generate_generic_ebpf_head
 target_link_libraries(
     play-generic-ebpf
     ebpf
-#    bpf
-#    elf
-#    z
+    bpf
+    elf
+    z
     ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
 )
 
