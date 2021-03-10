@@ -38,6 +38,7 @@ playground/**
 
 # Explicitly ignore generated headers
 playground/libbpf-bootstrap/bpf_bootstrap_program.h
+playground/generic-ebpf/bpf_bootstrap_program.h
 
 # object files and binaries
 qemu-csd/**
