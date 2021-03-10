@@ -14,6 +14,7 @@ else()
     add_custom_target(boost-build DEPENDS boost-install)
 endif()
 
+add_custom_target(generic-ebpf-build DEPENDS generic-ebpf-copy)
 add_custom_target(libbpf-build DEPENDS libbpf-install)
 add_custom_target(spdk-build DEPENDS spdk-install)
 add_custom_target(dpdk-build DEPENDS dpdk-copy)
@@ -125,6 +126,30 @@ if(${QEMUCSD_WINDOWS})
         add_custom_target(boost-directory-fix DEPENDS boost-rename-fix)
     endif()
 endif()
+
+# ------------ #
+# generic-ebpf #
+# ------------ #
+
+# Check if libebpf is already build, REQUIRES RE-RUNNING CMAKE COMMAND!
+# Limitations: this only tests the presence of a single file
+file_exists(${PRJ_ROOT}/lib/libebpf.so has_genericebpf)
+if(${has_genericebpf})
+    add_custom_target(generic-ebpf-install)
+endif()
+
+add_custom_command(OUTPUT generic-ebpf-compile PRE_BUILD
+    COMMAND make clean
+    COMMAND make
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/generic-ebpf
+)
+
+add_custom_command(OUTPUT generic-ebpf-copy PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/generic-ebpf/libebpf.so ${PRJ_LIBRARIES}
+    COMMAND cp -r ${CMAKE_CURRENT_SOURCE_DIR}/generic-ebpf/sys/sys ${PRJ_HEADERS}
+    DEPENDS generic-ebpf-compile
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/generic-ebpf
+)
 
 # ------ #
 # libbpf #

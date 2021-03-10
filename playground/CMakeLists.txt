@@ -14,6 +14,7 @@ add_custom_target(
     play-backward
     play-boost-locale
     play-example
+    play-generic-ebpf
     play-libbpf-bpf-load
     play-libbpf-bootstrap
     play-spdk
@@ -88,6 +89,86 @@ target_link_libraries(
 )
 
 qemucsd_target_postprocess(play-example)
+
+# ----------------------- #
+# Playground generic-ebpf #
+# ----------------------- #
+
+set(PLAYGROUND_GENERIC_EBPF_DIRECTORY
+    ${CMAKE_CURRENT_SOURCE_DIR}/generic-ebpf
+)
+
+# Sources used to generate BPF bytecode
+set(PLAYGROUND_GENERIC_EBPF_BYTECODE_SOURCE
+    generic-ebpf/hello_world.c
+)
+
+# Set custom compiler flags to generate BPF bytecode
+set(BPF_C_FLAGS -g -O2 -target bpf -D__TARGET_ARCH_x86 -I ${PRJ_ROOT}/include)
+# Change compiler to BPF compiler, Clang
+use_bpf_compiler_c()
+# Custom commands need to be used when using alternative compiler,
+# add_executable / add_library CAN NOT BE USED!
+# Generate the BPF bytecode
+add_custom_command(
+    OUTPUT ${PLAYGROUND_GENERIC_EBPF_DIRECTORY}/bpf_bootstrap_program.o
+    COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${PLAYGROUND_GENERIC_EBPF_BYTECODE_SOURCE} -o ${PLAYGROUND_GENERIC_EBPF_DIRECTORY}/bpf_bootstrap_program.o
+    DEPENDS ${PLAYGROUND_GENERIC_EBPF_BYTECODE_SOURCE} generate_vmlinux generate_bptfool
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+#add_custom_target(generate_bpf_bootstrap_program
+#    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/bpf_bootstrap_program.o generate_vmlinux generate_bptfool
+#)
+
+# Change back to the regular compiler
+use_default_compiler_c()
+
+# Generate the BPF program header using bpftool, depend on the bytecode file
+add_custom_command(
+    OUTPUT ${PLAYGROUND_GENERIC_EBPF_DIRECTORY}/bpf_bootstrap_program.h
+    COMMAND ${PRJ_ROOT}/bin/bpftool gen skeleton ${PLAYGROUND_GENERIC_EBPF_DIRECTORY}/bpf_bootstrap_program.o > ${PLAYGROUND_GENERIC_EBPF_DIRECTORY}/bpf_bootstrap_program.h
+    DEPENDS ${PLAYGROUND_GENERIC_EBPF_DIRECTORY}/bpf_bootstrap_program.o
+    WORKING_DIRECTORY ${PLAYGROUND_GENERIC_EBPF_DIRECTORY}
+)
+
+# Generate a target that depends on the output file of the custom command, used
+# for setting up dependency with runtime program.
+add_custom_target(generate_generic_ebpf_header
+    DEPENDS ${PLAYGROUND_GENERIC_EBPF_DIRECTORY}/bpf_bootstrap_program.h
+)
+
+set(PLAYGROUND_GENERIC_EBPF_SOURCE
+    generic-ebpf/playground-generic-ebpf.cxx
+)
+
+set(PLAYGROUND_GENERIC_EBPF_HEADERS
+    generic-ebpf/bpf_bootstrap_program.h
+)
+
+#include_directories(${CMAKE_SOURCE_DIR}/dependencies/linux/samples/bpf)
+#include_directories(${CMAKE_SOURCE_DIR}/dependencies/linux/tools/testing/selftests/bpf)
+
+message("${PRJ_PRX}: playground play-generic-ebpf cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(play-generic-ebpf ${PLAYGROUND_GENERIC_EBPF_SOURCE} ${PLAYGROUND_GENERIC_EBPF_HEADERS})
+
+add_dependencies(play-generic-ebpf generic-ebpf-build generate_generic_ebpf_header)
+
+#add_custom_command(TARGET play-libbpf-bpf-load PRE_BUILD
+#    COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${PLAYGROUND_LIBBPF_BPF_LOAD_BYTECODE_SOURCE} -o ${CMAKE_CURRENT_BINARY_DIR}/bpf_program.o
+#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#)
+
+target_link_libraries(
+    play-generic-ebpf
+    ebpf
+#    bpf
+#    elf
+#    z
+    ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
+)
+
+qemucsd_target_postprocess(play-generic-ebpf)
 
 # --------------------------- #
 # Playground libbpf-bootstrap #
