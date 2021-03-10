@@ -18,6 +18,7 @@ add_custom_target(
     play-libbpf-bpf-load
     play-libbpf-bootstrap
     play-spdk
+    play-ubpf
 )
 
 set(${PRJ_PRX}_PLAYGROUND_LIBRARIES
