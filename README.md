@@ -55,9 +55,11 @@ its current form!**
 
 ### Modules
 
-| Module     | Optional | Task                                               |
-|------------|----------|----------------------------------------------------|
-| arguments  | Yes      | Parse commandline arguments to relevant components |
+| Module      | Optional | Task                                                  |
+|-------------|----------|-------------------------------------------------------|
+| arguments   | Yes      | Parse commandline arguments to relevant components    |
+| bpf_helpers | No       | Headers to define functions available from within BPF |
+| nvm_csd     | No       | Emulated additional NVMe commands to enable BPF CSDs  |
 
 #### Dependencies
 

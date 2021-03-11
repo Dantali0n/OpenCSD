@@ -1,10 +1,10 @@
-#ifndef QEMUCSD_ARGUMENTS_HPP
-#define QEMUCSD_ARGUMENTS_HPP
+#ifndef QEMU_CSD_ARGUMENTS_HPP
+#define QEMU_CSD_ARGUMENTS_HPP
 
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
 
-#include "spdk/stdinc.h"
+#include <spdk/stdinc.h>
 #include <spdk/env.h>
 
 #include <chrono>
@@ -49,4 +49,4 @@ namespace qemucsd {
 	}
 }
 
-#endif // QEMUCSD_ARGUMENTS_HPP
+#endif // QEMU_CSD_ARGUMENTS_HPP

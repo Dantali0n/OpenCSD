@@ -148,7 +148,7 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	// If global state indicates no device found, exot
+	// If global state indicates no device found, exit
 	if(zns_entry.ns == nullptr) {
 		printf("No NVMe device supporting zoned namespaces (ZNS) could"
 			"be found, exiting.\n");

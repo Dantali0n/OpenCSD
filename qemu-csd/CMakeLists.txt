@@ -1,6 +1,12 @@
 # Commandline argument parsing
 add_subdirectory(arguments)
 
+# Register bpf helper headers
+add_subdirectory(bpf_helpers)
+
+# Emulated new nvme command set
+add_subdirectory(nvm_csd)
+
 qemucsd_include_directories()
 
 set(QEMUCSD_SOURCE
