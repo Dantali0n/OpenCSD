@@ -11,8 +11,20 @@ extern "C" {
 	#include "bpf_ubpf_program.h"
 }
 
+static uint64_t bpf_ktime_get_ns(void) {
+	return 512;
+}
+
 static void bpf_register_test(void) {
 	std::cout << "BPF program called bpf_register_test" << std::endl;
+}
+
+struct bpf_data {
+	uint64_t data;
+};
+
+static void bpf_struct_test(struct bpf_data *data) {
+	data->data = 12;
 }
 
 int main(int argc, char **argv) {
@@ -36,6 +48,8 @@ int main(int argc, char **argv) {
 	vm = ubpf_create();
 
 	ubpf_register(vm, 1, "bpf_register_test", (void*)bpf_register_test);
+	ubpf_register(vm, 2, "bpf_ktime_get_ns", (void*)bpf_ktime_get_ns);
+	ubpf_register(vm, 3, "bpf_struct_test", (void*)bpf_struct_test);
 
 	err = ubpf_load_elf(vm, skel->skeleton->data, skel->skeleton->data_sz, &message);
 
