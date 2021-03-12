@@ -12,16 +12,15 @@ extern "C" {
 int main(int argc, char* argv[]) {
 	struct bpf_zone_int_filter *skel;
 	qemucsd::arguments::options opts;
-	struct qemucsd::spdk_init::ns_entry entry;
+	// Must be zero initialized
+	struct qemucsd::spdk_init::ns_entry entry = {0};
 
 	// Parse commandline arguments
 	qemucsd::arguments::parse_args(argc, argv, &opts);
 
-//	std::cout << "uBPF vm mem size: " << opts.ubpf_mem_size << std::endl;
-
 	// Initialize SPDK with the first ZNS supporting zone found
-//	if(qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)
-//		return EXIT_FAILURE;
+	if(qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)
+		return EXIT_FAILURE;
 
 	// Initialize simulator for NVMe BPF command set
 	qemucsd::nvm_csd::NvmCsd nvm_csd(&opts, &entry);
@@ -45,6 +44,8 @@ int main(int argc, char* argv[]) {
 	nvm_csd.nvm_cmd_bpf_result(data);
 
 	std::cout << "BPF device result: " << *(uint64_t*)data << std::endl;
+
+	free(data);
 
 	return EXIT_SUCCESS;
 }

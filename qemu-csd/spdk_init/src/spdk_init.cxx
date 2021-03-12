@@ -6,6 +6,13 @@ namespace qemucsd::spdk_init {
 		struct ns_entry *entry)
 	{
 		int rc;
+
+		// Set the pointers in the container to null, just in case
+		entry->buffer = nullptr;
+		entry->ctrlr = nullptr;
+		entry->qpair = nullptr;
+		entry->ns = nullptr;
+
 		rc = spdk_env_init(&options->spdk);
 		if (rc < 0) {
 			std::cerr << "Unable to initialize SPDK env: " << strerror(rc) <<
