@@ -40,7 +40,7 @@ target_link_libraries(
     ${QEMUCSD_NVM_CSD_LIBRARIES}
 )
 
-add_dependencies(qemucsd_nvm_csd spdk-build dpdk-build isa-l-build)
+add_dependencies(qemucsd_nvm_csd ubpf-build spdk-build dpdk-build isa-l-build)
 
 # Add qemucsd_nvm_csd to the modules
 add_qemucsd_module(qemucsd_nvm_csd)

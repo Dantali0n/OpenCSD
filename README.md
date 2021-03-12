@@ -55,12 +55,13 @@ its current form!**
 
 ### Modules
 
-| Module      | Optional | Task                                                  |
-|-------------|----------|-------------------------------------------------------|
-| arguments   | Yes      | Parse commandline arguments to relevant components    |
-| bpf_helpers | No       | Headers to define functions available from within BPF |
-| nvm_csd     | No       | Emulated additional NVMe commands to enable BPF CSDs  |
-| spdk_init   | No       | Provides SPDK initialization and handles for nvm_csd  |
+| Module       | Optional | Task                                                  |
+|--------------|----------|-------------------------------------------------------|
+| arguments    | Yes      | Parse commandline arguments to relevant components    |
+| bpf_helpers  | No       | Headers to define functions available from within BPF |
+| bpf_programs | No       | BPF programs ready to run on a CSD using bpf_helpers  |
+| nvm_csd      | No       | Emulated additional NVMe commands to enable BPF CSDs  |
+| spdk_init    | No       | Provides SPDK initialization and handles for nvm_csd  |
 
 #### Dependencies
 
