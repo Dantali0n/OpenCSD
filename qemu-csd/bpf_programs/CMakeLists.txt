@@ -13,7 +13,7 @@ use_bpf_compiler_c()
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/bpf_zone_int_filter.o
     COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${CMAKE_CURRENT_SOURCE_DIR}/bpf_zone_int_filter.c -o ${CMAKE_CURRENT_BINARY_DIR}/bpf_zone_int_filter.o
-    DEPENDS generate_qemucsd_bpf_helpers generate_vmlinux generate_bptfool
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/bpf_zone_int_filter.c generate_qemucsd_bpf_helpers generate_vmlinux generate_bptfool
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 

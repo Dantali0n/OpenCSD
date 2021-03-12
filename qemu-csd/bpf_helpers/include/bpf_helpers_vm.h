@@ -7,10 +7,10 @@
  * including this header.
  */
 
-static void bpf_return_data(void *data, size_t size);
+static void bpf_return_data(void *data, uint64_t size);
 
 static void bpf_read(uint64_t lba, void *data);
 
-static size_t bpf_get_lba_siza(void);
+static uint64_t bpf_get_lba_siza(void);
 
 #endif //QEMU_CSD_BPF_HELPERS_VM_H

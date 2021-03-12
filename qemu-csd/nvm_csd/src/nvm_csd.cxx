@@ -55,7 +55,7 @@ namespace qemucsd::nvm_csd {
 		return_size = 0;
 	}
 
-	void NvmCsd::bpf_return_data(void *data, size_t size) {
+	void NvmCsd::bpf_return_data(void *data, uint64_t size) {
 		if(return_data != nullptr) free(return_data);
 
 		return_data = malloc(size);
@@ -71,7 +71,7 @@ namespace qemucsd::nvm_csd {
 		spdk_init::spin_complete(&self->entry);
 	}
 
-	size_t NvmCsd::bpf_get_lba_siza() {
+	uint64_t NvmCsd::bpf_get_lba_siza() {
 		return nvm_instance->entry.buffer_size;
 	}
 }

@@ -43,11 +43,11 @@ namespace qemucsd::nvm_csd {
 		struct ubpf_vm *vm = nullptr;
 		void *vm_mem = nullptr;
 
-		static void bpf_return_data(void *data, size_t size);
+		static void bpf_return_data(void *data, uint64_t size);
 
 		static void bpf_read(uint64_t lba, void *data);
 
-		static size_t bpf_get_lba_siza(void);
+		static uint64_t bpf_get_lba_siza(void);
 	};
 }
 
