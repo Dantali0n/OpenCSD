@@ -60,6 +60,7 @@ its current form!**
 | arguments   | Yes      | Parse commandline arguments to relevant components    |
 | bpf_helpers | No       | Headers to define functions available from within BPF |
 | nvm_csd     | No       | Emulated additional NVMe commands to enable BPF CSDs  |
+| spdk_init   | No       | Provides SPDK initialization and handles for nvm_csd  |
 
 #### Dependencies
 

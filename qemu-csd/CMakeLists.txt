@@ -4,6 +4,9 @@ add_subdirectory(arguments)
 # Register bpf helper headers
 add_subdirectory(bpf_helpers)
 
+# SPDK initialization
+add_subdirectory(spdk_init)
+
 # Emulated new nvme command set
 add_subdirectory(nvm_csd)
 
