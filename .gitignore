@@ -50,6 +50,9 @@ qemu-csd/**
 !qemu-csd/**/*.hpp
 !qemu-csd/**/CMakeLists.txt
 
+# Ignore generated headers
+qemu-csd/bpf_programs/*.h
+
 #dependencies
 dependencies/*
 !dependencies/*.sh
