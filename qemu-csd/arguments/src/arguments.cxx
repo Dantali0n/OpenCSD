@@ -41,7 +41,7 @@ namespace qemucsd::arguments {
 					"mode,m", po::value<DeviceInitMode>(&options->dev_init_mode)->default_value(DEFAULT_DEV_INIT_MODE),
 					R"(NVMe SPDK Device initialization mode: "preserve", "reset")"
 				)
-				("vmmem,m", po::value<uint64_t>(), "uBPF vm memory size in bytes")
+				("vmmem", po::value<uint64_t>(), "uBPF vm memory size in bytes")
 				// SPDK env opts
 				("name", po::value<std::string>(), "Name for SPDK environment");
 		po::variables_map vm;

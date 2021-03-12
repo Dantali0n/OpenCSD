@@ -2,7 +2,7 @@ project(${PRJ_PRX}_nvm_csd)
 
 
 set(QEMUCSD_NVM_CSD_LIBRARIES
-#    qemucsd_spdk_init
+    qemucsd_spdk_init
 )
 
 set(QEMUCSD_NVM_CSD_SRC

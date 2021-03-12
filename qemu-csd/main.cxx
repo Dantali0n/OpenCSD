@@ -2,8 +2,8 @@
 #include <stdexcept>
 
 #include "arguments.hpp"
-#include "nvm_csd.hpp"
 #include "spdk_init.hpp"
+#include "nvm_csd.hpp"
 
 extern "C" {
 	#include "bpf_zone_int_filter.h"
@@ -20,8 +20,8 @@ int main(int argc, char* argv[]) {
 //	std::cout << "uBPF vm mem size: " << opts.ubpf_mem_size << std::endl;
 
 	// Initialize SPDK with the first ZNS supporting zone found
-	if(qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)
-		return EXIT_FAILURE;
+//	if(qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)
+//		return EXIT_FAILURE;
 
 	// Initialize simulator for NVMe BPF command set
 	qemucsd::nvm_csd::NvmCsd nvm_csd(&opts, &entry);

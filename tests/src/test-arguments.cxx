@@ -22,12 +22,11 @@ BOOST_AUTO_TEST_SUITE(Test_Arguments)
 
 	BOOST_AUTO_TEST_CASE(Test_Arguments_Settings) {
 		int argc = 3;
-		char *argv[3] = {(char*)"test", (char*)"-s", (char*)"test.xml"};
+		char *argv[3] = {(char*)"test", (char*)"--vmmem", (char*)"12"};
 		qemucsd::arguments::options opts;
 		qemucsd::arguments::parse_args(argc, argv, &opts);
 
-		BOOST_CHECK(
-			opts.settings->compare("test.xml") == 0);
+		BOOST_CHECK(opts.ubpf_mem_size == 12);
 	}
 
 	BOOST_AUTO_TEST_CASE(Test_Arguments_Name) {

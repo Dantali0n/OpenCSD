@@ -48,7 +48,7 @@ namespace qemucsd::nvm_csd {
 	void NvmCsd::nvm_cmd_bpf_result(void *data) {
 		if(return_data == nullptr) return;
 
-		memcpy(return_data, data, return_size);
+		memcpy(data, return_data, return_size);
 
 		free(return_data);
 		return_data = nullptr;
