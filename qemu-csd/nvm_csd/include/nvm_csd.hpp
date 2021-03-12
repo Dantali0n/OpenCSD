@@ -4,6 +4,11 @@
 #include "arguments.hpp"
 #include "spdk_init.hpp"
 
+extern "C" {
+	#include <ubpf.h>
+}
+
+// SPDK headers already have if __cplusplus extern "C" wrapper
 #include <spdk/env.h>
 #include <spdk/nvme.h>
 #include <spdk/nvme_zns.h>
@@ -13,7 +18,8 @@ namespace qemucsd::nvm_csd {
 	class NvmCsd {
 	public:
 		NvmCsd(struct arguments::options *options,
-			struct spdk_init::ns_entry *entry);
+			   struct spdk_init::ns_entry *entry);
+
 		~NvmCsd();
 
 		/**
@@ -34,9 +40,15 @@ namespace qemucsd::nvm_csd {
 	protected:
 		struct arguments::options options;
 		struct spdk_init::ns_entry entry;
-		struct ubpf_vm *vm;
-	};
+		struct ubpf_vm *vm = nullptr;
+		void *vm_mem = nullptr;
 
+		static void bpf_return_data(void *data, size_t size);
+
+		static void bpf_read(uint64_t lba, void *data);
+
+		static size_t bpf_get_lba_siza(void);
+	};
 }
 
 #endif //QEMU_CSD_NVM_CSD_HPP

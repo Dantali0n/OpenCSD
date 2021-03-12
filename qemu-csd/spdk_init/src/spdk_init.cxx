@@ -100,8 +100,8 @@ namespace qemucsd::spdk_init {
 		}
 	}
 
-	static void error_print(
-		void *void_entry, const struct spdk_nvme_cpl *completion)
+	void error_print(void *void_entry,
+		const struct spdk_nvme_cpl *completion)
 	{
 		struct ns_entry *entry = (ns_entry*) void_entry;
 

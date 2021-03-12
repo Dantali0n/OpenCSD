@@ -2,7 +2,7 @@ project(${PRJ_PRX}_nvm_csd)
 
 
 set(QEMUCSD_NVM_CSD_LIBRARIES
-#    boost_program_options
+#    qemucsd_spdk_init
 )
 
 set(QEMUCSD_NVM_CSD_SRC
@@ -32,6 +32,7 @@ target_link_libraries(
     rte_eal.a rte_mempool.a rte_telemetry.a rte_ring.a rte_kvargs.a rte_bus_pci.a
     rte_pci.a rte_vhost.a rte_power.a
     isal.a uuid numa dl
+    ubpf bpf elf z
     #    spdk spdk_log spdk_env_dpdk
     #    rte_eal.a rte_mempool.a rte_telemetry.a rte_ring.a rte_kvargs.a rte_bus_pci.a
     #    rte_pci.a rte_vhost.a rte_power.a

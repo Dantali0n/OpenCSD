@@ -4,6 +4,9 @@ add_subdirectory(arguments)
 # Register bpf helper headers
 add_subdirectory(bpf_helpers)
 
+# Register bpf programs and generate headers
+add_subdirectory(bpf_programs)
+
 # SPDK initialization
 add_subdirectory(spdk_init)
 
@@ -26,5 +29,7 @@ target_link_libraries(
     ${local_modules}
     ${${PRJ_PRX}_LIBRARIES}
 )
+
+add_dependencies(qemucsd generate_bpf_zone_int_filter_header)
 
 qemucsd_target_postprocess(qemucsd)

@@ -36,11 +36,12 @@ namespace qemucsd::arguments {
 		po::options_description desc("Allowed options");
 		desc.add_options()
 				("help,h", "Produce help message")
-				("settings,s", po::value<std::string>(), "Alternative path to settings file")
+//				("settings,s", po::value<std::string>(), "Alternative path to settings file")
 				(
-					"mode,m", po::value<DeviceInitMode>(&options->dev_init_mode)->default_value(DEV_INIT_RESET),
-					R"(Device initialization mode: "preserve", "reset")"
+					"mode,m", po::value<DeviceInitMode>(&options->dev_init_mode)->default_value(DEFAULT_DEV_INIT_MODE),
+					R"(NVMe SPDK Device initialization mode: "preserve", "reset")"
 				)
+				("vmmem,m", po::value<uint64_t>(), "uBPF vm memory size in bytes")
 				// SPDK env opts
 				("name", po::value<std::string>(), "Name for SPDK environment");
 		po::variables_map vm;
@@ -51,11 +52,17 @@ namespace qemucsd::arguments {
 			std::cout << desc << std::endl;
 		}
 
-		if(vm.count("settings")) {
-			options->settings = std::make_shared<std::string>(vm["settings"].as<std::string>());
+		if(vm.count("vmmem")) {
+			options->ubpf_mem_size = vm["vmmem"].as<uint64_t>();
 		} else {
-			options->settings = std::make_shared<std::string>("");
+			options->ubpf_mem_size = DEFAULT_UBPF_MEM_SIZE;
 		}
+
+//		if(vm.count("settings")) {
+//			options->settings = std::make_shared<std::string>(vm["settings"].as<std::string>());
+//		} else {
+//			options->settings = std::make_shared<std::string>("");
+//		}
 
 		struct spdk_env_opts *opts = &options->spdk;
 		spdk_env_opts_init(opts);
@@ -66,7 +73,7 @@ namespace qemucsd::arguments {
 			options->_name = std::make_shared<std::string>(vm["name"].as<std::string>());
 			opts->name = options->_name->c_str();
 		} else {
-			options->_name = std::make_shared<std::string>("");
+			options->_name = std::make_shared<std::string>(DEFAULT_SPDK_NAME);
 			opts->name = options->_name->c_str();
 		}
 	}

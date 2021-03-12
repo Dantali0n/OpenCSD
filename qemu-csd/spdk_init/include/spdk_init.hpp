@@ -41,13 +41,13 @@ namespace qemucsd::spdk_init {
 	 * Busy spin to check outstanding IO operations on qpair.
 	 * @param entry SPDK state information to spin on
 	 */
-	inline static void spin_complete(struct ns_entry *entry);
+	inline void spin_complete(struct ns_entry *entry);
 
 	/**
 	 * Completion callback to print errors extracted from struct ns_entry
 	 * @param void_entry a pointer to an instance of ns_entry
 	 */
-	static void error_print(void *void_entry,
+	void error_print(void *void_entry,
  		const struct spdk_nvme_cpl *completion);
 
 	int initialize_zns_spdk(struct arguments::options *options,
