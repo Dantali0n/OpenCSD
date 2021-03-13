@@ -94,6 +94,7 @@ presentation/*
 !presentation/CMakeLists.txt
 !presentation/**/*.bib
 !presentation/**/*.tex
+!presentation/**/*.sty
 !presentation/**/bash/
 !presentation/**/images/
 !presentation/**/python/
