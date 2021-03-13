@@ -3,6 +3,8 @@
 
 #include "bpf_helpers_prog.h"
 
+#define RAND_MAX 2147483647
+
 /** Limitation examples, globals
  * int test; -> Clang won't compile
  * int test = 12; -> uBPF won't run, BPF relocation type 1
@@ -26,7 +28,7 @@ int main() {
 
 		uint32_t *int_buf = (uint32_t*)buffer;
 		for(uint32_t j = 0; j < ints_per_it; j++) {
-			if(*(int_buf + j) > 512) count++;
+			if(*(int_buf + j) > RAND_MAX / 2) count++;
 		}
 	}
 
