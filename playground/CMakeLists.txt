@@ -114,12 +114,12 @@ use_bpf_compiler_c()
 add_custom_command(
     OUTPUT ${PLAYGROUND_GENERIC_EBPF_DIRECTORY}/bpf_bootstrap_program.o
     COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${PLAYGROUND_GENERIC_EBPF_BYTECODE_SOURCE} -o ${PLAYGROUND_GENERIC_EBPF_DIRECTORY}/bpf_bootstrap_program.o
-    DEPENDS ${PLAYGROUND_GENERIC_EBPF_BYTECODE_SOURCE} generate_vmlinux generate_bptfool
+    DEPENDS ${PLAYGROUND_GENERIC_EBPF_BYTECODE_SOURCE} generate_vmlinux generate_bpftool
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 #add_custom_target(generate_bpf_bootstrap_program
-#    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/bpf_bootstrap_program.o generate_vmlinux generate_bptfool
+#    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/bpf_bootstrap_program.o generate_vmlinux generate_bpftool
 #)
 
 # Change back to the regular compiler
@@ -194,12 +194,12 @@ use_bpf_compiler_c()
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/bpf_bootstrap_program.o
     COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${PLAYGROUND_LIBBPF_BOOTSTRAP_BYTECODE_SOURCE} -o ${CMAKE_CURRENT_BINARY_DIR}/bpf_bootstrap_program.o
-    DEPENDS ${PLAYGROUND_LIBBPF_BOOTSTRAP_BYTECODE_SOURCE} generate_vmlinux generate_bptfool
+    DEPENDS ${PLAYGROUND_LIBBPF_BOOTSTRAP_BYTECODE_SOURCE} generate_vmlinux generate_bpftool
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 #add_custom_target(generate_bpf_bootstrap_program
-#    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/bpf_bootstrap_program.o generate_vmlinux generate_bptfool
+#    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/bpf_bootstrap_program.o generate_vmlinux generate_bpftool
 #)
 
 # Change back to the regular compiler
@@ -325,12 +325,12 @@ use_bpf_compiler_c()
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/bpf_ubpf_program.o
     COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${PLAYGROUND_UBPF_BYTECODE_SOURCE} -o ${CMAKE_CURRENT_BINARY_DIR}/bpf_ubpf_program.o
-    DEPENDS ${PLAYGROUND_UBPF_BYTECODE_SOURCE} generate_vmlinux generate_bptfool
+    DEPENDS ${PLAYGROUND_UBPF_BYTECODE_SOURCE} generate_vmlinux generate_bpftool
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 #add_custom_target(generate_bpf_bootstrap_program
-#    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/bpf_bootstrap_program.o generate_vmlinux generate_bptfool
+#    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/bpf_bootstrap_program.o generate_vmlinux generate_bpftool
 #)
 
 # Change back to the regular compiler
