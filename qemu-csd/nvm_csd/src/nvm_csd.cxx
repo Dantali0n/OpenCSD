@@ -38,9 +38,15 @@ namespace qemucsd::nvm_csd {
 			return -1;
 		}
 
+		ubpf_jit_fn exec = ubpf_compile(this->vm, &msg_buf);
+
 		free(msg_buf);
-		if(ubpf_exec(this->vm, this->vm_mem, this->options.ubpf_mem_size) < 0)
+
+		if(exec(this->vm_mem, this->options.ubpf_mem_size) < 0)
 			return -1;
+
+//		if(ubpf_exec(this->vm, this->vm_mem, this->options.ubpf_mem_size) < 0)
+//			return -1;
 
 		return return_size;
 	}
@@ -63,12 +69,16 @@ namespace qemucsd::nvm_csd {
 		return_size = size;
 	}
 
-	void NvmCsd::bpf_read(uint64_t lba, void *data) {
+	void NvmCsd::bpf_read(uint64_t lba, uint64_t offset, uint16_t limit, void *data) {
 		auto *self = nvm_instance;
-		spdk_nvme_ns_cmd_read(self->entry.ns, self->entry.qpair, data, lba,
-							  1, spdk_init::error_print, &self->entry, 0);
+		void *internal_buffer = malloc(bpf_get_lba_siza());
 
+		spdk_nvme_ns_cmd_read(self->entry.ns, self->entry.qpair, internal_buffer, lba,
+							  1, spdk_init::error_print, &self->entry, 0);
 		spdk_init::spin_complete(&self->entry);
+
+		memcpy(data, (uint8_t*)internal_buffer + offset, limit);
+		free(internal_buffer);
 	}
 
 	uint64_t NvmCsd::bpf_get_lba_siza() {

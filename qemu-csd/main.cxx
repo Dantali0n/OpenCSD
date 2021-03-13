@@ -10,17 +10,16 @@ extern "C" {
 }
 
 int main(int argc, char* argv[]) {
-	struct bpf_zone_int_filter *skel;
+	struct bpf_zone_int_filter *skel = nullptr;
 	qemucsd::arguments::options opts;
-	// Must be zero initialized
 	struct qemucsd::spdk_init::ns_entry entry = {0};
 
 	// Parse commandline arguments
 	qemucsd::arguments::parse_args(argc, argv, &opts);
 
 	// Initialize SPDK with the first ZNS supporting zone found
-	if(qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)
-		return EXIT_FAILURE;
+//	if(qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)
+//		return EXIT_FAILURE;
 
 	// Initialize simulator for NVMe BPF command set
 	qemucsd::nvm_csd::NvmCsd nvm_csd(&opts, &entry);

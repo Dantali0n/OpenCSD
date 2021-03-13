@@ -4,7 +4,7 @@ add_qemucsd_include(${CMAKE_CURRENT_SOURCE_DIR})
 qemucsd_include_directories()
 
 # Set custom compiler flags to generate BPF bytecode
-set(BPF_C_FLAGS -g -O2 -target bpf -D__TARGET_ARCH_x86 -I ${PRJ_ROOT}/include)
+set(BPF_C_FLAGS -g -O2 -target bpf -I ${PRJ_ROOT}/include)
 # Change compiler to BPF compiler, Clang
 use_bpf_compiler_c()
 # Custom commands need to be used when using alternative compiler,
@@ -13,6 +13,7 @@ use_bpf_compiler_c()
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/bpf_zone_int_filter.o
     COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${CMAKE_CURRENT_SOURCE_DIR}/bpf_zone_int_filter.c -o ${CMAKE_CURRENT_BINARY_DIR}/bpf_zone_int_filter.o
+#    COMMAND clang-3.8 -g -O2 -emit-llvm -I ${PRJ_ROOT}/include -c ${CMAKE_CURRENT_SOURCE_DIR}/bpf_zone_int_filter.c -o - | llc-10 -march=bpf -mcpu=probe -filetype=obj -o ${CMAKE_CURRENT_BINARY_DIR}/bpf_zone_int_filter.o
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/bpf_zone_int_filter.c generate_qemucsd_bpf_helpers generate_vmlinux generate_bptfool
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )

@@ -45,7 +45,7 @@ namespace qemucsd::nvm_csd {
 
 		static void bpf_return_data(void *data, uint64_t size);
 
-		static void bpf_read(uint64_t lba, void *data);
+		static void bpf_read(uint64_t lba, uint64_t offset, uint16_t limit, void *data);
 
 		static uint64_t bpf_get_lba_siza(void);
 	};
