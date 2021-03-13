@@ -20,7 +20,7 @@ add_custom_target(libbpf-build DEPENDS libbpf-install)
 add_custom_target(spdk-build DEPENDS spdk-install)
 add_custom_target(dpdk-build DEPENDS dpdk-copy)
 add_custom_target(isa-l-build DEPENDS isa-l-install)
-
+add_custom_target(generate_bpftool DEPENDS bpftool_copy)
 add_custom_target(qemu-build ALL DEPENDS qemu-install)
 
 # -------------------- #
@@ -172,15 +172,21 @@ add_custom_command(OUTPUT libbpf-install PRE_BUILD
 # bpftool #
 # ------- #
 
+file_exists(${PRJ_ROOT}/bin/bpftool has_bpftool)
+if(${has_bpftool})
+    add_custom_target(bpftool_copy)
+endif()
+
 add_custom_command(
     OUTPUT ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/bpf/bpftool/bpftool
     COMMAND make -C tools/bpf/bpftool/
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/dependencies/linux
 )
-add_custom_target(generate_bptfool DEPENDS ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/bpf/bpftool/bpftool)
 
-add_custom_command(TARGET generate_bptfool POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/bpf/bpftool/bpftool ${PRJ_ROOT}/bin
+add_custom_command(OUTPUT bpftool_copy PRE_BUILD
+    COMMAND cp -r ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/bpf/bpftool/bpftool ${PRJ_ROOT}/bin
+    DEPENDS ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/bpf/bpftool/bpftool
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # --------- #
@@ -194,7 +200,7 @@ add_custom_command(
     COMMAND ${PRJ_ROOT}/bin/bpftool btf dump file /sys/kernel/btf/vmlinux format c > ${PRJ_HEADERS}/vmlinux.h
     WORKING_DIRECTORY ${PRJ_HEADERS}
 )
-add_custom_target(generate_vmlinux DEPENDS ${PRJ_HEADERS}/vmlinux.h generate_bptfool)
+add_custom_target(generate_vmlinux DEPENDS ${PRJ_HEADERS}/vmlinux.h generate_bpftool)
 
 else()
 
@@ -203,7 +209,7 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/libbpf-bootstrap/src/vmlinux_508.h ${PRJ_HEADERS}/vmlinux.h
     WORKING_DIRECTORY ${PRJ_HEADERS}
 )
-add_custom_target(generate_vmlinux DEPENDS ${PRJ_HEADERS}/vmlinux.h generate_bptfool)
+add_custom_target(generate_vmlinux DEPENDS ${PRJ_HEADERS}/vmlinux.h generate_bpftool)
 
 endif()
 
@@ -306,7 +312,7 @@ add_custom_command(OUTPUT dpdk-copy PRE_BUILD
     COMMAND cp -r include ${PRJ_ROOT}
     COMMAND cp -r share ${PRJ_ROOT}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk/dpdk/build
-    DEPENDS spdk-compile
+    DEPENDS spdk-build
 )
 
 # ----- #
@@ -339,7 +345,7 @@ add_custom_command(OUTPUT isa-l-configure PRE_BUILD
 add_custom_command(OUTPUT isa-l-autogen PRE_BUILD
     COMMAND ./autogen.sh
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk/isa-l
-    DEPENDS spdk-compile
+    DEPENDS spdk-build
 )
 
 # ---- #

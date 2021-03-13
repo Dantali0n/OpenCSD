@@ -133,6 +133,7 @@ mkdir build
 cd build
 cmake ..
 cmake --build .
+# Do not use make -j $(nproc), CMake is not able to solve concurrent dependency chain
 cmake .. # this prevents re-compiling dependencies on every next make command
 source qemu-csd/activate
 # run commands and tools as you please for host based development
@@ -166,7 +167,8 @@ git -c submodule."dependencies/qemu".update=none submodule update --init
 mkdir build
 cd build
 cmake -DENABLE_DOCUMENTATION=off -DIS_DEPLOYED=on ..
-make -j $(nproc)
+# Do not use make -j $(nproc), CMake is not able to solve concurrent dependency chain
+cmake --build .
 ```
 
 Optionally, if the intend is to develop on the guest and commit code, the git 
