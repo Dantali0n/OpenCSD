@@ -3,6 +3,11 @@
 
 #include "bpf_helpers_prog.h"
 
+/** Limitation examples
+ * int test; -> Clang won't compile
+ * int test = 12; -> uBPF won't run, BPF relocation type 1
+ */
+
 // Global vars must be static const,
 // uBPF does not support BPF relocation instruction!
 static const uint16_t BUFFER_SIZE = 256;
@@ -14,7 +19,7 @@ int main() {
 //	for(uint8_t i = 0; i < sizeof(uint64_t); i++) {
 //		buffer[i] = 1;
 //	}
-	bpf_read(1, 0, BUFFER_SIZE, &buffer);
+	bpf_read(0, 0, BUFFER_SIZE, &buffer);
 
 	bpf_return_data(&buffer, sizeof(uint64_t));
 
