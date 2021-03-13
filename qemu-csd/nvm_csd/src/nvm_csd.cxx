@@ -75,13 +75,17 @@ namespace qemucsd::nvm_csd {
 			self->entry.buffer, lba, 1, spdk_init::error_print,
 			&self->entry,0);
 		spdk_init::spin_complete(&self->entry);
-//		void *test = malloc(limit);
+
 		memcpy(data, (uint8_t*)self->entry.buffer + offset, limit);
-//		memcpy(data, &test + offset, limit);
-//		free(test);
 	}
 
 	uint64_t NvmCsd::bpf_get_lba_siza() {
 		return nvm_instance->entry.buffer_size;
+	}
+
+	void NvmCsd::bpf_get_mem_info(void **mem_ptr, uint64_t *mem_size) {
+		auto *self = nvm_instance;
+		*mem_ptr = self->vm_mem;
+		*mem_size = self->options.ubpf_mem_size;
 	}
 }
