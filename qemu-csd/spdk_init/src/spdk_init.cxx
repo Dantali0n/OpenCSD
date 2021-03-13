@@ -28,14 +28,6 @@ namespace qemucsd::spdk_init {
 			return -1;
 		}
 
-		const struct spdk_nvme_ns_data *ref_ns_data =
-			spdk_nvme_ns_get_data(entry->ns);
-		uint32_t lba_size = ref_ns_data->nsze;
-
-		entry->buffer = spdk_zmalloc(lba_size, lba_size, NULL,
-									SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
-		entry->buffer_size = lba_size;
-
 		// Reset all zones in the namespace.
 		if(options->dev_init_mode == arguments::DEV_INIT_RESET)
 			spdk_nvme_zns_reset_zone(entry->ns, entry->qpair, 0, true,

@@ -16,6 +16,9 @@ extern "C" {
 	#include "bpf_zone_int_filter.h"
 }
 
+/**
+ * Stack trace printer when encountering seg faults.
+ */
 struct sigaction glob_sigaction;
 void segfault_handler(int signal, siginfo_t *si, void *arg) {
 	#ifdef QEMUCSD_DEBUG

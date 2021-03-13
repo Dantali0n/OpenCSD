@@ -10,7 +10,7 @@
 
 // Global vars must be static const,
 // uBPF does not support BPF relocation instruction!
-static const uint16_t BUFFER_SIZE = 256;
+static const uint16_t BUFFER_SIZE = 128;
 
 int main() {
 	uint64_t lba_size = bpf_get_lba_siza();
