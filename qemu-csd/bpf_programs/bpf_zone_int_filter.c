@@ -49,7 +49,7 @@ int main() {
 	uint32_t ints_per_it = lba_size / sizeof(uint32_t);
 	uint64_t count = 0;
 
-	bpf_read(0, 0, lba_size, &buffer);
+	bpf_read(0, 0, lba_size, buffer);
 
 	uint32_t *int_buf = (uint32_t*)buffer;
 	for(uint32_t j = 0; j < ints_per_it; j++) {
