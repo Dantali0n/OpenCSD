@@ -71,6 +71,10 @@ namespace qemucsd::nvm_csd {
 	void NvmCsd::bpf_read(uint64_t lba, uint64_t offset, uint16_t limit, void *data) {
 		auto *self = nvm_instance;
 
+		// Safer, still unsafe, limit is only uint16_t
+		uint64_t lba_size = bpf_get_lba_siza();
+		if(limit >= lba_size) limit = lba_size;
+
 		spdk_nvme_ns_cmd_read(self->entry.ns, self->entry.qpair,
 			self->entry.buffer, lba, 1, spdk_init::error_print,
 			&self->entry,0);
