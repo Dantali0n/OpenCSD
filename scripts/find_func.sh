@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# A small script to solve some dependency hell caused by SPDK
+# A small script to find which static or shared library object provides a certain
+# function
 
 for i in *.a
 do

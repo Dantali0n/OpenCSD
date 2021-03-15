@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: (LGPL-2.1 OR BSD-2-Clause)
+/* Copyright (c) 2020 Facebook */
+/* https://github.com/libbpf/libbpf-bootstrap/blob/master/src/minimal.c */
+
 #include <iostream>
 
 //// Be sure to include C dependencies through extern "C"
@@ -20,8 +24,8 @@ static int libbpf_print_fn(
 
 static void bump_memlock_rlimit() {
 	struct rlimit rlim_new = {
-			.rlim_cur	= RLIM_INFINITY,
-			.rlim_max	= RLIM_INFINITY,
+		.rlim_cur	= RLIM_INFINITY,
+		.rlim_max	= RLIM_INFINITY,
 	};
 
 	if (setrlimit(RLIMIT_MEMLOCK, &rlim_new)) {

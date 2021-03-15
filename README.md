@@ -29,6 +29,17 @@ its current form!**
 * Week 6
   * Investigate https://www.kernel.org/doc/html/latest/filesystems/zonefs.html
   * Investigate how to use libbfp-bootstrap
+* Week 7
+  * Identify remaining tasks to round of project
+    * Generate /lib, /include, /bin folders before copying files
+    * Check license headers of externally developed files
+      * Include notice about VU and UvA image use license
+      * Add license notice to CERN beamer template files
+      * Add general notice about images
+      * Add license header to all source files developed for this project
+    * Document uBPF technology
+    * Document SPDK technology
+  
 
 ### Index
 
@@ -290,11 +301,14 @@ found in the report.
 
 #### Licensing
 
-**This repository contains copyrighted imagery and can not be open sourced in
-its current form!**
-
-Some files are licensed under a variety of different licenses please see
-specific source files for licensing details.
+This project is available under the MIT license, several limitations apply
+including:
+  
+* Source files with an alternative author or license statement other than Dantali0n and MIT respectively.
+* Images subject to copyright or usage terms, such the VU and UvA logo.
+* CERN beamer template files by Jerome Belleman.
+* Configuration files that can't be subject to licensing such as `doxygen.cnf`
+  or `.vscode/launch.json`
 
 #### References
 
