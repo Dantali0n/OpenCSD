@@ -21,6 +21,7 @@ namespace qemucsd::nvm_csd {
 		ubpf_register(vm, 1, "bpf_return_data", (void*)bpf_return_data);
 		ubpf_register(vm, 2, "bpf_read", (void*)bpf_read);
 		ubpf_register(vm, 3, "bpf_get_lba_siza", (void*)bpf_get_lba_siza);
+		ubpf_register(vm, 4, "bpf_get_mem_info", (void*)bpf_get_mem_info);
 	}
 
 	NvmCsd::~NvmCsd() {
