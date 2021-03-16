@@ -45,6 +45,15 @@ add_custom_target(isa-l-build DEPENDS isa-l-install)
 add_custom_target(generate_bpftool DEPENDS bpftool_copy)
 add_custom_target(qemu-build ALL DEPENDS qemu-install)
 
+# ------------------------- #
+# Create binary directories #
+# ------------------------- #
+
+add_custom_command(OUTPUT generate-bin PRE_BUILD
+    COMMAND mkdir bin -p
+    WORKING_DIRECTORY ${PRJ_ROOT}
+)
+
 # -------------------- #
 # Copy activate script #
 # -------------------- #
@@ -207,7 +216,7 @@ add_custom_command(
 
 add_custom_command(OUTPUT bpftool_copy PRE_BUILD
     COMMAND cp -r ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/bpf/bpftool/bpftool ${PRJ_ROOT}/bin
-    DEPENDS ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/bpf/bpftool/bpftool
+    DEPENDS ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/bpf/bpftool/bpftool generate-bin
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
