@@ -537,11 +537,22 @@ details later.
 
 \subsection{SPDK}
 
+SPDK is a technology that allows interfacing with storage devices from userspace.
+In addition, it recently has gotten support for ZNS SSDs. The technology
+requires to assign one of several drivers to storage devices as well as setting
+up hugepages. SPDK can also be used without root permissions if the
+permissions on devices and hugepages have been properly configured. Because
+SPDK relies on reassigning device drivers, several tools will become
+unavailable. Some of the tools involved are shown in figure
+\ref{fig:spdk-landscape}. The advantage of SPDK is that it allows for an
+interface without file or block layer abstractions.
+
 \begin{center}
 	\begin{figure}[H]
 		\includegraphics[width=0.5\textwidth]{resources/images/spdk-zns-ssd-landscape.png}
 		\captionsetup{justification=centering}
-		\caption{Copyright Western Digital 2020, \textbf{NO PERMISSION}}
+		\caption{Image from Usenix presentation by Matias Bj{\o}rling
+			depicting the SPDK landscape\cite{246542}}
 		\label{fig:spdk-landscape}
 	\end{figure}
 \end{center}
@@ -560,26 +571,27 @@ Instead an overview of resources is provided along with their relative size,
 value and age. These resources are categorized into four groups. Each of these
 groups is briefly introduced along a graphical representation of all the
 different elements. This brief description along with a visual overview should
-lessen the confusion when reading about all these similarly named elements.
+reduce the confusion when reading about all these similarly named elements.
 
-The categories include \textit{Linux Kernel}, \textit{BPF-CO-RE \& BTF},
+The categories include \textit{Linux Kernel}, \textit{BPF CO-RE \& BTF},
 \textit{libbpf} and \textit{userspace execution / interpretation}. These
 categories are chosen as BPF is an inherit part of the Linux Kernel. It consists
 of several parts including an ABI, virtual machine and bytecode verifier.
 
-This ties into the second category \textit{BPF-CO-RE \& BTF}. Since BPF is
+This ties into the second category \textit{BPF CO-RE \& BTF}. Since BPF is
 executed within the kernel it can also access datastructures used by the kernel.
 This introduces a huge compatibility problem as these datastructures typically
-change often with kernel versions. BTF-CO-RE and BTF are technologies used to
+change often with kernel versions. BPF CO-RE and BTF are technologies used to
 ensure a BPF program can run regardless of kernel version. Although correctly
 using these technologies requires additional programming effort compared to
 writing regular BPF programs.
 
-BPF programs typically aren't run directly using syscalls. Instead a runtime
-library is used. Many of these runtimes exist ranging from large frameworks to
-small bootstrapping libraries. Given the intriquisies of these large frameworks
-they  are not covered in these work. The third category provides resources on
-these runtime libraries and is named \textit{libbpf}.
+BPF programs typically aren't run directly which is done using syscalls.
+Instead, a runtime library is used from which these syscalls are called.
+Many of these runtimes exist ranging from large frameworks to small
+bootstrapping libraries. Given the intriquisies of these large frameworks they
+are not covered in these work. The third category provides resources on these
+runtime libraries and is named \textit{libbpf}.
 
 The final category involves the environments in which to execute these BPF
 programs. As hinted earlier, the Linux kernel contains a virtual machine that
@@ -610,7 +622,7 @@ next section it is advised to at least read all resources with value
 				\href{https://www.kernel.org/doc/html/latest/bpf/btf.html}{Linux BTF documentation} &
 				Linux Kernel \& BTF & low & medium & timeless \\
 				\href{https://facebookmicrosites.github.io/bpf/blog/2020/02/19/bpf-portability-and-co-re.html}{BPF portability and CO-RE} &
-				BPF-CO-RE \& BTF & high & medium & relevant \\
+				BPF CO-RE \& BTF & high & medium & relevant \\
 				\href{https://nakryiko.com/posts/libbpf-bootstrap/}{BPF applications with libbpf-bootstrap} &
 				libbpf - libbpf-bootstrap & high & short & relevant \\
 				\href{https://www.oreilly.com/library/view/linux-observability-with/9781492050193/}{Linux Observability with BPF} &
@@ -755,6 +767,112 @@ them as they offer an alternative API.
 \end{center}
 
 \twocolumn
+
+\subsubsection{BPFtool}
+
+A final tool for BPF can be compiled from the Linux source and is called
+BPFtool. This binary is what generates the \textit{vmlinux.h} header from
+sysfs. However, it can also generate a skeleton header from BPF object files.
+This header can be included at compile time preventing loading the object file
+from disk at runtime. When used in conjunction with BPF CO-RE these skeleton
+headers also allow to modify global variables before the BPF program is run.
+
+\section{Design}
+
+The following sections now introduce the design requirements, the implemented
+design, the limitations of this design and finally which technologies are not
+used in the design and for which reason.
+
+\subsection{Design Requirements}
+
+In this section the design requirements and more optional desired features are
+detailed. These requirements try to reason about what is essential to research
+CSDs using NVMe ZNS. Desired features try to take this one step further and
+reason about the several research questions researcher might have and what that
+would require.
+
+Firstly, the design must allow to create and expose interfaces as if a new API
+or standard is developed. These could include a new NVMe command set or the
+API available to the programs running on the CSD.
+
+Secondly, from the abstraction it must be clear what is being executed on the
+host and what is being executed on the CSD. In addition, the data transmitted
+over PCIe bus in comparison to the data read or written on the CSD must be clear
+from the abstraction.
+
+Lastly, the programs running on the CSD must be able to actually read and write
+from a ZNS SSD.
+
+These minimum requirements can be easily extended. Firstly, the design could
+automatically monitor the relation of data between host and CSD, generating on
+the fly statistics. These statistics can be made to create performance
+predictions based on theorized bus and device bandwidth.
+
+Secondly, the design could incorporate functionality for having multiple
+compute cores on a single CSD with an accompanying scheduler.
+
+Lastly, the design could introduce tokens or other objects to introduce security
+features that ensure CSD programs are only allowed some specific operations.
+
+The essential design requirements are applicable to general CSD research
+questions, however, any of the optional features might already lead into a more
+specific research question. For this reason it might be better to focus on the
+design requirements and leave any optional features to follow up research.
+
+\subsection{Implemented Design}
+
+The final prototype uses a combination of SPDK, uBPF and BPFtool. In this
+design SPDK is configured to use the first zoned namespace on a NVMe controller
+it can find. Subsequently, this SPDK state is passed to an abstraction which
+exposes a hypothetical extension to the NVMe command set.
+
+This abstraction is called \textit{NvmCsd} in this design. As bare prototype it
+only exposes two commands. One, to send a BPF program in ELF format, another to
+retrieve the return data of the BPF program after it has finished executing.
+
+The state of SPDK is never used by \textit{NvmCsd} directly only from uBPF. uBPF
+provides an environment to run BPF programs in. By default no functions will be
+available from within the BPF program but uBPF allows to easily define custom
+functions. The prototype design defines four functions that primarily allow to
+read from the ZNS SSD and store the data somewhere. Providing the BPF program
+a region to store data is essential as uBPF only offers a limited 128 byte stack
+space as well as performing thorough bounds checking upon each memory access.
+For this prototype a default value of 512K of memory is provided to the BPF
+program.
+
+uBPF can execute a BPF program by directly reading it in ELF format. This is why
+BPFtool is used. This allows to include the BPF program in ELF format as regular
+header file.
+
+\subsection{Design Limitations}
+
+There are two primary limitations to the current implementation. Firstly,
+currently only one instance of \textit{NvmCsd} can exist at any point in time.
+Secondly, several programming limitations apply to BPF programs.
+
+The design limitation in \textit{NvmCsd} arises from how BPF functions are
+registered in uBPF. Since these functions are static, a global instance of
+\textit{NvmCsd} is referenced from within these functions. Currently, the last
+created instance of \textit{NvmCsd} sets this global instance. Any mitigation
+to this limitation ties into the second limitation.
+
+Currently, the uBPF library does not support all instructions of BPF. One of the
+most important instructions it does not support is the BPF relocation type 1
+instruction. One of the situations in which this instruction is emitted is when
+using global variables. To ensure a BPF program is runnable by uBPF one
+must assert that no \textit{R\_BPF\_64\_64} is present in the \textit{.text}
+section. This can be checked using\bashinline{llvm-objdump -r /path/to/bpf.o}.
+
+The combination of these two limitations creates a problem. Intuitively one
+would want a global variable in the BPF program that can be initialized
+externally before running. By using this variable in the custom defined BPF
+functions, \textit{NvmCsd} would be able to determine to which instance these
+calls belong even if the functions themselves are static. For this a global
+list that maintains all instances of \textit{NvmCsd} would be used.
+
+\subsection{Alternative Technologies}
+
+
 
 %\footnotemark[1]. example\ref{term}.
 %\footnotetext[1]{test}
