@@ -2,8 +2,11 @@
 [![coverage report](https://gitlab.dantalion.nl:4443/vrije-universiteit-vu-/qemu-csd/badges/master/coverage.svg)](https://gitlab.dantalion.nl:4443/vrije-universiteit-vu-/qemu-csd/commits/master)
 # QEMU-CSD
 
-**This repository contains copyrighted imagery and can not be open sourced in
-its current form!**
+QEMU-CSD is a full stack prototype to execute BPF programs as if they are
+running on a Zoned Namespace (ZNS) SSD Computational Storage Device (CSD). The
+entire prototype can be run from userspace by utilizing existing technologies
+such as SPDK and uBPF. Since consumer ZNS SSDs are still unavailable, QEMU can
+be used to create a virtual ZNS SSD.
 
 ### Project goals
 
@@ -40,7 +43,6 @@ its current form!**
     * Document uBPF technology
     * Document SPDK technology
   
-
 ### Index
 
 * [Directory structure](#directory-structure)
@@ -55,24 +57,27 @@ its current form!**
 
 ### Directory structure
 
-* qemucsd - project source files
+* qemu-csd - project source files
 * cmake - small cmake snippets to enable various features
 * dependencies - project dependencies
 * docs - doxygen generated source code documentation
-* documentation - project documentation written in LaTeX
+* documentation - project report written in LaTeX
 * [playground]([playground/README.md]) - small toy examples or other experiments
+* presentation - midterm presentation written in LaTeX
 * [python](python/README.md) - python scripts to aid in visualization or measurements
+* scripts - Shell scripts primarily used by CMake to install project dependencies
 * tests - unit tests and possibly integration tests
+* .vscode - Launch targets and settings to debug programs runnings inside QEMU over SSH 
 
 ### Modules
 
-| Module       | Optional | Task                                                  |
-|--------------|----------|-------------------------------------------------------|
-| arguments    | Yes      | Parse commandline arguments to relevant components    |
-| bpf_helpers  | No       | Headers to define functions available from within BPF |
-| bpf_programs | No       | BPF programs ready to run on a CSD using bpf_helpers  |
-| nvm_csd      | No       | Emulated additional NVMe commands to enable BPF CSDs  |
-| spdk_init    | No       | Provides SPDK initialization and handles for nvm_csd  |
+| Module       | Task                                                  |
+|--------------|-------------------------------------------------------|
+| arguments    | Parse commandline arguments to relevant components    |
+| bpf_helpers  | Headers to define functions available from within BPF |
+| bpf_programs | BPF programs ready to run on a CSD using bpf_helpers  |
+| nvm_csd      | Emulated additional NVMe commands to enable BPF CSDs  |
+| spdk_init    | Provides SPDK initialization and handles for nvm_csd  |
 
 #### Dependencies
 
