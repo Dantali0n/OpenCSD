@@ -9,6 +9,7 @@
 \usepackage{amsmath,amssymb,amsfonts}
 %\usepackage[backend=bibtex,style=ieee]{biblatex}
 %\usepackage{bookmark}
+\usepackage{tabularx,array}
 \usepackage{booktabs}
 \usepackage{caption}
 \usepackage{cite}
@@ -230,7 +231,7 @@ In this work the use of ZNS SSDs as Computational Storage Device (CSD) will be
 investigated. However, this requires the availability of ZNS SSD devices.
 Currently, the availability of physical ZNS SSDs is problematic, this is
 likely  due to the NVMe Zoned Namespace technical proposal only being ratified
-recently.
+recently\cite{zns-nvme-ratified}.
 
 This NVMe Zoned Namespace command set specification is what enables ZNS SSDs to
 exist\cite{nvme-zns}. Luckily, the functionality of this NVMe command set is
@@ -242,11 +243,19 @@ QEMU\cite{nvme-qemu-1,nvme-qemu-2} as well as resources on general information
 about ZNS SSDs\cite{zns-info}.
 
 This work focuses on documenting the steps necessary to implement CSDs
-utilizing ZNS SSDs with QEMU. The emphasis is on describing not only what works
-well but  also what does not work. The overall work should serve as a
-\textit{getting started} guide to any follow up project.
+utilizing ZNS SSDs with QEMU. The emphasis is on describing existing
+technologies and how to combine these in a working prototype.
 
-\section{Setting up Depdencenies}
+The overall structure of this work is as follows. Introduce several project
+dependencies and how to configure these, describe development and debugging
+methodologies and how these can be configured by the CMake project accompanying
+this work, describe the existing technologies that are used in the final
+prototype, define design requirements and the final implemented design as well
+as limitations, mention alternative technologies and why they are not used in
+the prototype, finally, describe future work and open questions that arise from
+this design.
+
+\section{Setting up Dependencenies}
 
 \subsection{Enabling ZNS SSD in QEMU}
 
@@ -363,8 +372,8 @@ The authors of SPDK are very helpful and provided clear insights into why
 static compilation is not working when used this way. Their framework relies on
 constructor functions to register NVMe transport types. These are only exported
 if the static archive is linked using\bashinline{-Wl,--whole-archive}. The
-improvement to clearly indicate this requirement in the documentation of SPDK
-is ongoing.
+documentation has been improved to better indicate these linkage
+requirements\cite{spdk-documentation-patch}.
 
 \subsubsection{Periodic Setup}
 
@@ -776,6 +785,8 @@ sysfs. However, it can also generate a skeleton header from BPF object files.
 This header can be included at compile time preventing loading the object file
 from disk at runtime. When used in conjunction with BPF CO-RE these skeleton
 headers also allow to modify global variables before the BPF program is run.
+The modification of these global variables after compilation is achieved through
+BPF relocation instructions.
 
 \section{Design}
 
@@ -793,7 +804,7 @@ would require.
 
 Firstly, the design must allow to create and expose interfaces as if a new API
 or standard is developed. These could include a new NVMe command set or the
-API available to the programs running on the CSD.
+API available to the BPF programs running on the CSD.
 
 Secondly, from the abstraction it must be clear what is being executed on the
 host and what is being executed on the CSD. In addition, the data transmitted
@@ -806,7 +817,7 @@ from a ZNS SSD.
 These minimum requirements can be easily extended. Firstly, the design could
 automatically monitor the relation of data between host and CSD, generating on
 the fly statistics. These statistics can be made to create performance
-predictions based on theorized bus and device bandwidth.
+predictions based on theorized bus and device bandwidth as well as latencies.
 
 Secondly, the design could incorporate functionality for having multiple
 compute cores on a single CSD with an accompanying scheduler.
@@ -828,7 +839,17 @@ exposes a hypothetical extension to the NVMe command set.
 
 This abstraction is called \textit{NvmCsd} in this design. As bare prototype it
 only exposes two commands. One, to send a BPF program in ELF format, another to
-retrieve the return data of the BPF program after it has finished executing.
+retrieve the return data of the BPF program after it has finished executing. The
+interface of these commands is shown in figure \ref{fig:nvm-commands}.
+
+\begin{center}
+	\begin{figure}[H]
+		\cexternal{resources/c/nvm-commands.c}
+		\captionsetup{justification=centering}
+		\caption{Interface of two prototype new NVMe commands}
+		\label{fig:nvm-commands}
+	\end{figure}
+\end{center}
 
 The state of SPDK is never used by \textit{NvmCsd} directly only from uBPF. uBPF
 provides an environment to run BPF programs in. By default no functions will be
@@ -840,9 +861,36 @@ space as well as performing thorough bounds checking upon each memory access.
 For this prototype a default value of 512K of memory is provided to the BPF
 program.
 
+The method to define functions for BPF programs is shown in
+figure \ref{fig:bpf-functions}. Notice, how each function is assigned to a
+specific number. These numbers will be used for the BPF call instruction that
+takes a number as argument. Importantly, these definitions will be defined
+in two separate headers, one for use by the BPF program and one for the actual
+implementation on the host.
+
+\begin{center}
+	\begin{figure}[H]
+		\cexternal{resources/c/bpf_functions.c}
+		\captionsetup{justification=centering}
+		\caption{BPF function definitions for the prototype}
+		\label{fig:bpf-functions}
+	\end{figure}
+\end{center}
+
 uBPF can execute a BPF program by directly reading it in ELF format. This is why
 BPFtool is used. This allows to include the BPF program in ELF format as regular
 header file.
+
+The prototype performs a few demo operations to illustrate its functionality.
+This includes filling the first zone with random value integers. Followed-by,
+submitting a BPF program to read the first sector and return the number of
+integers above $RAND\_MAX / 2$. If the ZNS SSD from QEMU is used this will
+result in 1024 integers being read of which approximately 512 will be above this
+predefined value.
+
+\subsubsection{Components}
+
+Effectively, the current prototype consists out of five components.
 
 \subsection{Design Limitations}
 
@@ -868,9 +916,20 @@ would want a global variable in the BPF program that can be initialized
 externally before running. By using this variable in the custom defined BPF
 functions, \textit{NvmCsd} would be able to determine to which instance these
 calls belong even if the functions themselves are static. For this a global
-list that maintains all instances of \textit{NvmCsd} would be used.
+list that maintains all instances of \textit{NvmCsd} can be used.
+
+As example, imagine a hypothetical scenario in which two instances of
+\textit{NvmCsd} exist, each assigned its own SPDK state refererring to entirely
+different ZNS SSDs. Both of these instances now run a BPF program that calls
+several static functions. From the context of these static functions it is now
+impossible to determine to which instance of \textit{NvmCSd} and consequently
+which ZNS SSD they belong.
+
+% Describe register initialization solution and relevant Github issue.
 
 \subsection{Alternative Technologies}
+
+\section{Future Work}
 
 
 
@@ -909,14 +968,22 @@ This section hopes to define some common terminology as well as clearly detail
 how some of these terms are interpreted. Mainly, this section serves to avoid
 confusion.
 
+%\begin{tabularx}{\textwidth}{@{}l<{ -}@{\ }X@{}}
+%	ZNS & Zoned Namespace \\
+%	CSD & Computational Storage Device \\
+%	Upstream & When a certain patch or feature has been \\ merged into the main
+%		repository of a project. \\
+%
+%\end{tabularx}
+
 \begin{enumerate}
-	\item ZNS      - Zoned Namespace
-	\item CSD      - Computational Storage Device
+	\item ZNS - Zoned Namespace
+	\item CSD - Computational Storage Device
 	\item Upstream - When a certain patch or feature has been merged into the
 					 main repository of a project.
-	\item GUI      - Graphical User Interface
-	\item IDE      - Integrated Development Environment
-	\item Target   - A target is something that can be compiled or generated and
+	\item GUI - Graphical User Interface
+	\item IDE - Integrated Development Environment
+	\item Target - A target is something that can be compiled or generated and
 					 sometimes executed. Examples include PDFs using LaTeX,
 					 binaries or libraries.
 	\item Binary   - A binary is a file containing machine instructions that can
