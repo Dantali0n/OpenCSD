@@ -46,7 +46,7 @@ build-binaries:
     - cd $CI_PROJECT_DIR || exit
     - mkdir -p build
     - cd build || exit
-    - cmake -ENABLE_PLAYGROUND=off -DENABLE_DOCUMENTATION=off ..
+    - cmake -DENABLE_PLAYGROUND=off -DENABLE_DOCUMENTATION=off ..
     - make
   artifacts:
     paths:
