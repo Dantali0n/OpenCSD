@@ -147,6 +147,7 @@ following instructions. These instructions will compile the dependencies on the
 host, these include an out-of-tree version of QEMU.
 
 ```shell script
+git submodule update --init
 mkdir build
 cd build
 cmake ..
