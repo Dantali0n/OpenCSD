@@ -27,8 +27,9 @@
 \usepackage[flushleft]{threeparttable}
 \usepackage{subcaption}
 \usepackage{xcolor}
+\usepackage{cleveref}
 
-\title{QEMU Computation Storage Devices%\\
+\title{eBPF Computational Storage Device for ZNS in QEMU%\\
 %{\footnotesize \textsuperscript{*}Note: Sub-titles are not captured in Xplore 
 % and should not be used}
 %\thanks{Identify applicable funding agency here. If none, delete this.}
@@ -167,7 +168,7 @@
 \begin{titlepage}
 \begingroup
 \centering
-{\LARGE\bfseries QEMU Computational Storage Devices}
+{\LARGE\bfseries eBPF Computational Storage Device for ZNS in QEMU}
 
 \vspace{1cm}
 
@@ -181,20 +182,24 @@
 Amsterdam, Netherlands \\
 info@dantalion.nl}
 
+\vspace{0.5cm}
+
+\today
+
 \vspace{4.0cm}
 
-%\begin{figure}[H]
-%	\centering
-%	\includegraphics[width=0.7\textwidth]{resources/images/cover-image.png}
-%	\captionsetup{justification=centering}
-%	\caption{This is the cover image}
-%\end{figure}
+\includegraphics[width=0.8\textwidth]{resources/images/prototype-landscape.png}
 
 \vfill
 \endgroup
-\hfill
+\begin{minipage}{0.4\textwidth}
+	\begin{tabular}{ll}
+		\Large Project course: & \Large Individual Systems Practical (X\_405088) \\
+		\Large Supervisor: & \Large Giulia Frascaria and Animesh Trivedi \\
+	\end{tabular}
+\end{minipage} \hfill
 \begin{minipage}{0.3\textwidth}
-\begin{flushright}
+	\begin{flushright}
 	\includegraphics[width=\textwidth]{resources/images/vu-logo.png}
 \end{flushright}
 \end{minipage}
@@ -222,21 +227,43 @@ info@dantalion.nl}
 
 Recently pieces of literature have been presented about Zones Namespace (ZNS)
 SSDs. These cover a variety of topics such as migrating from Open-Channel
-SSDs to Zoned Namespaces\cite{bjorling2019open}. Other literature addresses
-some of the  functionality these ZNS SSDs introduce\cite{bjorling2020zone}.
-Finally, some works evaluate host-based SSD features such as flash management
-and  garbage collection when implemented using ZNS SSDs\cite{254268,9188086}.
+SSDs (OCSSD) to Zoned Namespaces\cite{bjorling2019open}. Other literature
+addresses some of the functionality these ZNS SSDs
+introduce\cite{bjorling2020zone}. Finally, some works evaluate host-based SSD
+features such as flash management and garbage collection when implemented using
+ZNS SSDs\cite{254268,9188086}.
 
-In this work the use of ZNS SSDs as Computational Storage Device (CSD) will be
-investigated. However, this requires the availability of ZNS SSD devices.
-Currently, the availability of physical ZNS SSDs is problematic, this is
-likely  due to the NVMe Zoned Namespace technical proposal only being ratified
-recently\cite{zns-nvme-ratified}.
+The concept of ZNS SSDs is interesting as this device level abstraction opens
+new possibilities for research, such as for Computational Storage Devices (CSD).
+Similar to OCSSD, ZNS gives insight into the internal device structure as well
+as providing some additional guarantees. In the context of ZNS these structures
+are known as namespaces and zones. This could have several advantages for CSD
+applications as it could reduce the semantic gap between host and device.
+Furthermore, it could provide safety guarantees by tying access level control
+(ACL) to individual zones.
+
+In order to investigate these research possibilities a functional prototype is
+needed. The development of such a prototype requires making several decisions
+such as to use existing technologies or develop new technologies. Typically,
+from these technologies there might be several applicable options. furthermore,
+the prototype might be aimed at answering a very specific research questions or
+might be kept very broadly applicable intentionally.
+
+In this work the use of ZNS SSDs as CSD will be investigated by building a
+broadly applicable prototype. However, this requires the availability of ZNS SSD
+devices. Currently, the availability of physical ZNS SSDs is problematic, this
+is likely due to the NVMe Zoned Namespace technical proposal only being ratified
+recently\cite{zns-nvme-ratified}. NVMe is the communication protocol prominent
+across all flash based storage devices predominantly those connected using a
+PCI-e bus.
 
 This NVMe Zoned Namespace command set specification is what enables ZNS SSDs to
 exist\cite{nvme-zns}. Luckily, the functionality of this NVMe command set is
-already enabled in QEMU. This allows the development of technologies utilizing
-ZNS SSDs in a virtualized environment.
+already enabled in QEMU. QEMU is a dynamic binary translation emulator that
+allows to create virtual hardware devices and subsequently use those inside the
+emulator. This allows for the development of technologies utilizing ZNS SSDs in
+a virtualized environment even if these devices do not currently physically
+exist.
 
 Several online resources exist explaining how this functionality was enabled in
 QEMU\cite{nvme-qemu-1,nvme-qemu-2} as well as resources on general information
@@ -247,15 +274,19 @@ utilizing ZNS SSDs with QEMU. The emphasis is on describing existing
 technologies and how to combine these in a working prototype.
 
 The overall structure of this work is as follows. Introduce several project
-dependencies and how to configure these, describe development and debugging
-methodologies and how these can be configured by the CMake project accompanying
-this work, describe the existing technologies that are used in the final
-prototype, define design requirements and the final implemented design as well
-as limitations, mention alternative technologies and why they are not used in
-the prototype, finally, describe future work and open questions that arise from
-this design.
+dependencies and how to configure these (\cref{dependencies}), describe
+development and debugging methodologies and how these can be configured by
+the CMake project accompanying this work (\cref{development}), describe the
+existing technologies that are used in the final prototype (\cref{technology}),
+define design requirements and the final implemented design as well as
+limitations (\cref{design}), mention alternative technologies and why they
+are not used in the prototype (\cref{alternatives}), finally, describe future
+work and open questions that arise from this design (\cref{future}).
 
-\section{Setting up Dependencenies}
+The entire prototype including source files for reports and documentation
+is available online under an permissive open-source license\cite{qemu-csd}.
+
+\section{Setting up Dependencenies} \label{dependencies}
 
 \subsection{Enabling ZNS SSD in QEMU}
 
@@ -300,11 +331,12 @@ In parallel with the development of ZNS SSD patches for QEMU are patches that
 separate the NVMe devices. These patches allow fine grained control over the
 hierarchy of these devices. Among these devices are so called
 \textit{subsystems} and \textit{namespaces}. These subsystems effectively allow
-namespaces to be shared by multiple NVMe devices. While, namespaces are what
-enables ZNS SSDs. The first example shown in
-figure \ref{fig:example-nvme-subsystems} illustrates sharing a namespace with
-multiple  devices through a subsystem. These examples shown are incomplete, a
-complete  example is shown at the end of this section.
+namespaces to be shared by multiple NVMe devices. Subsequently, namespaces are
+properties that can have specific types with accompanying features. One of these
+new types is ZNS. The first example shown in figure
+\ref{fig:example-nvme-subsystems} illustrates sharing a namespace with multiple
+devices through a subsystem. These examples shown are incomplete, a complete
+example is shown at the end of this section.
 
 \begin{center}
 	\begin{figure}[H]
@@ -323,8 +355,8 @@ a NVMe namespace are shown. The type of device can be replaced with any other
 device, although some do not expose any configuration parameters.
 
 This final example, shown in figure \ref{fig:qemu-launch}, is a complete set of
-parameters to boot QEMU and expose a ZNS SSD. Coincidentally, it is the
-command used throughout this project.
+parameters to boot QEMU and expose a ZNS SSD. In addition, these are the
+parameters used throughout this project.
 
 Important parameters include \textit{zoned=true} which configures the namespace
 to be zoned as well as \textit{bus=nvme2} to link the namespace to the NVMe
@@ -344,12 +376,11 @@ be at least 4096.
 
 \subsection{SPDK}
 
-Another problematic dependency of this project is SPDK. This
-framework\footnotemark[2] serves as user space driver for storage devices,
-including NVMe. All though, there is abundant documentation for SPDK it is
-not trivial to make sense of it all. Important to know is that SPDK itself has
-several dependencies it requires to operate. These include DPDK and isa-l among
-others.
+Another dependency of this project is SPDK. This framework\footnotemark[2]
+serves as user space driver for storage devices, including NVMe. All though,
+there is abundant documentation for SPDK it is not trivial to make sense of it
+all. Important to know is that SPDK itself has several dependencies it requires
+to operate. These include DPDK and isa-l among others.
 
 \footnotetext[2]{The term library would be misleading given the scale of SPDK.}
 
@@ -370,10 +401,9 @@ all static libraries.
 
 The authors of SPDK are very helpful and provided clear insights into why
 static compilation is not working when used this way. Their framework relies on
-constructor functions to register NVMe transport types. These are only exported
-if the static archive is linked using\bashinline{-Wl,--whole-archive}. The
-documentation has been improved to better indicate these linkage
-requirements\cite{spdk-documentation-patch}.
+constructor functions. These are only exported if the static archive is linked
+using\bashinline{-Wl,--whole-archive}. The documentation has been improved to
+better illustrate these linkage requirements\cite{spdk-documentation-patch}.
 
 \subsubsection{Periodic Setup}
 
@@ -420,7 +450,9 @@ be found in
 \textit{/home/arch/qemu-csd/dependencies/spdk/build/examples/identify}, note
 that it needs to be run with sudo privileges and \textit{\$LD\_LIBRARY\_PATH}
 configured. If the build environment is activated the \textit{ld-sudo} alias can
-be used for this.
+be used for this. An alias is a feature of shell prompts like Bash allowing to
+execute a parameterized command while also setting several environment
+variables.
 
 \begin{center}
 	\begin{figure}[H]
@@ -432,7 +464,7 @@ be used for this.
 	\end{figure}
 \end{center}
 
-\section{Development \& Debugging}
+\section{Development \& Debugging} \label{development}
 
 Anyone is free to use any developments tools they would like but several are
 more tightly integrated into this project. These primarily are Clion \& vscode.
@@ -463,9 +495,10 @@ target selection bar in the top right corner and select
 \textit{Edit configurations}. For each of the binary targets a toggle witht
 \textit{Run with root privileges} should be visible.
 
-One of the limitations of Clion is that it can only debug targets found through
-CMake. This prohibits remote debugging such as required when debugging binaries
-running inside QEMU. For this type of debugging vscode can be used instead.
+Clion discovers debuggable binaries by analyzing CMake project files. This
+complicates debugging binaries running inside QEMU as these can not be
+discovered from the host. The next section describes how host based debugging
+of QEMU binaries can be achieved with vscode.
 
 \subsection{Vscode}
 
@@ -534,15 +567,13 @@ as soon as a single memory error occurs. These runtime detections of memory
 errors will not catch all but most errors. To enable this feature the parameter
 \textit{-DENABLE\_LEAK\_TESTS=on} must be set to on.
 
-\section{Technology Backgrounds}
+\section{Technology Backgrounds} \label{technology}
 
-This section highlights how different technologies are realised. This ranges
-from insights about specifications, libraries, frameworks and drivers. Typically
-this includes figures about landscapes that provide an overview of how these
-technologies tie together. However, it does not include any examples or
-recommendation on how all these technologies together can be used to enable
-CSDs in QEMU. The specific case of enabling CSDs in QEMU will be discussed in
-details later.
+This section describes various technologies used in the prototype of this work.
+Additionally, it provides information on how these technologies work as well as
+limitations or requirements when using them. Notably, some of these technologies
+provide several options in terms of libraries or configuration parameters. For
+these technologies the decisions
 
 \subsection{SPDK}
 
@@ -584,8 +615,9 @@ reduce the confusion when reading about all these similarly named elements.
 
 The categories include \textit{Linux Kernel}, \textit{BPF CO-RE \& BTF},
 \textit{libbpf} and \textit{userspace execution / interpretation}. These
-categories are chosen as BPF is an inherit part of the Linux Kernel. It consists
-of several parts including an ABI, virtual machine and bytecode verifier.
+categories are chosen as BPF is an inherent part of the Linux Kernel. It
+consists of several parts including an ABI, virtual machine and bytecode
+verifier.
 
 This ties into the second category \textit{BPF CO-RE \& BTF}. Since BPF is
 executed within the kernel it can also access datastructures used by the kernel.
@@ -593,9 +625,12 @@ This introduces a huge compatibility problem as these datastructures typically
 change often with kernel versions. BPF CO-RE and BTF are technologies used to
 ensure a BPF program can run regardless of kernel version. Although correctly
 using these technologies requires additional programming effort compared to
-writing regular BPF programs.
+writing regular BPF programs. BTF effectively is a header file that is part of
+the Linux kernel while BPF CO-RE refers to method of programming\footnote{For
+instance BPF CO-RE introduces several functions that indicate that a field
+inside a struct must be relocated, hence the term BPF relocation instruction.}.
 
-BPF programs typically aren't run directly which is done using syscalls.
+BPF programs typically aren't run directly but through using syscalls.
 Instead, a runtime library is used from which these syscalls are called.
 Many of these runtimes exist ranging from large frameworks to small
 bootstrapping libraries. Given the intriquisies of these large frameworks they
@@ -624,25 +659,25 @@ next section it is advised to at least read all resources with value
 				\textbf{Resource} & \textbf{Category} & \textbf{Value} &
 				\textbf{Length} & \textbf{Age} \\
 				\midrule
-				\href{https://www.man7.org/linux/man-pages/man2/bpf.2.html}{Linux bpf manpage} &
+				\href{https://www.man7.org/linux/man-pages/man2/bpf.2.html}{Linux bpf manpage}\cite{bpfman} &
 				Linux Kernel & medium & short & timeless \\
-				\href{https://www.kernel.org/doc/Documentation/networking/filter.txt}{BPF kernel documentation} &
+				\href{https://www.kernel.org/doc/Documentation/networking/filter.txt}{BPF kernel documentation}\cite{Linuxbpf} &
 				Linux Kernel & low & long & outdated \\
-				\href{https://www.kernel.org/doc/html/latest/bpf/btf.html}{Linux BTF documentation} &
+				\href{https://www.kernel.org/doc/html/latest/bpf/btf.html}{Linux BTF documentation}\cite{Linuxbtf} &
 				Linux Kernel \& BTF & low & medium & timeless \\
-				\href{https://facebookmicrosites.github.io/bpf/blog/2020/02/19/bpf-portability-and-co-re.html}{BPF portability and CO-RE} &
+				\href{https://facebookmicrosites.github.io/bpf/blog/2020/02/19/bpf-portability-and-co-re.html}{BPF portability and CO-RE}\cite{bpfport} &
 				BPF CO-RE \& BTF & high & medium & relevant \\
-				\href{https://nakryiko.com/posts/libbpf-bootstrap/}{BPF applications with libbpf-bootstrap} &
+				\href{https://nakryiko.com/posts/libbpf-bootstrap/}{BPF applications with libbpf-bootstrap}\cite{bpfapplications} &
 				libbpf - libbpf-bootstrap & high & short & relevant \\
-				\href{https://www.oreilly.com/library/view/linux-observability-with/9781492050193/}{Linux Observability with BPF} &
+				\href{https://www.oreilly.com/library/view/linux-observability-with/9781492050193/}{Linux Observability with BPF}\cite{observabilityoreilly} &
 				libbpf - bpf\_load & medium & book & outdated \\
-				\href{https://facebookmicrosites.github.io/bpf/blog/2020/02/19/bpf-portability-and-co-re.html}{Cilium BPF + XDP reference guide} &
+				\href{https://facebookmicrosites.github.io/bpf/blog/2020/02/19/bpf-portability-and-co-re.html}{Cilium BPF + XDP reference guide}\cite{ciliumbpf} &
 				libbpf & high & long & relevant \\
-				\href{https://facebookmicrosites.github.io/bpf/blog/2020/02/20/bcc-to-libbpf-howto-guide.html}{BCC to libbpf conversion} &
+				\href{https://facebookmicrosites.github.io/bpf/blog/2020/02/20/bcc-to-libbpf-howto-guide.html}{BCC to libbpf conversion}\cite{libbpfconversion} &
 				libbpf & low & long & relevant \\
-				\href{https://github.com/iovisor/ubpf}{uBPF} &
+				\href{https://github.com/iovisor/ubpf}{uBPF}\cite{ubpf} &
 				execution / interpretation & medium & short & relevant \\
-				\href{https://github.com/generic-ebpf/generic-ebpf}{generic-ebpf} &
+				\href{https://github.com/generic-ebpf/generic-ebpf}{generic-ebpf}\cite{generic-ebpf} &
 				execution / interpretation & medium & short & relevant \\
 				\bottomrule
 			\end{tabular}
@@ -709,10 +744,11 @@ bytecode with clang. This is why LLVM clang is drawn across the border of the
 compilation and BPF CO-RE stages. Specifically, Clang can emit BTF relocations
 metadata that can be used for translation at runtime.
 
-Normally runtimes that support BPF CO-RE require BTF as dependency. This header
-is located in the Linux source, however, since kernel 5.5 a special sysfs file
-is also available. This sysfs file is able to generate a \textit{vmlinux.h}
-header without kernel sources.
+Normally runtimes that support BPF CO-RE require a BTF header as dependency.
+This header is located in the Linux source, however, since kernel 5.5 a special
+sysfs file is also available. This sysfs file is able to generate a
+\textit{vmlinux.h} header without kernel sources. Subsequently,
+this \textit{vmlinux.h} header can substitute the BTF header.
 
 Depending on the runtime this \textit{vmlinux.h} header might be used to
 perform the necessary BTF translations. Alternatively the BTF header might be
@@ -737,16 +773,20 @@ complicated part of BPF. For simplicity, large standalone runtime frameworks
 such as BCC and bpftrace are excluded. In addition, the concept of running BPF
 programs solely relying on kernel headers is not discussed.
 
-This results in 3 different runtimes of which every runtime is dependent on
-\textit{libbpf} or is \textit{libbpf} itself. Alternatives to \textit{libbpf}
-are \textit{libbpf-bootstrap} and \textit{bpf\_load}. Where the first
-alternative also depends on \textit{vmlinux.h}.
+This work describes 3 different runtimes. The first being \textit{libbpf}
+followed by \textit{libbpf-bootstrap} and \textit{bpf\_load}. Notably,
+both \textit{libbpf-bootstrap} and \textit{bpf\_load} require \textit{libbpf}
+as dependency. Additionally, \textit{libbpf-bootsrap} also requires a
+\textit{vmlinux.h} header, however, the source code of \textit{libbpf-bootstrap}
+already includes this header as well.
 
 From these runtimes, the use of \textit{libbpf-bootstrap} makes the most
 intuitive sense. This is because the generation of \textit{vmlinux.h} is more
 straightfoward than including kernel headers or even the entire Linux kernel
 sources. Additionally, \textit{bpf\_load} is no longer available as of the most
-recent version of the Linux kernel.
+recent version of the Linux kernel. The removal of \textit{bpf\_load} from
+kernel is possible due it being completely independent from the method used by
+the Linux kernel itself to load BPF programs.
 
 When the runtime is chosen, it can be used to compile a program that will load
 and execute a BPF program. The functions available to achieve this depend on
@@ -759,10 +799,10 @@ actually executing the BPF program inside its virtual machine.
 
 Executing BPF programs inside the Linux kernel might actually not be desirable,
 for instance when using a userspace NVMe driver such as SPDK. In these cases
-alternative execution environments such as \textit{uBPF} and
-\textit{generic-ebpf} are available. These, however, do not rely on overriding
-specific kernel syscalls so they have to be explicitly programmed at compile
-them as they offer an alternative API.
+alternative execution environments such as \textit{uBPF}\cite{ubpf} and
+\textit{generic-ebpf}\cite{generic-ebpf} are available. These, however, do not
+rely on overriding specific kernel syscalls so they have to be explicitly
+programmed at compile them as they offer an alternative API.
 
 \onecolumn
 
@@ -788,7 +828,7 @@ headers also allow to modify global variables before the BPF program is run.
 The modification of these global variables after compilation is achieved through
 BPF relocation instructions.
 
-\section{Design}
+\section{Design} \label{design}
 
 The following sections now introduce the design requirements, the implemented
 design, the limitations of this design and finally which technologies are not
@@ -802,17 +842,19 @@ CSDs using NVMe ZNS. Desired features try to take this one step further and
 reason about the several research questions researcher might have and what that
 would require.
 
-Firstly, the design must allow to create and expose interfaces as if a new API
+\begin{enumerate}
+\item The design must allow to create and expose interfaces as if a new API
 or standard is developed. These could include a new NVMe command set or the
-API available to the BPF programs running on the CSD.
+API available to the BPF programs programmed onto the CSD.
 
-Secondly, from the abstraction it must be clear what is being executed on the
+\item From the abstraction it must be clear what is being executed on the
 host and what is being executed on the CSD. In addition, the data transmitted
-over PCIe bus in comparison to the data read or written on the CSD must be clear
-from the abstraction.
+over PCI-e bus in comparison to the data transferred internally on the CSD must
+be clear from the abstraction.
 
-Lastly, the programs running on the CSD must be able to actually read and write
-from a ZNS SSD.
+\item The BPF programs programmed onto the CSD must be able to actually transfer
+data from a physical or virtual ZNS SSD.
+\end{enumerate}
 
 These minimum requirements can be easily extended. Firstly, the design could
 automatically monitor the relation of data between host and CSD, generating on
@@ -820,7 +862,7 @@ the fly statistics. These statistics can be made to create performance
 predictions based on theorized bus and device bandwidth as well as latencies.
 
 Secondly, the design could incorporate functionality for having multiple
-compute cores on a single CSD with an accompanying scheduler.
+compute cores on a single CSD with accompanying scheduler policies.
 
 Lastly, the design could introduce tokens or other objects to introduce security
 features that ensure CSD programs are only allowed some specific operations.
@@ -832,15 +874,56 @@ design requirements and leave any optional features to follow up research.
 
 \subsection{Implemented Design}
 
-The final prototype uses a combination of SPDK, uBPF and bpftool. In this
-design SPDK is configured to use the first zoned namespace on a NVMe controller
-it can find. Subsequently, this SPDK state is passed to an abstraction which
-exposes a hypothetical extension to the NVMe command set.
+The final prototype uses a combination of SPDK, uBPF and bpftool and is
+segmented into several components that will de described later. These components
+are written such that they can be used standalone, however, the prototype
+provides a main method that demonstrates some basic functionality. In figure
+\ref{fig:prototypesteps} the typical steps to use the prototype comparable to
+the demo functionality is shown.
 
-This abstraction is called \textit{NvmCsd} in this design. As bare prototype it
-only exposes two commands. One, to send a BPF program in ELF format, another to
-retrieve the return data of the BPF program after it has finished executing. The
-interface of these commands is shown in figure \ref{fig:nvm-commands}.
+This figure uses a similar legend to the one shown in
+\ref{fig:bpf-landscape-legend}. Several differences are that the components
+introduced by the prototype are highlighted in blue. Additionally, both the
+striped and thin arrows are necessary steps. The distinction between these
+thin and striped arrows is solely used in the subsequent explanation to describe
+each step. Finally, the circular arrow denotes the running of an user provided
+BPF program.
+
+\begin{center}
+	\begin{figure}[H]
+		\includegraphics[width=0.5\textwidth]{resources/images/prototype-landscape}
+		\captionsetup{justification=centering}
+		\caption{Typically steps when using components of the prototype.}
+		\label{fig:prototypesteps}
+	\end{figure}
+\end{center}
+
+On the left following the thin arrows the following steps can be observed:
+\begin{enumerate} \item The user written
+BPF program is compiled while including the header that provides the API
+available when running on the CSD. \item The Clang compiler from the LLVM
+project is used to generate BPF bytecode. \item bpftool is used to convert this
+bytecode into a header file encapsulating the bytecode in ELF format. \item This
+header file is included by the user written program.
+\end{enumerate}
+
+The BPF program compiled can now be used by user written program together with
+the NVMe API of the prototype as illustrated in the steps of the striped arrows.
+Each of these steps illustrates the following:
+\begin{enumerate} \item The user program submits the BPF program in ELF format.
+\item uBPF is used to start executing the BPF program providing an
+implementation of the BPF API. \item The BPF program uses several of these API
+calls that use SPDK, subsequently, SPDK uses the UIO driver to communicate with
+underlying ZNS SSD. \item The data returned from this ZNS SSD is processed by
+the driver and SPDK. \item The BPF program selects data to be returned to the
+user program. \item The user program requests the return data and receives it.
+\end{enumerate}
+
+The NVMe API highlighted in blue is an hypothetical extension to the NVMe
+command set. In this basic prototype it only exposes two commands. One, to send
+a BPF program in ELF format, another to retrieve the return data of the BPF
+program after it has finished executing. The interface of these commands is
+shown in figure \ref{fig:nvm-commands}.
 
 \begin{center}
 	\begin{figure}[H]
@@ -851,22 +934,22 @@ interface of these commands is shown in figure \ref{fig:nvm-commands}.
 	\end{figure}
 \end{center}
 
-The state of SPDK is never used by \textit{NvmCsd} directly only from uBPF. uBPF
-provides an environment to run BPF programs in. By default no functions will be
-available from within the BPF program but uBPF allows to easily define custom
-functions. The prototype design defines four functions that primarily allow to
-read from the ZNS SSD and store the data somewhere. Providing the BPF program
-a region to store data is essential as uBPF only offers a limited 128 byte stack
-space as well as performing thorough bounds checking upon each memory access.
-For this prototype a default value of 512K of memory is provided to the BPF
-program.
+Similarly the BPF API is the hypothetical API available to BPF programs being
+programmed unto a CSD. uBPF provides an environment to run these BPF programs.
+By default no functions will be available from within the BPF program but uBPF
+allows to easily define custom functions. The prototype design defines four
+functions that primarily allow to read from the ZNS SSD and store the data
+somewhere. Providing the BPF program a region to store data is essential as uBPF
+only offers a limited 128 byte stack space as well as performing thorough bounds
+checking upon each memory access. For this prototype a default value of 512K of
+memory is provided to the BPF program.
 
 The method to define functions for BPF programs is shown in
 figure \ref{fig:bpf-functions}. Notice, how each function is assigned to a
 specific number. These numbers will be used for the BPF call instruction that
 takes a number as argument. Importantly, these definitions will be defined
 in two separate headers, one for use by the BPF program and one for the actual
-implementation on the host.
+implementation.
 
 \begin{center}
 	\begin{figure}[H]
@@ -877,84 +960,94 @@ implementation on the host.
 	\end{figure}
 \end{center}
 
-uBPF can execute a BPF program by directly reading it in ELF format. This is why
-bpftool is used. This allows to include the BPF program in ELF format as regular
-header file.
-
-The prototype performs a few demo operations to illustrate its functionality.
-This includes filling the first zone with random value integers. Followed-by,
-submitting a BPF program to read the first sector and return the number of
-integers above $RAND\_MAX / 2$. If the ZNS SSD from QEMU is used this will
-result in 1024 integers being read of which approximately 512 will be above this
-predefined value.
+As mentioned, the main method of the prototype performs a few demo operations to
+illustrate its functionality. This includes filling the first zone with random
+value integers. Followed-by, submitting a BPF program to read the first LBA of
+this zone and return the number of integers above $RAND\_MAX / 2$. If the ZNS
+SSD from QEMU is used this will result in 1024 integers being read of which
+approximately 512 will be above this predefined value. Given the parameters from
+QEMU the ZNS SSD will consist of 128 zones with each zone consisting of 32 LBAs
+(sectors) each 4096 bytes large.
 
 \subsubsection{Prototype Components}
 
 Effectively, the current prototype consists out of five components.
 \begin{enumerate*} \item arguments \item bpf\_helpers \item bpf\_programs
-\item nvm\_csd \item spdk\_init \end{enumerate*}. Alongside these components is
-a supporting main function that ties all the operations of the prototype
-together.
+\item nvm\_csd \item spdk\_init \end{enumerate*}.
 
 The \textit{arguments} component processes any argument passed when launching
-the prototype, the parsed arguments are stored in object that can be passed to
-subsequent components.
+the prototype, the parsed arguments are stored in an object that can be passed
+to subsequent components.
 
 One of these components is \textit{spdk\_init} which attaches to the first zoned
-namespace it can find and its corresponding controller. The SPDK instances to
-interact with these objects are made available by \textit{spdk\_init}.
+namespace it can find and its corresponding controller. This will be the ZNS SSD
+used by SPDK. The SPDK instance to interact with these objects are made
+available by \textit{spdk\_init} to the subsequent components.
 
-These SPDK instances along with the arguments are passed to \textit{nvm\_csd}
+This SPDK instance along with the arguments are passed to \textit{nvm\_csd}
 upon initialization. \textit{nvm\_csd} subsequently creates the uBPF vm
 instance.
 
-The API exposed by \textit{nvm\_csd} allows to submit the BPF program found in
-\textit{bpf\_programs}. This component contains both the C source code and the
-header generated by bpftool.
+The NVMe API exposed by \textit{nvm\_csd} allows to submit the BPF program found
+in \textit{bpf\_programs}. This component contains both the BPF source code and
+the header generated by bpftool.
 
 The final \textit{bpf\_helpers} component is used by \textit{bpf\_programs}
-during compilation as it provides the API exposed to BPF implemented by
+during compilation as it provides the exposed BPF API as implemented by
 \textit{nvm\_csd}.
+
+In figure \ref{fig:prototypecomponents} an overview of the different parts each
+component influences is shown.
+
+\begin{center}
+	\begin{figure}[H]
+		\includegraphics[width=0.5\textwidth]{resources/images/prototype-components.png}
+		\captionsetup{justification=centering}
+		\caption{Overview of the components and which parts they influence.}
+		\label{fig:prototypecomponents}
+	\end{figure}
+\end{center}
 
 \subsection{Design Limitations}
 
 There are two primary limitations to the current implementation. Firstly,
-currently only one instance of \textit{NvmCsd} can exist at any point in time.
+currently only one instance of \textit{nvm\_csd} can exist at any point in time.
 Secondly, several programming limitations apply to BPF programs.
 
-The design limitation in \textit{NvmCsd} arises from how BPF functions are
+The design limitation in \textit{nvm\_csd} arises from how BPF functions are
 registered in uBPF. Since these functions are static, a global instance of
-\textit{NvmCsd} is referenced from within these functions. Currently, the last
-created instance of \textit{NvmCsd} sets this global instance. Any mitigation
+\textit{nvm\_csd} is referenced from within these functions. Currently, the last
+created instance of \textit{nvm\_csd} sets this global instance. Any mitigation
 to this limitation ties into the second limitation.
 
 Currently, the uBPF library does not support all instructions of BPF. One of the
 most important instructions it does not support is the BPF relocation type 1
 instruction. One of the situations in which this instruction is emitted is when
 using global variables. To ensure a BPF program is runnable by uBPF one
-must assert that no \textit{R\_BPF\_64\_64} is present in the \textit{.text}
-section. This can be checked using\bashinline{llvm-objdump -r /path/to/bpf.o}.
+must assert that no \textit{R\_BPF\_64\_64} instruction is present in the
+\textit{.text} section. This can be checked
+using\bashinline{llvm-objdump -r /path/to/bpf.o}.
 
 The combination of these two limitations creates a problem. Intuitively one
 would want a global variable in the BPF program that can be initialized
 externally before running. By using this variable in the custom defined BPF
-functions, \textit{NvmCsd} would be able to determine to which instance these
+functions, \textit{nvm\_csd} would be able to determine to which instance these
 calls belong even if the functions themselves are static. For this a global
-list that maintains all instances of \textit{NvmCsd} can be used.
+list that maintains all instances of \textit{nvm\_csd} can be used.
 
 As example, imagine a hypothetical scenario in which two instances of
-\textit{NvmCsd} exist, each assigned its own SPDK state refererring to entirely
-different ZNS SSDs. Both of these instances now run a BPF program that calls
-several static functions. From the context of these static functions it is now
-impossible to determine to which instance of \textit{NvmCSd} and consequently
-which ZNS SSD they belong.
+\textit{nvm\_csd} exist, each assigned its own SPDK state refererring to
+entirely different ZNS SSDs. Both of these instances now run a BPF program that
+calls several static functions. From the context of these static functions it is
+now impossible to determine to which instance of \textit{nvm\_csd} and
+consequently which ZNS SSD they belong.
 
 One solution to this problem is already being
 developed\cite{ubpf-seed-issue, ubpf-seed-patch}. This solution would initialize
 several registers of uBPF with a pointer and corresponding size of the heap
-memory space assigned to it. If for every instance of \textit{NvmCsd} this
+memory space assigned to it. If for every instance of \textit{nvm\_csd} this
 heap pointer is placed in a map alongside a reference to the instance, every BPF
-program can be correlated to its corresponding \textit{NvmCsd} through this
+program can be correlated to its corresponding \textit{nvm\_csd} through this
 heap memory pointer. This heap memory pointer would simply be an argument
 of every BPF function call. A downside to this approach is that it is likely to
 require some small inline assembly snippets to read the registers before they
@@ -966,7 +1059,7 @@ encapsulated in a struct and than passed as a single argument. However,
 guarantees about alignment compatibility in structs across the host and BPF
 program are unknown.
 
-\subsection{Alternative Technologies}
+\subsection{Alternative Technologies} \label{alternatives}
 
 Several alternative technologies exist that could have been used in the current
 prototype. This section mentions these technologies and why they are not used.
@@ -1010,13 +1103,14 @@ requires the construction of special\cinline{ebpf_inst} structs
 fields. Given the complexity of converting ELF data into these instruction
 structs, this technology is not used in the current prototype.
 
-\section{Future Work}
+\section{Future Work} \label{future}
 
 This prototype is intentionally bare as to allow as many as possible follow up
 research questions. From this initial prototype several questions naturally
 arise. Such as, what should additions to NVMe command set look like in order to
-support ZNS CSDs? Other questions include, what functions should be exposed to
-BPF programs in order facilitate ZNS CSDs?
+support ZNS CSDs? Other questions include, what should the user facing BPF API
+look like? Additionally, how can abstractions such as files and databases be
+supported?
 
 Other questions that could potentially be subquestions of the previous two
 include, how can security features such as file permissions be enforced?
@@ -1029,7 +1123,10 @@ concurrency issues be resolved in a multi-core ZNS CSD?
 
 This prototype is designed to be able to serve as a starting point for each
 of these research questions. It implements the bare minimum such that it is
-flexible enough to pursue every possible direction of subsequent research.
+flexible enough to pursue every possible direction of subsequent research. To
+enable this future research the entire prototype including source files for
+figures and reports is available online under a permissive open-source license
+\cite{qemu-csd}.
 
 %\footnotemark[1]. example\ref{term}.
 %\footnotetext[1]{test}
@@ -1077,6 +1174,7 @@ confusion.
 \begin{enumerate}
 	\item ZNS - Zoned Namespace
 	\item CSD - Computational Storage Device
+	\item ACL - Access Level Control
 	\item Upstream - When a certain patch or feature has been merged into the
 					 main repository of a project.
 	\item GUI - Graphical User Interface

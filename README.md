@@ -1,5 +1,3 @@
-[![pipeline status](https://gitlab.dantalion.nl:4443/vrije-universiteit-vu-/qemu-csd/badges/master/pipeline.svg)](https://gitlab.dantalion.nl:4443/vrije-universiteit-vu-/qemu-csd/commits/master)
-[![coverage report](https://gitlab.dantalion.nl:4443/vrije-universiteit-vu-/qemu-csd/badges/master/coverage.svg)](https://gitlab.dantalion.nl:4443/vrije-universiteit-vu-/qemu-csd/commits/master)
 # QEMU-CSD
 
 QEMU-CSD is a full stack prototype to execute BPF programs as if they are
@@ -7,6 +5,8 @@ running on a Zoned Namespace (ZNS) SSD Computational Storage Device (CSD). The
 entire prototype can be run from userspace by utilizing existing technologies
 such as SPDK and uBPF. Since consumer ZNS SSDs are still unavailable, QEMU can
 be used to create a virtual ZNS SSD.
+
+![](documentation/resources/images/prototype-landscape.png)
 
 ### Project goals
 
@@ -42,7 +42,9 @@ be used to create a virtual ZNS SSD.
       * Add license header to all source files developed for this project
     * Document uBPF technology
     * Document SPDK technology
-  
+* Week 8/9
+  * Finalize documentation
+
 ### Index
 
 * [Directory structure](#directory-structure)
