@@ -6,7 +6,7 @@
 	url = https://github.com/libbpf/libbpf.git
 [submodule "dependencies/qemu"]
 	path = dependencies/qemu
-	url = git://git.infradead.org/qemu-nvme.git
+	url = https://github.com/Dantali0n/qemu.git
 [submodule "dependencies/spdk"]
 	path = dependencies/spdk
 	url = https://github.com/spdk/spdk
