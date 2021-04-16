@@ -61,7 +61,7 @@ target_link_libraries(
     ${QEMUCSD_SPDK_INIT_LIBRARIES}
 )
 
-add_dependencies(qemucsd_spdk_init spdk-build dpdk-build isa-l-build)
+add_dependencies(qemucsd_spdk_init qemucsd_argumetns spdk-build dpdk-build isa-l-build)
 
 # Add qemucsd_spdk_init to the modules
 add_qemucsd_module(qemucsd_spdk_init)
