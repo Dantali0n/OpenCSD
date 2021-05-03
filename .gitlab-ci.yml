@@ -1,3 +1,6 @@
+image: archlinux:base-devel
+before_script:
+  - sudo pacman -Sy cmake clang gcc llvm yasm ninja cunit pixman
 stages:
   - build
   - test
