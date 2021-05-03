@@ -100,13 +100,19 @@ int main(int argc, char* argv[]) {
 		if (qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)
 			return EXIT_FAILURE;
 
+        #ifdef QEMUCSD_DEBUG
         auto start = std::chrono::high_resolution_clock::now();
+        #endif
+
 		fill_first_zone(&entry);
+
+        #ifdef QEMUCSD_DEBUG
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration =
             std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
         std::cout << "[HOST] Fill first zone with random integers: " <<
             duration.count() << " ms." << std::endl;
+        #endif
 
 		// Initialize simulator for NVMe BPF command set
 		qemucsd::nvm_csd::NvmCsd nvm_csd(&opts, &entry);
@@ -118,31 +124,47 @@ int main(int argc, char* argv[]) {
 		}
 
 		// Run bpf program on 'device'
+        #ifdef QEMUCSD_DEBUG
         start = std::chrono::high_resolution_clock::now();
+        #endif
+
 		uint64_t return_size = nvm_csd.nvm_cmd_bpf_run(
 			skel->skeleton->data, skel->skeleton->data_sz);
+
+        #ifdef QEMUCSD_DEBUG
         stop = std::chrono::high_resolution_clock::now();
         duration =
             std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+        #endif
 
 		if (return_size < 0) {
 			fprintf(stderr, "Error while executing BPF program on device\n");
 			return EXIT_FAILURE;
 		}
 
+        #ifdef QEMUCSD_DEBUG
         std::cout << "[CSD] Filter integers from first zone: " <<
             duration.count() << " ms." << std::endl;
+        #endif
 
+        #ifdef QEMUCSD_DEBUG
         start = std::chrono::high_resolution_clock::now();
+        #endif
+
 		void *data = malloc(return_size);
 		nvm_csd.nvm_cmd_bpf_result(data);
+
+        #ifdef QEMUCSD_DEBUG
         stop = std::chrono::high_resolution_clock::now();
         duration =
             std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
         std::cout << "[CSD] Retrieve result from CSD: " <<
             duration.count() << " ms." << std::endl;
+        #endif
 
 		std::cout << "BPF device result: " << *(uint64_t *) data << std::endl;
+
+        qemucsd::spdk_init::reset_zones(&entry);
 
 		free(data);
 	}

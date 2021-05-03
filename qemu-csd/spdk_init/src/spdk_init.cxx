@@ -69,6 +69,16 @@ namespace qemucsd::spdk_init {
 		return 0;
 	}
 
+    int reset_zones(struct ns_entry *entry) {
+        int result = spdk_nvme_zns_reset_zone(
+            entry->ns, entry->qpair, 0, true, error_print, &entry);
+
+        // Wait for I/O operation to complete
+        spin_complete(entry);
+
+        return result;
+	}
+
 	static bool probe_cb_attach_all(
 		void *cb_ctx, const struct spdk_nvme_transport_id *trid,
 		struct spdk_nvme_ctrlr_opts *opts)
@@ -134,12 +144,6 @@ namespace qemucsd::spdk_init {
 
 		// Did not find ZNS supporting namespace on this controller, detaching
 		if(entry->ctrlr == nullptr) spdk_nvme_detach(ctrlr);
-	}
-
-	inline void spin_complete(struct ns_entry *entry) {
-		while(spdk_nvme_qpair_process_completions(entry->qpair, 0) == 0) {
-			;
-		}
 	}
 
 	void error_print(void *void_entry,
