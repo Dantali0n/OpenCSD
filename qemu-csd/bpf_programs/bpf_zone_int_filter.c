@@ -40,7 +40,7 @@ static const uint16_t BUFFER_SIZE = 64;
 
 int main() {
 	/** Reading from device using stack based buffers */
-//	uint64_t lba_size = bpf_get_lba_siza();
+//	uint64_t lba_size = bpf_get_lba_size();
 //	uint8_t buffer[BUFFER_SIZE] = {0};
 //
 //	uint16_t its_per_lba = lba_size / BUFFER_SIZE;
@@ -62,7 +62,7 @@ int main() {
 
 
 	/** Reading from device using 'heap' based buffers */
-	uint64_t lba_size = bpf_get_lba_siza();
+	uint64_t lba_size = bpf_get_lba_size();
 	uint64_t buffer_size;
 	void *buffer;
 

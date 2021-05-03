@@ -44,8 +44,8 @@ namespace qemucsd::nvm_csd {
 
 		ubpf_register(vm, 1, "bpf_return_data", (void*)bpf_return_data);
 		ubpf_register(vm, 2, "bpf_read", (void*)bpf_read);
-		ubpf_register(vm, 3, "bpf_get_lba_siza", (void*)bpf_get_lba_siza);
-        ubpf_register(vm, 4, "bpf_get_zone_siza", (void*)bpf_get_zone_siza);
+		ubpf_register(vm, 3, "bpf_get_lba_size", (void*)bpf_get_lba_size);
+        ubpf_register(vm, 4, "bpf_get_zone_size", (void*)bpf_get_zone_size);
 		ubpf_register(vm, 5, "bpf_get_mem_info", (void*)bpf_get_mem_info);
 	}
 
@@ -98,7 +98,7 @@ namespace qemucsd::nvm_csd {
 		auto *self = nvm_instance;
 
 		// Safer, still unsafe, limit is only uint16_t
-		uint64_t lba_size = bpf_get_lba_siza();
+		uint64_t lba_size = bpf_get_lba_size();
 		if(limit >= lba_size) limit = lba_size;
 
 		spdk_nvme_ns_cmd_read(self->entry.ns, self->entry.qpair,
@@ -109,11 +109,11 @@ namespace qemucsd::nvm_csd {
 		memcpy(data, (uint8_t*)self->entry.buffer + offset, limit);
 	}
 
-	uint64_t NvmCsd::bpf_get_lba_siza() {
+	uint64_t NvmCsd::bpf_get_lba_size() {
 		return nvm_instance->entry.buffer_size;
 	}
 
-    uint64_t NvmCsd::bpf_get_zone_siza() {
+    uint64_t NvmCsd::bpf_get_zone_size() {
         return nvm_instance->entry.zone_size;
     }
 

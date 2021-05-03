@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+#include <chrono>
 #include <iostream>
 #include <stdexcept>
 
@@ -99,7 +100,13 @@ int main(int argc, char* argv[]) {
 		if (qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)
 			return EXIT_FAILURE;
 
+        auto start = std::chrono::high_resolution_clock::now();
 		fill_first_zone(&entry);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration =
+            std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        std::cout << "[HOST] Fill first zone with random integers: " <<
+            duration.count() << "ms." << std::endl;
 
 		// Initialize simulator for NVMe BPF command set
 		qemucsd::nvm_csd::NvmCsd nvm_csd(&opts, &entry);
