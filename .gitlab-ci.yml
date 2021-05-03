@@ -1,7 +1,7 @@
 image: archlinux:base-devel
 before_script:
   - sudo pacman -Sy --noconfirm cmake clang gcc llvm yasm ninja cunit pixman python-pip git
-  - sudo pacman -Sy --noconform doxygen texlive-bin texlive-science texlive-publishers
+  - sudo pacman -Sy --noconfirm doxygen texlive-bin texlive-science texlive-publishers
   - pip install meson
 stages:
   - build
