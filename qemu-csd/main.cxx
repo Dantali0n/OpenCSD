@@ -118,16 +118,29 @@ int main(int argc, char* argv[]) {
 		}
 
 		// Run bpf program on 'device'
+        start = std::chrono::high_resolution_clock::now();
 		uint64_t return_size = nvm_csd.nvm_cmd_bpf_run(
 			skel->skeleton->data, skel->skeleton->data_sz);
+        stop = std::chrono::high_resolution_clock::now();
+        duration =
+            std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 
 		if (return_size < 0) {
 			fprintf(stderr, "Error while executing BPF program on device\n");
 			return EXIT_FAILURE;
 		}
 
+        std::cout << "[CSD] Filter integers from first zone: " <<
+            duration.count() << " ms." << std::endl;
+
+        start = std::chrono::high_resolution_clock::now();
 		void *data = malloc(return_size);
 		nvm_csd.nvm_cmd_bpf_result(data);
+        stop = std::chrono::high_resolution_clock::now();
+        duration =
+            std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+        std::cout << "[CSD] Retrieve result from CSD: " <<
+            duration.count() << " ms." << std::endl;
 
 		std::cout << "BPF device result: " << *(uint64_t *) data << std::endl;
 
