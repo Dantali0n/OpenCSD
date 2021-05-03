@@ -104,9 +104,9 @@ int main(int argc, char* argv[]) {
 		fill_first_zone(&entry);
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration =
-            std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+            std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
         std::cout << "[HOST] Fill first zone with random integers: " <<
-            duration.count() << "ms." << std::endl;
+            duration.count() << " ms." << std::endl;
 
 		// Initialize simulator for NVMe BPF command set
 		qemucsd::nvm_csd::NvmCsd nvm_csd(&opts, &entry);

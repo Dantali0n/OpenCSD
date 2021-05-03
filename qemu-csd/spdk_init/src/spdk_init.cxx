@@ -53,9 +53,15 @@ namespace qemucsd::spdk_init {
 		}
 
 		// Reset all zones in the namespace.
+        auto start = std::chrono::high_resolution_clock::now();
 		if(options->dev_init_mode == arguments::DEV_INIT_RESET)
 			spdk_nvme_zns_reset_zone(entry->ns, entry->qpair, 0, true,
 									 error_print, &entry);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration =
+                std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+        std::cout << "[HOST] Reset all zones in the namespace: " <<
+                  duration.count() << " ms." << std::endl;
 
 		// Wait for I/O operation to complete
 		spin_complete(entry);

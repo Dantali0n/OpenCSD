@@ -25,6 +25,8 @@
 #ifndef QEMU_CSD_SPDK_INIT_HPP
 #define QEMU_CSD_SPDK_INIT_HPP
 
+#include <chrono>
+
 #include "arguments.hpp"
 
 #include <spdk/env.h>
