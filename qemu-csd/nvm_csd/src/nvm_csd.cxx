@@ -45,7 +45,8 @@ namespace qemucsd::nvm_csd {
 		ubpf_register(vm, 1, "bpf_return_data", (void*)bpf_return_data);
 		ubpf_register(vm, 2, "bpf_read", (void*)bpf_read);
 		ubpf_register(vm, 3, "bpf_get_lba_siza", (void*)bpf_get_lba_siza);
-		ubpf_register(vm, 4, "bpf_get_mem_info", (void*)bpf_get_mem_info);
+        ubpf_register(vm, 4, "bpf_get_zone_siza", (void*)bpf_get_zone_siza);
+		ubpf_register(vm, 5, "bpf_get_mem_info", (void*)bpf_get_mem_info);
 	}
 
 	NvmCsd::~NvmCsd() {
@@ -111,6 +112,10 @@ namespace qemucsd::nvm_csd {
 	uint64_t NvmCsd::bpf_get_lba_siza() {
 		return nvm_instance->entry.buffer_size;
 	}
+
+    uint64_t NvmCsd::bpf_get_zone_siza() {
+        return nvm_instance->entry.zone_size;
+    }
 
 	void NvmCsd::bpf_get_mem_info(void **mem_ptr, uint64_t *mem_size) {
 		auto *self = nvm_instance;

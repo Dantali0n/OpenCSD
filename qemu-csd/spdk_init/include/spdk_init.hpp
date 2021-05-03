@@ -39,8 +39,12 @@ namespace qemucsd::spdk_init {
 		struct spdk_nvme_ns *ns;
 		struct spdk_nvme_qpair *qpair;
 
+		// Buffer size is equivalent to 1 LBA
 		void *buffer;
 		uint32_t buffer_size;
+
+		// Zone size in number of LBAs
+		uint32_t zone_size;
 	};
 
 	/**

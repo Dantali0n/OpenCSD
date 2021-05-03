@@ -118,6 +118,10 @@ namespace qemucsd::spdk_init {
 			entry->buffer = spdk_zmalloc(entry->buffer_size, entry->buffer_size,
 				NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
 
+			// Add zone size to entry
+            uint32_t zone_size = spdk_nvme_zns_ns_get_zone_size(entry->ns);
+            entry->zone_size = zone_size / entry->buffer_size;
+
 			// Only want first ZNS supporting namespace
 			break;
 		}

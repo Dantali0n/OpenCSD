@@ -37,6 +37,8 @@ static void bpf_read(uint64_t lba, uint64_t offset, uint16_t limit, void *data);
 
 static uint64_t bpf_get_lba_siza(void);
 
+static uint64_t bpf_get_zone_siza(void);
+
 static void bpf_get_mem_info(void **mem_ptr, uint64_t *mem_size);
 
 #endif //QEMU_CSD_BPF_HELPERS_VM_H

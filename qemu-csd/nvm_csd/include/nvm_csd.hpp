@@ -73,6 +73,8 @@ namespace qemucsd::nvm_csd {
 
 		static uint64_t bpf_get_lba_siza(void);
 
+        static uint64_t bpf_get_zone_siza(void);
+
 		static void bpf_get_mem_info(void **mem_ptr, uint64_t *mem_size);
 	};
 }
