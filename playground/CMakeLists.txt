@@ -39,8 +39,10 @@ add_custom_target(
     play-generic-ebpf
     play-libbpf-bpf-load
     play-libbpf-bootstrap
+    play-filter
     play-spdk
     play-ubpf
+    play-spdk-find-fill-filter
 )
 
 set(${PRJ_PRX}_PLAYGROUND_LIBRARIES
@@ -323,6 +325,24 @@ target_link_libraries(
 )
 
 qemucsd_target_postprocess(play-libbpf-bpf-load)
+
+# ---------------------- #
+# Playground play-filter #
+# ---------------------- #
+
+set(PLAYGROUND_FILTER_SOURCE
+    play-filter/play-filter.cxx
+)
+
+message("${PRJ_PRX}: playground filter cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(play-filter ${PLAYGROUND_FILTER_SOURCE})
+
+target_link_libraries(
+    play-filter
+    ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
+)
+
+qemucsd_target_postprocess(play-filter)
 
 # --------------- #
 # Playground ubpf #
