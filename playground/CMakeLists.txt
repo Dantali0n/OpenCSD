@@ -36,6 +36,7 @@ add_custom_target(
     play-backward
     play-boost-locale
     play-example
+    play-generate-integer-data
     play-generic-ebpf
     play-libbpf-bpf-load
     play-libbpf-bootstrap
@@ -60,7 +61,7 @@ set(${PRJ_PRX}_PLAY_LIBRARIES_PACK
 
 set(PLAYGROUND_BACKWARD_SOURCE
     backward/playground-backward.cxx
-)
+        generate-integer-data/play-integer-gen.cxx)
 
 message("${PRJ_PRX}: playground backward cxx flags:${CMAKE_CXX_FLAGS}")
 add_executable(play-backward ${PLAYGROUND_BACKWARD_SOURCE})
@@ -114,6 +115,24 @@ target_link_libraries(
 )
 
 qemucsd_target_postprocess(play-example)
+
+# ------------------------------------- #
+# Playground play-generate-integer-data #
+# ------------------------------------- #
+
+set(PLAYGROUND_GENERATE_INTEGER_SOURCE
+    generate-integer-data/play-integer-gen.cxx
+)
+
+message("${PRJ_PRX}: playground generate-integer-data cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(play-generate-integer-data ${PLAYGROUND_GENERATE_INTEGER_SOURCE})
+
+target_link_libraries(
+    play-generate-integer-data
+    ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
+)
+
+qemucsd_target_postprocess(play-generate-integer-data)
 
 # ----------------------- #
 # Playground generic-ebpf #
