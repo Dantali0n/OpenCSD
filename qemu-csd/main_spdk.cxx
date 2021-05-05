@@ -102,7 +102,7 @@ int main(int argc, char* argv[]) {
 
         uint32_t num_ints = 0;
 
-        uint32_t num_lbas = entry.zone_size / entry.buffer_size;
+        uint32_t num_lbas = entry.zone_size;
         uint32_t ints_per_it = entry.buffer_size / sizeof(uint32_t);
         uint32_t* int_alias = (uint32_t*) entry.buffer;
         for(uint32_t i = 0; i < num_lbas; i++) {
@@ -111,8 +111,8 @@ int main(int argc, char* argv[]) {
                 qemucsd::spdk_init::error_print, &entry,0);
             qemucsd::spdk_init::spin_complete(&entry);
 
-            for(uint32_t i = 0; i < ints_per_it; i++) {
-                if(*(int_alias + i) > RAND_MAX / 2) num_ints++;
+            for(uint32_t j = 0; j < ints_per_it; j++) {
+                if(*(int_alias + j) > RAND_MAX / 2) num_ints++;
             }
         }
 
