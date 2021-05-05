@@ -164,8 +164,6 @@ int main(int argc, char* argv[]) {
 
 		std::cout << "BPF device result: " << *(uint64_t *) data << std::endl;
 
-        qemucsd::spdk_init::reset_zones(&entry);
-
 		free(data);
 	}
 	catch(...) {
