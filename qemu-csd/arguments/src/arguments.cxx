@@ -66,6 +66,7 @@ namespace qemucsd::arguments {
 					R"(NVMe SPDK Device initialization mode: "preserve", "reset")"
 				)
 				("vmmem", po::value<uint64_t>(), "uBPF vm memory size in bytes")
+                ("jit,j", po::value<bool>(), "uBPF jit compilation")
 				// SPDK env opts
 				("name", po::value<std::string>(), "Name for SPDK environment");
 		po::variables_map vm;
@@ -81,6 +82,12 @@ namespace qemucsd::arguments {
 		} else {
 			options->ubpf_mem_size = DEFAULT_UBPF_MEM_SIZE;
 		}
+
+        if(vm.count("jit")) {
+            options->ubpf_jit = vm["jit"].as<bool>();
+        } else {
+            options->ubpf_jit = DEFAULT_UBPF_JIT;
+        }
 
 //		if(vm.count("settings")) {
 //			options->settings = std::make_shared<std::string>(vm["settings"].as<std::string>());

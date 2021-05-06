@@ -66,10 +66,21 @@ namespace qemucsd::nvm_csd {
 
 		free(msg_buf);
 
-//		ubpf_jit_fn exec = ubpf_compile(this->vm, &msg_buf);
-//		if(exec(this->vm_mem, this->options.ubpf_mem_size) < 0)
-//			return -1;
+		// Jit compilation path
+		if(this->options.ubpf_jit) {
+		    // Measure jit compilation time
+            auto start = std::chrono::high_resolution_clock::now();
+            ubpf_jit_fn exec = ubpf_compile(this->vm, &msg_buf);
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+            std::cout << "Jit compilation: " << duration.count() << " ms." << std::endl;
+            if (exec(this->vm_mem, this->options.ubpf_mem_size) < 0)
+                return -1;
 
+            return return_size;
+        }
+
+		// Non jit path
 		if(ubpf_exec(this->vm, this->vm_mem, this->options.ubpf_mem_size) < 0)
 			return -1;
 
