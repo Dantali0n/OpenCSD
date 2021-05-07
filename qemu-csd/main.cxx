@@ -121,7 +121,7 @@ void fill_first_zone(struct qemucsd::spdk_init::ns_entry *entry,
 	spdk_free(data);
 
 	// This is why alias is needed
-    delete file_buffer;
+    delete[] file_buffer;
 }
 
 int main(int argc, char* argv[]) {
