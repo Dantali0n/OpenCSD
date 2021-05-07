@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
     uint64_t filter_count = 0;
     uint32_t* int_alias = (uint32_t*) data;
     uint64_t int_count = length / sizeof(uint32_t);
-    for(uint32_t i = 0; i < int_count; i++) {
+    for(uint64_t i = 0; i < int_count; i++) {
         if(*(int_alias + i) > UINT32_HALF) filter_count++;
     }
 

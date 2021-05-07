@@ -71,9 +71,10 @@ void fill_first_zone(struct qemucsd::spdk_init::ns_entry *entry,
     std::streamsize file_length = in.tellg();
 
     // Check that the file exists
-    if(file_length <= 0) {
+    if(file_length < 0) {
         std::cerr << "File " << *opts->input_file << " does not exist in" <<
                   "current directory" << std::endl;
+        exit(1);
     }
 
 	const struct spdk_nvme_ns_data *ref_ns_data =

@@ -35,9 +35,9 @@ int main(int argc, char **argv) {
 
     char* data = new char[DATA_SIZE];
 
-    uint32_t num_ints = DATA_SIZE / sizeof(uint32_t);
+    uint64_t num_ints = DATA_SIZE / sizeof(uint32_t);
     uint32_t* int_alias = (uint32_t*) data;
-    for(uint32_t i = 0; i < num_ints; i++) {
+    for(uint64_t i = 0; i < num_ints; i++) {
         *(int_alias + i) = rand() % UINT32_MAX;
     }
 

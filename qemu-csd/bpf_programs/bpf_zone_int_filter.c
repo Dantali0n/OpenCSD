@@ -45,13 +45,13 @@ int main() {
 
 	if(buffer_size < lba_size) return -1;
 
-	uint32_t ints_per_it = lba_size / sizeof(uint32_t);
+    uint64_t ints_per_it = lba_size / sizeof(uint32_t);
 	uint64_t count = 0;
 
 	uint32_t *int_buf = (uint32_t*)buffer;
-	for(uint32_t i = 0; i < zone_size; i++) {
+	for(uint64_t i = 0; i < zone_size; i++) {
         bpf_read(i, 0, lba_size, buffer);
-        for(uint32_t j = 0; j < ints_per_it; j++) {
+        for(uint64_t j = 0; j < ints_per_it; j++) {
             if(*(int_buf + j) > RAND_MAX / 2) count++;
         }
     }

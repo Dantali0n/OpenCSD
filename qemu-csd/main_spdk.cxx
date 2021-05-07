@@ -69,9 +69,10 @@ void fill_first_zone(struct qemucsd::spdk_init::ns_entry *entry,
     std::streamsize file_length = in.tellg();
 
     // Check that the file exists
-    if(file_length <= 0) {
+    if(file_length < 0) {
         std::cerr << "File " << *opts->input_file << " does not exist in" <<
                   "current directory" << std::endl;
+        exit(1);
     }
 
     const struct spdk_nvme_ns_data *ref_ns_data =
@@ -143,18 +144,18 @@ int main(int argc, char* argv[]) {
 
         fill_first_zone(&entry, &opts);
 
-        uint32_t num_ints = 0;
+        uint64_t num_ints = 0;
 
-        uint32_t num_lbas = entry.zone_size;
-        uint32_t ints_per_it = entry.buffer_size / sizeof(uint32_t);
+        uint64_t num_lbas = entry.zone_size;
+        uint64_t ints_per_it = entry.buffer_size / sizeof(uint32_t);
         uint32_t* int_alias = (uint32_t*) entry.buffer;
-        for(uint32_t i = 0; i < num_lbas; i++) {
+        for(uint64_t i = 0; i < num_lbas; i++) {
             spdk_nvme_ns_cmd_read(
                 entry.ns, entry.qpair, entry.buffer, i, 1,
                 qemucsd::spdk_init::error_print, &entry,0);
             qemucsd::spdk_init::spin_complete(&entry);
 
-            for(uint32_t j = 0; j < ints_per_it; j++) {
+            for(uint64_t j = 0; j < ints_per_it; j++) {
                 if(*(int_alias + j) > RAND_MAX / 2) num_ints++;
             }
         }
