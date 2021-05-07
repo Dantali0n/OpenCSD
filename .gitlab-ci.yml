@@ -4,7 +4,7 @@ before_script:
   - echo "[multilib]" | sudo tee -a /etc/pacman.conf
   - echo "Include = /etc/pacman.d/mirrorlist" | sudo tee -a /etc/pacman.conf
   - pacman -Syy
-  - sudo pacman -Sy --noconfirm base-devel cmake clang gcc llvm yasm ninja cunit pixman python-pip git libaio numactl lib32-glibc gcovr
+  - sudo pacman -Sy --noconfirm base-devel cmake clang gcc llvm yasm ninja cunit pixman python-pip git libaio numactl lib32-glibc gcovr lcov
   - sudo pacman -Sy --noconfirm doxygen texlive-bin texlive-science texlive-publishers texlive-latexextra texlive-humanities
   - pip install meson
 stages:

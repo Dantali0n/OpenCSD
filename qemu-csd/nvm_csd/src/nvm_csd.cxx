@@ -105,7 +105,7 @@ namespace qemucsd::nvm_csd {
 		return_size = size;
 	}
 
-	void NvmCsd::bpf_read(uint64_t lba, uint64_t offset, uint16_t limit, void *data) {
+	void NvmCsd::bpf_read(uint64_t lba, uint64_t offset, uint64_t limit, void *data) {
 		auto *self = nvm_instance;
 
 		// Safer, still unsafe, limit is only uint16_t

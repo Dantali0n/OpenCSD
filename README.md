@@ -167,7 +167,7 @@ used to login. In both cases the password is _arch_ as well. By default the QEMU
 script will only bind the guest ports on localhost to reduce security concerns
 due to these basic passwords.
 
-```shell
+```
 git bundle create deploy.git HEAD
 cd build/qemu-csd
 source activate
