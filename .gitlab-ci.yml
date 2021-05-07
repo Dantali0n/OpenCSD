@@ -1,8 +1,8 @@
 image: archlinux:base-devel
 before_script:
-  - echo "Server = https://mirrors.daan.vodka/archlinux/$repo/os/$arch" | sudo tee /etc/pacman.d/mirrormulti
-  - echo "[ multilib ]" | sudo tee -a /etc/pacman.conf
-  - echo "Include = /etc/pacman.d/mirrormulti" | sudo tee -a /etc/pacman.conf
+#  - echo "Server = https://mirrors.daan.vodka/archlinux/$repo/os/$arch" | sudo tee /etc/pacman.d/mirrormulti
+  - echo "[multilib]" | sudo tee -a /etc/pacman.conf
+  - echo "Include = /etc/pacman.d/mirrorlist" | sudo tee -a /etc/pacman.conf
   - pacman -Syy
   - sudo pacman -Sy --noconfirm base-devel cmake clang gcc llvm yasm ninja cunit pixman python-pip git libaio numactl lib32-glibc
   - sudo pacman -Sy --noconfirm doxygen texlive-bin texlive-science texlive-publishers texlive-latexextra texlive-humanities
