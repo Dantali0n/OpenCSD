@@ -27,8 +27,8 @@
 
 using std::ios_base;
 
-static constexpr uint32_t DATA_SIZE = 131072;
-static const std::string OUTPUT_FILE = "integer.dat";
+static constexpr uint32_t DATA_SIZE = 536870912; // 512MiB
+static const std::string OUTPUT_FILE = "integers.dat";
 
 int main(int argc, char **argv) {
     std::ofstream out(OUTPUT_FILE, ios_base::out | ios_base::binary);

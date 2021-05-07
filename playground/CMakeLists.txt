@@ -61,7 +61,7 @@ set(${PRJ_PRX}_PLAY_LIBRARIES_PACK
 
 set(PLAYGROUND_BACKWARD_SOURCE
     backward/playground-backward.cxx
-        generate-integer-data/play-integer-gen.cxx)
+)
 
 message("${PRJ_PRX}: playground backward cxx flags:${CMAKE_CXX_FLAGS}")
 add_executable(play-backward ${PLAYGROUND_BACKWARD_SOURCE})
