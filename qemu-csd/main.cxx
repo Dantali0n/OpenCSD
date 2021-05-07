@@ -61,10 +61,14 @@ void fill_first_zone(struct qemucsd::spdk_init::ns_entry *entry,
 {
     std::ifstream in(*opts->input_file, ios_base::in | ios_base::binary);
 
-    // Determine length of input file
-    in.seekg(0, ios_base::end);
-    std::streamsize file_length = in.tellg();
+    // Determine length of input file, Huge performance impact that will make
+    // the performance incomparable to nvme cli.
+//    in.seekg(0, ios_base::end);
+//    std::streamsize file_length = in.tellg();
+//    in.seekg(0, ios_base::beg);
+
     in.seekg(0, ios_base::beg);
+    std::streamsize file_length = in.tellg();
 
     // Check that the file exists
     if(file_length <= 0) {
@@ -78,6 +82,11 @@ void fill_first_zone(struct qemucsd::spdk_init::ns_entry *entry,
 	uint32_t zone_size = spdk_nvme_zns_ns_get_zone_size(entry->ns);
 	uint32_t lba_zone = zone_size / lba_size;
 	assert(zone_size % lba_size == 0);
+
+	// Determine if length of file is sufficient
+    in.seekg(zone_size, ios_base::beg);
+    file_length = in.tellg();
+    in.seekg(0, ios_base::beg);
 
 	// Ensure the input file has sufficient data to write the whole zone
 	assert(file_length >= zone_size);
