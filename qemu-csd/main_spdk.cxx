@@ -141,7 +141,7 @@ int main(int argc, char* argv[]) {
         if (qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)
             return EXIT_FAILURE;
 
-        fill_first_zone(&entry);
+        fill_first_zone(&entry, &opts);
 
         uint32_t num_ints = 0;
 
