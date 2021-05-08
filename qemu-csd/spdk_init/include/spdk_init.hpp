@@ -45,8 +45,10 @@ namespace qemucsd::spdk_init {
 		void *buffer;
 		uint32_t buffer_size;
 
+        // LBA size in bytes
+        uint64_t lba_size;
 		// Zone size in number of LBAs
-		uint32_t zone_size;
+		uint64_t zone_size;
 	};
 
 	/**

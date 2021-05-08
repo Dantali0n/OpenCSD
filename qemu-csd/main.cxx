@@ -76,13 +76,7 @@ void fill_first_zone(struct qemucsd::spdk_init::ns_entry *entry,
                   "current directory" << std::endl;
         exit(1);
     }
-
-	const struct spdk_nvme_ns_data *ref_ns_data =
-		spdk_nvme_ns_get_data(entry->ns);
-	uint32_t lba_size = ref_ns_data->nsze;
-	uint32_t zone_size = spdk_nvme_zns_ns_get_zone_size(entry->ns);
-	uint32_t lba_zone = zone_size / lba_size;
-	assert(zone_size % lba_size == 0);
+    uint64_t zone_size = entry->lba_size * entry->zone_size;
 
 	// Determine if length of file is sufficient
     in.seekg(zone_size, ios_base::beg);
@@ -96,18 +90,18 @@ void fill_first_zone(struct qemucsd::spdk_init::ns_entry *entry,
     char* file_buffer = new char[file_length];
     in.read(file_buffer, file_length);
 
-	uint32_t int_lba = lba_size / sizeof(uint32_t);
-	assert(lba_size % sizeof(uint32_t)== 0);
+	uint32_t int_lba = entry->lba_size / sizeof(uint32_t);
+	assert(entry->lba_size % sizeof(uint32_t)== 0);
 
 	uint32_t *data = (uint32_t*) spdk_zmalloc(
-		lba_size, lba_size, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
+        entry->lba_size, entry->lba_size, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
 
 	// Create a copy of the pointer we can safely advance
     char* file_buffer_alias = file_buffer;
-	for(uint32_t i = 0; i < lba_zone; i++) {
+	for(uint32_t i = 0; i < entry->zone_size; i++) {
 
 	    // Copy file contents into SPDK buffer
-        memcpy(data, file_buffer_alias, lba_size);
+        memcpy(data, file_buffer_alias, entry->lba_size);
 
 		// Zone append automatically tracks write pointer within block, so the
 		// zslba argument remains 0 for the entire zone.
@@ -116,7 +110,7 @@ void fill_first_zone(struct qemucsd::spdk_init::ns_entry *entry,
 		spin_complete(entry);
 
 		// Advance buffer pointer.
-        file_buffer_alias += lba_size;
+        file_buffer_alias += entry->lba_size;
 	}
 
 	spdk_free(data);

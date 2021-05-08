@@ -122,7 +122,8 @@ namespace qemucsd::spdk_init {
 			// Determine size of DMA IO buffer
 			const struct spdk_nvme_ns_data *ref_ns_data =
 				spdk_nvme_ns_get_data(entry->ns);
-			entry->buffer_size = ref_ns_data->nsze;
+            entry->lba_size = spdk_nvme_ns_get_sector_size(entry->ns);
+			entry->buffer_size = entry->lba_size;
 
 			// Construct DMA buffer
 			entry->buffer = spdk_zmalloc(entry->buffer_size, entry->buffer_size,
