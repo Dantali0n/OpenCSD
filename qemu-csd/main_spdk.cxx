@@ -133,11 +133,20 @@ int main(int argc, char* argv[]) {
         qemucsd::arguments::parse_args(argc, argv, &opts);
 
         // Initialize SPDK with the first ZNS supporting zone found
+        auto start = std::chrono::high_resolution_clock::now();
         if (qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)
             return EXIT_FAILURE;
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        std::cout << "Initialization and reset: " << duration.count() << "us." << std::endl;
 
+        start = std::chrono::high_resolution_clock::now();
         fill_first_zone(&entry, &opts);
+        stop = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        std::cout << "Fill first zone: " << duration.count() << "us." << std::endl;
 
+        start = std::chrono::high_resolution_clock::now();
         uint64_t num_ints = 0;
 
         uint64_t num_lbas = entry.zone_size;
@@ -153,6 +162,9 @@ int main(int argc, char* argv[]) {
                 if(*(int_alias + j) > RAND_MAX / 2) num_ints++;
             }
         }
+        stop = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        std::cout << "SPDK execution time: " << duration.count() << "us." << std::endl;
 
         std::cout << "BPF device result: " << num_ints << std::endl;
     }

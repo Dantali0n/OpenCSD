@@ -72,8 +72,8 @@ namespace qemucsd::nvm_csd {
             auto start = std::chrono::high_resolution_clock::now();
             ubpf_jit_fn exec = ubpf_compile(this->vm, &msg_buf);
             auto stop = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-            std::cout << "Jit compilation: " << duration.count() << " ms." << std::endl;
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+            std::cout << "Jit compilation: " << duration.count() << "us." << std::endl;
             if (exec(this->vm_mem, this->options.ubpf_mem_size) < 0)
                 return -1;
 

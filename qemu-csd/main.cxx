@@ -135,12 +135,21 @@ int main(int argc, char* argv[]) {
 		qemucsd::arguments::parse_args(argc, argv, &opts);
 
 		// Initialize SPDK with the first ZNS supporting zone found
+        auto start = std::chrono::high_resolution_clock::now();
 		if (qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)
 			return EXIT_FAILURE;
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        std::cout << "Initialization and reset: " << duration.count() << "us." << std::endl;
 
+        start = std::chrono::high_resolution_clock::now();
 		fill_first_zone(&entry, &opts);
+        stop = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        std::cout << "Fill first zone: " << duration.count() << "us." << std::endl;
 
 		// Initialize simulator for NVMe BPF command set
+        start = std::chrono::high_resolution_clock::now();
 		qemucsd::nvm_csd::NvmCsd nvm_csd(&opts, &entry);
 
 		skel = bpf_zone_int_filter__open();
@@ -160,6 +169,9 @@ int main(int argc, char* argv[]) {
 
 		void *data = malloc(return_size);
 		nvm_csd.nvm_cmd_bpf_result(data);
+        stop = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        std::cout << "BPF execution time: " << duration.count() << "us." << std::endl;
 
 		std::cout << "BPF device result: " << *(uint64_t *) data << std::endl;
 
