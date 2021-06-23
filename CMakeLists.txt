@@ -232,6 +232,7 @@ endif(ENABLE_CODECOV)
 if(ENABLE_DOCUMENTATION)
 
 	add_custom_target(all-documents ALL)
+	add_subdirectory(compsys2021)
 	add_subdirectory(documentation)
 	add_subdirectory(presentation)
 
