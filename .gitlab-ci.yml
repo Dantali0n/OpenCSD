@@ -7,6 +7,9 @@ before_script:
   - sudo pacman -Sy --noconfirm base-devel cmake clang gcc llvm yasm ninja cunit pixman python-pip git libaio numactl lib32-glibc gcovr
   - sudo pacman -Sy --noconfirm doxygen texlive-bin texlive-science texlive-publishers texlive-latexextra texlive-humanities
   - pip install meson
+  - git clone https://aur.archlinux.org/lcov.git
+  - cd lcov
+  - makepkg -si
 stages:
   - build
   - test
