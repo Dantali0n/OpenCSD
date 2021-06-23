@@ -63,6 +63,22 @@
                 "bootstrap": "source /home/arch/qemu-csd/build/qemu-csd/activate",
                 "forwardX11": false
             }
+        },
+        {
+            "name": "SSH attach spdk-native",
+            "type": "gdb",
+            "request": "launch",
+            "target": "./build/qemu-csd/spdk-native",
+            "cwd": "${workspaceRoot}",
+            "ssh": {
+                "host": "127.0.0.1",
+                "port": 7777,
+                "cwd": "/home/arch/qemu-csd/",
+                "user": "root",
+                "password": "arch",
+                "bootstrap": "source /home/arch/qemu-csd/build/qemu-csd/activate",
+                "forwardX11": false
+            }
         }
     ]
 }
