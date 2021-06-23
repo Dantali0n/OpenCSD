@@ -5,11 +5,12 @@ before_script:
   - echo "Include = /etc/pacman.d/mirrorlist" | sudo tee -a /etc/pacman.conf
   - pacman -Syy
   - sudo pacman -Sy --noconfirm base-devel cmake clang gcc llvm yasm ninja cunit pixman python-pip git libaio numactl lib32-glibc gcovr
-  - sudo pacman -Sy --noconfirm doxygen texlive-bin texlive-science texlive-publishers texlive-latexextra texlive-humanities
+  - sudo pacman -Sy --noconfirm valgrind doxygen texlive-bin texlive-science texlive-publishers texlive-latexextra texlive-humanities
   - pip install meson
-  - git clone https://aur.archlinux.org/lcov.git
-  - cd lcov
-  - makepkg -si
+  - useradd builduser -m
+  - passwd -d builduser
+  - printf 'builduser ALL=(ALL) ALL\n' | tee -a /etc/sudoers
+  - sudo -u builduser bash -c 'cd ~ && git clone https://aur.archlinux.org/lcov.git && cd lcov && makepkg -si --noconfirm'
 stages:
   - build
   - test
