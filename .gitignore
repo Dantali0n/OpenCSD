@@ -89,6 +89,17 @@ documentation/*
 !documentation/**/python/
 
 # latex intermediate files
+compsys2021/*
+!compsys2021/**/
+!compsys2021/CMakeLists.txt
+!compsys2021/narrative.md
+!compsys2021/**/*.bib
+!compsys2021/**/*.tex
+!compsys2021/**/bash/
+!compsys2021/**/images/
+!compsys2021/**/python/
+
+# latex intermediate files
 presentation/*
 !presentation/**/
 !presentation/CMakeLists.txt

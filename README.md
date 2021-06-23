@@ -1,6 +1,6 @@
-# QEMU-CSD
+# ZCSD
 
-QEMU-CSD is a full stack prototype to execute BPF programs as if they are
+ZCSD is a full stack prototype to execute eBPF programs as if they are
 running on a Zoned Namespace (ZNS) SSD Computational Storage Device (CSD). The
 entire prototype can be run from userspace by utilizing existing technologies
 such as SPDK and uBPF. Since consumer ZNS SSDs are still unavailable, QEMU can
@@ -8,42 +8,10 @@ be used to create a virtual ZNS SSD.
 
 ![](documentation/resources/images/prototype-landscape.png)
 
-### Project goals
+## Getting Started
 
-* Week 1
-  * Perform read / write requests on ZNS SSD in QEMU.
-  * Setup Github repository and bi-directional mirroring.
-  * Read blockNDP paper.
-* Week 2
-  * Setup Cmake target to deploy binary into QEMU vm.
-  * SPDK hello world.
-  * Unit tests with basic SPDK.
-* Week 3
-  * SPDK hello world cont.d
-  * libbpf hello world
-* Week 4
-  * Presentation on lightnvm and SPDK differences.
-  * bpf_load static library.
-  * Overview of different resources on BPF and categorization.
-  * BPF landscape.
-* Week 5
-  * Explanation of BPF landscape figure and improvement
-  * Basic BPF example using bpf_load
-* Week 6
-  * Investigate https://www.kernel.org/doc/html/latest/filesystems/zonefs.html
-  * Investigate how to use libbfp-bootstrap
-* Week 7
-  * Identify remaining tasks to round of project
-    * Generate /lib, /include, /bin folders before copying files
-    * Check license headers of externally developed files
-      * Include notice about VU and UvA image use license
-      * Add license notice to CERN beamer template files
-      * Add general notice about images
-      * Add license header to all source files developed for this project
-    * Document uBPF technology
-    * Document SPDK technology
-* Week 8/9
-  * Finalize documentation
+To get started using ZCSD perform the steps described in the [Setup](#setup)
+section, followed by the steps in [Usage Examples](#usage-examples).
 
 ### Index
 
@@ -51,8 +19,12 @@ be used to create a virtual ZNS SSD.
 * [Modules](#modules)
 * [Dependencies](#dependencies)
 * [Setup](#setup)
-* [Configuration](#configuration)
 * [Running & Debugging](#running-debugging)
+  * [Environment](#environment)
+  * [Usage Examples](#usage-examples)
+  * [Debugging on Host](#debugging-on-host)
+  * [Debugging on QEMU](#debugging-on-qemu)
+* [CMake Configuration](#cmake-configuration)
 * [Licensing](#licensing)
 * [References](#references)
 * [Snippets](#snippets)
@@ -81,7 +53,7 @@ be used to create a virtual ZNS SSD.
 | nvm_csd      | Emulated additional NVMe commands to enable BPF CSDs  |
 | spdk_init    | Provides SPDK initialization and handles for nvm_csd  |
 
-#### Dependencies
+### Dependencies
 
 This project requires quite some dependencies, the
 majority will be compiled by the project itself and installed
@@ -131,7 +103,7 @@ framework can not be statically linked (easily):
 | [qemu](https://www.qemu.org/)                                      | [nvme-next d79d797b0d](git://git.infradead.org/qemu-nvme.git) |
 | [uBPF](https://github.com/iovisor/ubpf)                            |                                                               |
 
-#### Setup
+### Setup
 
 Building tools and dependencies is done by simply executing the following commands
 from the root directory. For a more complete list of cmake options see the
@@ -167,7 +139,7 @@ used to login. In both cases the password is _arch_ as well. By default the QEMU
 script will only bind the guest ports on localhost to reduce security concerns
 due to these basic passwords.
 
-```shell
+```shell script
 git bundle create deploy.git HEAD
 cd build/qemu-csd
 source activate
@@ -196,7 +168,7 @@ sure to start an ssh-agent as well as this needs to be performed manually on
 Arch. The ssh-agent is only valid for as long as the terminal session that
 started it. Optionally, it can be included in `.bashrc`.
 
-```shell
+```shell script
 git remote set-url origin git@github.com:Dantali0n/qemu-csd.git
 ssh-keygen -t rsa -b 4096
 eval $(ssh-agent) # must be done after each login
@@ -214,37 +186,14 @@ source bin/activate
 pip install -r requirements.txt
 ```
 
-#### Configuration
-
-This section documents all configuration parameters that the CMake project
-exposes and how they influence the project. For more information about the
-CMake project see the report generated from the documentation folder. Below 
-all parameters are listed along their default value and a brief description.
-
-| Parameter            | Default | Use case                                         |
-|----------------------|---------|--------------------------------------------------|
-| ENABLE_TESTS         | ON      | Enables unit tests and adds tests target         |
-| ENABLE_CODECOV       | OFF     | Produce code coverage report \w unit tests       |
-| ENABLE_DOCUMENTATION | ON      | Produce code documentation using doxygen & LaTeX |
-| ENABLE_PLAYGROUND    | OFF     | Enables playground targets                       |
-| ENABLE_LEAK_TESTS    | OFF     | Add compile parameter for address sanitizer      |
-| IS_DEPLOYED          | OFF     | Indicate that CMake project is deployed in QEMU  |
-
-For several parameters a more in depth explanation is required, primarily
-_IS_DEPLOYED_. This parameter is used as the Cmake project is both used to
-compile QEMU and configure it as well as compile binaries to run inside QEMU. As
-a results, the CMake project needs to be able to identify if it is being
-executed outside of QEMU or not. This is what _IS_DEPLOYED_ facilitates.
-Particularly, _IS_DEPLOYED_ prevents the compilation of QEMU from source.
-
-#### Running & Debugging
+### Running & Debugging
 
 Running and debugging programs is an essential part of development. Often,
 barrier to entry and clumsy development procedures can severely hinder
 productivity. Qemu-csd comes with a variety of scripts preconfigured to reduce
 this initial barrier and enable quick development iterations.
 
-**Environment:**
+#### Environment:
 Within the build folder will be a `qemu-csd/activate` script. This script can be
 sourced using any shell `source qemu-csd/activate`. This script configures
 environment variables such as `LD_LIBRARY_PATH` while also exposing an essential
@@ -255,7 +204,13 @@ compiled by Cmake. Additionally, `ld-sudo` provides a mechanism to start targets
 with  sudo privileges while retaining these environment variables. The
 environment can be deactivated at any time by executing `deactivate`.
 
-**Debugging on host:**
+#### Usage Examples:
+
+TODO: Generate integer data file, describe qemucsd and spdk-native applications,
+usage parameters, relevant code segments to write your own BPF program, relevant
+code segments to extend the prototype.
+
+#### Debugging on host:
 For debugging, several mechanisms are put in place to simplify this process.
 Firstly, vscode launch files are created to debug applications even though the
 require environmental configuration. Any application can be launched using the
@@ -281,7 +236,7 @@ Alternative debugging methods such as using gdb TUI or
 [gdbgui](https://www.gdbgui.com/) should work but will require more manual
 setup.
 
-**Debugging on QEMU:**
+#### Debugging on QEMU:
 Debugging on QEMU is similar but uses different launch targets in vscode. This
 target automatically logs-in using SSH and forwards the gdbserver connection.
 
@@ -307,7 +262,30 @@ set substitute-path /home/arch/qemu-csd/ /path/to/root/of/project
 More detailed information about development & debugging for this project can be
 found in the report.
 
-#### Licensing
+### CMake Configuration
+
+This section documents all configuration parameters that the CMake project
+exposes and how they influence the project. For more information about the
+CMake project see the report generated from the documentation folder. Below 
+all parameters are listed along their default value and a brief description.
+
+| Parameter            | Default | Use case                                         |
+|----------------------|---------|--------------------------------------------------|
+| ENABLE_TESTS         | ON      | Enables unit tests and adds tests target         |
+| ENABLE_CODECOV       | OFF     | Produce code coverage report \w unit tests       |
+| ENABLE_DOCUMENTATION | ON      | Produce code documentation using doxygen & LaTeX |
+| ENABLE_PLAYGROUND    | OFF     | Enables playground targets                       |
+| ENABLE_LEAK_TESTS    | OFF     | Add compile parameter for address sanitizer      |
+| IS_DEPLOYED          | OFF     | Indicate that CMake project is deployed in QEMU  |
+
+For several parameters a more in depth explanation is required, primarily
+_IS_DEPLOYED_. This parameter is used as the Cmake project is both used to
+compile QEMU and configure it as well as compile binaries to run inside QEMU. As
+a results, the CMake project needs to be able to identify if it is being
+executed outside of QEMU or not. This is what _IS_DEPLOYED_ facilitates.
+Particularly, _IS_DEPLOYED_ prevents the compilation of QEMU from source.
+
+### Licensing
 
 This project is available under the MIT license, several limitations apply
 including:
@@ -318,7 +296,7 @@ including:
 * Configuration files that can't be subject to licensing such as `doxygen.cnf`
   or `.vscode/launch.json`
 
-#### References
+### References
 
 * [SPDK](https://spdk.io/)
 * [Zoned storage ZNS SSDs introduction](https://zonedstorage.io/introduction/zns/)
@@ -355,7 +333,7 @@ including:
   * [ZNS SSD QEMU patch v11](http://patchwork.ozlabs.org/project/qemu-devel/list/?series=219344)
   * [ZNS SSD QEMU patch v2](https://patchwork.kernel.org/project/qemu-devel/cover/20200617213415.22417-1-dmitry.fomichev@wdc.com/)
 
-#### Snippets
+### Snippets
 
 * SPDK -> now supports ZNS zone append
 * uNVME

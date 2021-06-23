@@ -20,56 +20,37 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Commandline argument parsing
-add_subdirectory(arguments)
+project(${PRJ_PRX}_measurements)
 
-# Performance measurements
-add_subdirectory(measurements)
 
-# Register bpf helper headers
-add_subdirectory(bpf_helpers)
+set(QEMUCSD_MEASUREMENTS_LIBRARIES
 
-# Register bpf programs and generate headers
-add_subdirectory(bpf_programs)
+)
 
-# SPDK initialization
-add_subdirectory(spdk_init)
+set(QEMUCSD_MEASUREMENTS_SRC
+    src/measurements.cxx
+)
 
-# Emulated new nvme command set
-add_subdirectory(nvm_csd)
+set(QEMUCSD_MEASUREMENTS_HEADERS
+    include/measurements.hpp
+)
 
+# Add qemucsd_measurements to the includes
+add_qemucsd_include(${CMAKE_CURRENT_SOURCE_DIR}/include)
 qemucsd_include_directories()
 
-set(QEMUCSD_SOURCE
-    main.cxx
+add_library(
+    qemucsd_measurements STATIC
+    ${QEMUCSD_MEASUREMENTS_SRC}
+    ${QEMUCSD_MEASUREMENTS_HEADERS}
 )
-
-message("${PRJ_PRX}: qemucsd cxx flags:${CMAKE_CXX_FLAGS}")
-add_executable(qemucsd ${QEMUCSD_SOURCE})
-
-get_property(local_modules GLOBAL PROPERTY module_list)
-
+set_target_properties(${PRJ_LIB} PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(
-    qemucsd
-    ${local_modules}
-    ${${PRJ_PRX}_LIBRARIES}
+    qemucsd_measurements
+    ${QEMUCSD_MEASUREMENTS_LIBRARIES}
 )
 
-add_dependencies(qemucsd generate_bpf_zone_int_filter_header)
+#add_dependencies(qemucsd_measurements)
 
-qemucsd_target_postprocess(qemucsd)
-
-set(SPDK_NATIVE_SOURCE
-    main_spdk.cxx
-)
-
-message("${PRJ_PRX}: spdk-native cxx flags:${CMAKE_CXX_FLAGS}")
-add_executable(spdk-native ${SPDK_NATIVE_SOURCE})
-
-target_link_libraries(
-    spdk-native
-    ${local_modules}
-    ${${PRJ_PRX}_LIBRARIES}
-)
-
-qemucsd_target_postprocess(spdk-native)
+# Add qemucsd_measurements to the modules
+add_qemucsd_module(qemucsd_measurements)

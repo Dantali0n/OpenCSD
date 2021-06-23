@@ -63,6 +63,16 @@ namespace qemucsd::spdk_init {
 		return 0;
 	}
 
+    int reset_zones(struct ns_entry *entry) {
+        int result = spdk_nvme_zns_reset_zone(
+            entry->ns, entry->qpair, 0, true, error_print, &entry);
+
+        // Wait for I/O operation to complete
+        spin_complete(entry);
+
+        return result;
+	}
+
 	static bool probe_cb_attach_all(
 		void *cb_ctx, const struct spdk_nvme_transport_id *trid,
 		struct spdk_nvme_ctrlr_opts *opts)
@@ -112,11 +122,16 @@ namespace qemucsd::spdk_init {
 			// Determine size of DMA IO buffer
 			const struct spdk_nvme_ns_data *ref_ns_data =
 				spdk_nvme_ns_get_data(entry->ns);
-			entry->buffer_size = ref_ns_data->nsze;
+            entry->lba_size = spdk_nvme_ns_get_sector_size(entry->ns);
+			entry->buffer_size = entry->lba_size;
 
 			// Construct DMA buffer
 			entry->buffer = spdk_zmalloc(entry->buffer_size, entry->buffer_size,
 				NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
+
+			// Add zone size to entry
+            uint32_t zone_size = spdk_nvme_zns_ns_get_zone_size(entry->ns);
+            entry->zone_size = zone_size / entry->buffer_size;
 
 			// Only want first ZNS supporting namespace
 			break;
@@ -124,12 +139,6 @@ namespace qemucsd::spdk_init {
 
 		// Did not find ZNS supporting namespace on this controller, detaching
 		if(entry->ctrlr == nullptr) spdk_nvme_detach(ctrlr);
-	}
-
-	inline void spin_complete(struct ns_entry *entry) {
-		while(spdk_nvme_qpair_process_completions(entry->qpair, 0) == 0) {
-			;
-		}
 	}
 
 	void error_print(void *void_entry,

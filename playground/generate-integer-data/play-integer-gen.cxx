@@ -22,41 +22,25 @@
  * SOFTWARE.
  */
 
-//#include <linux/bpf.h>
-#include <stdint.h>
+#include <iostream>
+#include <fstream>
 
-#include "bpf_helpers_prog.h"
+using std::ios_base;
 
-#define RAND_MAX 2147483647
+static constexpr uint32_t DATA_SIZE = 536870912; // 512MiB
+static const std::string OUTPUT_FILE = "integers.dat";
 
-/** Limitation examples, globals
- * int test; -> Clang won't compile
- * int test = 12; -> uBPF won't run, BPF relocation type 1
- */
+int main(int argc, char **argv) {
+    std::ofstream out(OUTPUT_FILE, ios_base::out | ios_base::binary);
 
-int main() {
-	/** Reading from device using 'heap' based buffers */
-	uint64_t lba_size = bpf_get_lba_size();
-    uint64_t zone_size = bpf_get_zone_size();
-	uint64_t buffer_size;
-	void *buffer;
+    char* data = new char[DATA_SIZE];
 
-	bpf_get_mem_info(&buffer, &buffer_size);
-
-	if(buffer_size < lba_size) return -1;
-
-    uint64_t ints_per_it = lba_size / sizeof(uint32_t);
-	uint64_t count = 0;
-
-	uint32_t *int_buf = (uint32_t*)buffer;
-	for(uint64_t i = 0; i < zone_size; i++) {
-        bpf_read(i, 0, lba_size, buffer);
-        for(uint64_t j = 0; j < ints_per_it; j++) {
-            if(*(int_buf + j) > RAND_MAX / 2) count++;
-        }
+    uint64_t num_ints = DATA_SIZE / sizeof(uint32_t);
+    uint32_t* int_alias = (uint32_t*) data;
+    for(uint64_t i = 0; i < num_ints; i++) {
+        *(int_alias + i) = rand() % UINT32_MAX;
     }
 
-	bpf_return_data(&count, sizeof(uint64_t));
-
-	return 0;
+    out.write(data, DATA_SIZE);
+    out.close();
 }

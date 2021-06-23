@@ -20,56 +20,36 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Commandline argument parsing
-add_subdirectory(arguments)
+project(compsys2021)
 
-# Performance measurements
-add_subdirectory(measurements)
+find_package(LATEX)
 
-# Register bpf helper headers
-add_subdirectory(bpf_helpers)
+# The directory where the final build data will be stored.
+set(OUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+# Directory where the source files are located.
+set(WORKINGDIR "${CMAKE_CURRENT_SOURCE_DIR}" )
 
-# Register bpf programs and generate headers
-add_subdirectory(bpf_programs)
+# Latex source file.
+set(MAIN_TEX "${CMAKE_CURRENT_SOURCE_DIR}/compsys2021.tex")
 
-# SPDK initialization
-add_subdirectory(spdk_init)
+if(LATEX_FOUND AND LATEX_PDFLATEX_FOUND)
+    # First pass.
+    add_custom_target(latex-prebuild-compsys2021-presentation
+        COMMAND texi2pdf -o ${OUT_DIRECTORY}/compsys2021.pdf -b ${MAIN_TEX}
+        COMMENT "Starting Prebuild."
+        WORKING_DIRECTORY ${WORKINGDIR}
+        DEPENDS ${MAIN_TEX}
+    )
 
-# Emulated new nvme command set
-add_subdirectory(nvm_csd)
+    # Second pass - generate the final pdf.
+    add_custom_target(latex-compsys2021-presentation
+        COMMAND texi2pdf -o ${OUT_DIRECTORY}/compsys2021.pdf ${MAIN_TEX}
+        WORKING_DIRECTORY ${WORKINGDIR}
+        COMMENT "Assembling the final pdf file."
+        DEPENDS latex-prebuild-compsys2021-presentation
+    )
 
-qemucsd_include_directories()
-
-set(QEMUCSD_SOURCE
-    main.cxx
-)
-
-message("${PRJ_PRX}: qemucsd cxx flags:${CMAKE_CXX_FLAGS}")
-add_executable(qemucsd ${QEMUCSD_SOURCE})
-
-get_property(local_modules GLOBAL PROPERTY module_list)
-
-target_link_libraries(
-    qemucsd
-    ${local_modules}
-    ${${PRJ_PRX}_LIBRARIES}
-)
-
-add_dependencies(qemucsd generate_bpf_zone_int_filter_header)
-
-qemucsd_target_postprocess(qemucsd)
-
-set(SPDK_NATIVE_SOURCE
-    main_spdk.cxx
-)
-
-message("${PRJ_PRX}: spdk-native cxx flags:${CMAKE_CXX_FLAGS}")
-add_executable(spdk-native ${SPDK_NATIVE_SOURCE})
-
-target_link_libraries(
-    spdk-native
-    ${local_modules}
-    ${${PRJ_PRX}_LIBRARIES}
-)
-
-qemucsd_target_postprocess(spdk-native)
+    add_dependencies(all-documents latex-compsys2021-presentation)
+else()
+    message(ERROR "No latex tools found!")
+endif()

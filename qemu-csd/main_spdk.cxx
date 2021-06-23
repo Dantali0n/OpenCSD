@@ -28,8 +28,8 @@
 #include <stdexcept>
 
 #ifdef QEMUCSD_DEBUG
-	#include <backward.hpp>
-	using namespace backward;
+    #include <backward.hpp>
+    using namespace backward;
 #endif
 
 using std::ios_base;
@@ -39,9 +39,7 @@ using std::ios_base;
 #include "nvm_csd.hpp"
 
 extern "C" {
-	#include <signal.h>
-
-	#include "bpf_zone_int_filter.h"
+    #include <signal.h>
 }
 
 /**
@@ -49,15 +47,15 @@ extern "C" {
  */
 struct sigaction glob_sigaction;
 void segfault_handler(int signal, siginfo_t *si, void *arg) {
-	#ifdef QEMUCSD_DEBUG
-		StackTrace st; st.load_here(32);
-		Printer p; p.print(st);
-	#endif
-	exit(1);
+#ifdef QEMUCSD_DEBUG
+    StackTrace st; st.load_here(32);
+    Printer p; p.print(st);
+#endif
+    exit(1);
 }
 
 void fill_first_zone(struct qemucsd::spdk_init::ns_entry *entry,
-    struct qemucsd::arguments::options *opts)
+                     struct qemucsd::arguments::options *opts)
 {
     std::ifstream in(*opts->input_file, ios_base::in | ios_base::binary);
 
@@ -78,111 +76,104 @@ void fill_first_zone(struct qemucsd::spdk_init::ns_entry *entry,
     }
     uint64_t zone_size = entry->lba_size * entry->zone_size;
 
-	// Determine if length of file is sufficient
+    // Determine if length of file is sufficient
     in.seekg(zone_size, ios_base::beg);
     file_length = in.tellg();
     in.seekg(0, ios_base::beg);
 
-	// Ensure the input file has sufficient data to write the whole zone
-	assert(file_length >= zone_size);
+    // Ensure the input file has sufficient data to write the whole zone
+    assert(file_length >= zone_size);
 
-	// Create buffer to store file contents into
+    // Create buffer to store file contents into
     char* file_buffer = new char[file_length];
     in.read(file_buffer, file_length);
 
-	uint32_t int_lba = entry->lba_size / sizeof(uint32_t);
-	assert(entry->lba_size % sizeof(uint32_t)== 0);
+    uint32_t int_lba = entry->lba_size / sizeof(uint32_t);
+    assert(entry->lba_size % sizeof(uint32_t)== 0);
 
-	uint32_t *data = (uint32_t*) spdk_zmalloc(
-        entry->lba_size, entry->lba_size, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
+    uint32_t *data = (uint32_t*) spdk_zmalloc(
+            entry->lba_size, entry->lba_size, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
 
-	// Create a copy of the pointer we can safely advance
+    // Create a copy of the pointer we can safely advance
     char* file_buffer_alias = file_buffer;
-	for(uint32_t i = 0; i < entry->zone_size; i++) {
+    for(uint32_t i = 0; i < entry->zone_size; i++) {
 
-	    // Copy file contents into SPDK buffer
+        // Copy file contents into SPDK buffer
         memcpy(data, file_buffer_alias, entry->lba_size);
 
-		// Zone append automatically tracks write pointer within block, so the
-		// zslba argument remains 0 for the entire zone.
-		spdk_nvme_zns_zone_append(entry->ns, entry->qpair, data, 0,
-								  1, qemucsd::spdk_init::error_print, entry, 0);
-		spin_complete(entry);
+        // Zone append automatically tracks write pointer within block, so the
+        // zslba argument remains 0 for the entire zone.
+        spdk_nvme_zns_zone_append(entry->ns, entry->qpair, data, 0,
+                                  1, qemucsd::spdk_init::error_print, entry, 0);
+        spin_complete(entry);
 
-		// Advance buffer pointer.
+        // Advance buffer pointer.
         file_buffer_alias += entry->lba_size;
-	}
+    }
 
-	spdk_free(data);
+    spdk_free(data);
 
-	// This is why alias is needed
+    // This is why alias is needed
     delete[] file_buffer;
 }
 
 int main(int argc, char* argv[]) {
-	struct bpf_zone_int_filter *skel = nullptr;
-	qemucsd::arguments::options opts;
-	struct qemucsd::spdk_init::ns_entry entry = {0};
+    struct bpf_zone_int_filter *skel = nullptr;
+    qemucsd::arguments::options opts;
+    struct qemucsd::spdk_init::ns_entry entry = {0};
 
-	// Setup segfault handler to print backward stacktraces
-	sigemptyset(&glob_sigaction.sa_mask);
-	glob_sigaction.sa_sigaction = segfault_handler;
-	glob_sigaction.sa_flags = SA_SIGINFO;
-	sigaction(SIGSEGV, &glob_sigaction, NULL);
+    // Setup segfault handler to print backward stacktraces
+    sigemptyset(&glob_sigaction.sa_mask);
+    glob_sigaction.sa_sigaction = segfault_handler;
+    glob_sigaction.sa_flags = SA_SIGINFO;
+    sigaction(SIGSEGV, &glob_sigaction, NULL);
 
-	try {
-		// Parse commandline arguments
-		qemucsd::arguments::parse_args(argc, argv, &opts);
+    try {
+        // Parse commandline arguments
+        qemucsd::arguments::parse_args(argc, argv, &opts);
 
-		// Initialize SPDK with the first ZNS supporting zone found
+        // Initialize SPDK with the first ZNS supporting zone found
         auto start = std::chrono::high_resolution_clock::now();
-		if (qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)
-			return EXIT_FAILURE;
+        if (qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)
+            return EXIT_FAILURE;
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         std::cout << "Initialization and reset: " << duration.count() << "us." << std::endl;
 
         start = std::chrono::high_resolution_clock::now();
-		fill_first_zone(&entry, &opts);
+        fill_first_zone(&entry, &opts);
         stop = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         std::cout << "Fill first zone: " << duration.count() << "us." << std::endl;
 
-		// Initialize simulator for NVMe BPF command set
         start = std::chrono::high_resolution_clock::now();
-		qemucsd::nvm_csd::NvmCsd nvm_csd(&opts, &entry);
+        uint64_t num_ints = 0;
 
-		skel = bpf_zone_int_filter__open();
-		if (!skel) {
-			fprintf(stderr, "Failed to open BPF skeleton\n");
-			return EXIT_FAILURE;
-		}
+        uint64_t num_lbas = entry.zone_size;
+        uint64_t ints_per_it = entry.buffer_size / sizeof(uint32_t);
+        uint32_t* int_alias = (uint32_t*) entry.buffer;
+        for(uint64_t i = 0; i < num_lbas; i++) {
+            spdk_nvme_ns_cmd_read(
+                entry.ns, entry.qpair, entry.buffer, i, 1,
+                qemucsd::spdk_init::error_print, &entry,0);
+            qemucsd::spdk_init::spin_complete(&entry);
 
-		// Run bpf program on 'device'
-		uint64_t return_size = nvm_csd.nvm_cmd_bpf_run(
-			skel->skeleton->data, skel->skeleton->data_sz);
-
-		if (return_size < 0) {
-			fprintf(stderr, "Error while executing BPF program on device\n");
-			return EXIT_FAILURE;
-		}
-
-		void *data = malloc(return_size);
-		nvm_csd.nvm_cmd_bpf_result(data);
+            for(uint64_t j = 0; j < ints_per_it; j++) {
+                if(*(int_alias + j) > RAND_MAX / 2) num_ints++;
+            }
+        }
         stop = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        std::cout << "BPF execution time: " << duration.count() << "us." << std::endl;
+        std::cout << "SPDK execution time: " << duration.count() << "us." << std::endl;
 
-		std::cout << "BPF device result: " << *(uint64_t *) data << std::endl;
+        std::cout << "BPF device result: " << num_ints << std::endl;
+    }
+    catch(...) {
+    #ifdef QEMUCSD_DEBUG
+        StackTrace st; st.load_here(32);
+        Printer p; p.print(st);
+    #endif
+    }
 
-		free(data);
-	}
-	catch(...) {
-		#ifdef QEMUCSD_DEBUG
-			StackTrace st; st.load_here(32);
-			Printer p; p.print(st);
-		#endif
-	}
-
-	return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }

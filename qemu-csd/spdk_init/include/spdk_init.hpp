@@ -25,6 +25,8 @@
 #ifndef QEMU_CSD_SPDK_INIT_HPP
 #define QEMU_CSD_SPDK_INIT_HPP
 
+#include <chrono>
+
 #include "arguments.hpp"
 
 #include <spdk/env.h>
@@ -39,8 +41,14 @@ namespace qemucsd::spdk_init {
 		struct spdk_nvme_ns *ns;
 		struct spdk_nvme_qpair *qpair;
 
+		// Buffer size is equivalent to 1 LBA
 		void *buffer;
 		uint32_t buffer_size;
+
+        // LBA size in bytes
+        uint64_t lba_size;
+		// Zone size in number of LBAs
+		uint64_t zone_size;
 	};
 
 	/**
@@ -65,7 +73,11 @@ namespace qemucsd::spdk_init {
 	 * Busy spin to check outstanding IO operations on qpair.
 	 * @param entry SPDK state information to spin on
 	 */
-	inline void spin_complete(struct ns_entry *entry);
+	static inline void spin_complete(struct ns_entry *entry) {
+        while(spdk_nvme_qpair_process_completions(entry->qpair, 0) == 0) {
+            ;
+        }
+	}
 
 	/**
 	 * Completion callback to print errors extracted from struct ns_entry
@@ -76,6 +88,8 @@ namespace qemucsd::spdk_init {
 
 	int initialize_zns_spdk(struct arguments::options *options,
 		struct ns_entry *entry);
+
+	int reset_zones(struct ns_entry *entry);
 }
 
 #endif //QEMU_CSD_SPDK_INIT_HPP

@@ -44,8 +44,9 @@ namespace qemucsd::nvm_csd {
 
 		ubpf_register(vm, 1, "bpf_return_data", (void*)bpf_return_data);
 		ubpf_register(vm, 2, "bpf_read", (void*)bpf_read);
-		ubpf_register(vm, 3, "bpf_get_lba_siza", (void*)bpf_get_lba_siza);
-		ubpf_register(vm, 4, "bpf_get_mem_info", (void*)bpf_get_mem_info);
+		ubpf_register(vm, 3, "bpf_get_lba_size", (void*)bpf_get_lba_size);
+        ubpf_register(vm, 4, "bpf_get_zone_size", (void*)bpf_get_zone_size);
+		ubpf_register(vm, 5, "bpf_get_mem_info", (void*)bpf_get_mem_info);
 	}
 
 	NvmCsd::~NvmCsd() {
@@ -65,10 +66,21 @@ namespace qemucsd::nvm_csd {
 
 		free(msg_buf);
 
-//		ubpf_jit_fn exec = ubpf_compile(this->vm, &msg_buf);
-//		if(exec(this->vm_mem, this->options.ubpf_mem_size) < 0)
-//			return -1;
+		// Jit compilation path
+		if(this->options.ubpf_jit) {
+		    // Measure jit compilation time
+            auto start = std::chrono::high_resolution_clock::now();
+            ubpf_jit_fn exec = ubpf_compile(this->vm, &msg_buf);
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+            std::cout << "Jit compilation: " << duration.count() << "us." << std::endl;
+            if (exec(this->vm_mem, this->options.ubpf_mem_size) < 0)
+                return -1;
 
+            return return_size;
+        }
+
+		// Non jit path
 		if(ubpf_exec(this->vm, this->vm_mem, this->options.ubpf_mem_size) < 0)
 			return -1;
 
@@ -93,11 +105,11 @@ namespace qemucsd::nvm_csd {
 		return_size = size;
 	}
 
-	void NvmCsd::bpf_read(uint64_t lba, uint64_t offset, uint16_t limit, void *data) {
+	void NvmCsd::bpf_read(uint64_t lba, uint64_t offset, uint64_t limit, void *data) {
 		auto *self = nvm_instance;
 
 		// Safer, still unsafe, limit is only uint16_t
-		uint64_t lba_size = bpf_get_lba_siza();
+		uint64_t lba_size = bpf_get_lba_size();
 		if(limit >= lba_size) limit = lba_size;
 
 		spdk_nvme_ns_cmd_read(self->entry.ns, self->entry.qpair,
@@ -108,9 +120,13 @@ namespace qemucsd::nvm_csd {
 		memcpy(data, (uint8_t*)self->entry.buffer + offset, limit);
 	}
 
-	uint64_t NvmCsd::bpf_get_lba_siza() {
+	uint64_t NvmCsd::bpf_get_lba_size() {
 		return nvm_instance->entry.buffer_size;
 	}
+
+    uint64_t NvmCsd::bpf_get_zone_size() {
+        return nvm_instance->entry.zone_size;
+    }
 
 	void NvmCsd::bpf_get_mem_info(void **mem_ptr, uint64_t *mem_size) {
 		auto *self = nvm_instance;

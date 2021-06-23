@@ -22,41 +22,19 @@
  * SOFTWARE.
  */
 
-//#include <linux/bpf.h>
-#include <stdint.h>
+#ifndef QEMU_CSD_MEASUREMENTS_HPP
+#define QEMU_CSD_MEASUREMENTS_HPP
 
-#include "bpf_helpers_prog.h"
+#include <chrono>
 
-#define RAND_MAX 2147483647
+namespace qemucsd::measurements {
 
-/** Limitation examples, globals
- * int test; -> Clang won't compile
- * int test = 12; -> uBPF won't run, BPF relocation type 1
- */
+    class Measurements {
+    public:
+        Measurements();
 
-int main() {
-	/** Reading from device using 'heap' based buffers */
-	uint64_t lba_size = bpf_get_lba_size();
-    uint64_t zone_size = bpf_get_zone_size();
-	uint64_t buffer_size;
-	void *buffer;
-
-	bpf_get_mem_info(&buffer, &buffer_size);
-
-	if(buffer_size < lba_size) return -1;
-
-    uint64_t ints_per_it = lba_size / sizeof(uint32_t);
-	uint64_t count = 0;
-
-	uint32_t *int_buf = (uint32_t*)buffer;
-	for(uint64_t i = 0; i < zone_size; i++) {
-        bpf_read(i, 0, lba_size, buffer);
-        for(uint64_t j = 0; j < ints_per_it; j++) {
-            if(*(int_buf + j) > RAND_MAX / 2) count++;
-        }
-    }
-
-	bpf_return_data(&count, sizeof(uint64_t));
-
-	return 0;
+        ~Measurements();
+    };
 }
+
+#endif //QEMU_CSD_MEASUREMENTS_HPP

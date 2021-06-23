@@ -48,8 +48,10 @@ namespace qemucsd::arguments {
 	};
 
 	static const std::string DEFAULT_SPDK_NAME = "";
+    static const std::string DEFAULT_INPUT_FILE = "integers.dat";
 	static const DeviceInitMode DEFAULT_DEV_INIT_MODE = DEV_INIT_RESET;
 	static constexpr uint64_t DEFAULT_UBPF_MEM_SIZE = 1024*512;
+    static constexpr bool DEFAULT_UBPF_JIT = false;
 
 	/**
 	 * Program options structure
@@ -58,9 +60,10 @@ namespace qemucsd::arguments {
 		/** values */
 		DeviceInitMode dev_init_mode;
 		uint64_t ubpf_mem_size;
+		bool ubpf_jit;
 
 		/** owned / referenced counted */
-//		std::shared_ptr<std::string> settings;
+		std::shared_ptr<std::string> input_file;
 
 		/** SPDK environment options */
 		struct spdk_env_opts spdk;

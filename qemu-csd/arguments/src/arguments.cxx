@@ -65,7 +65,9 @@ namespace qemucsd::arguments {
 					"mode,m", po::value<DeviceInitMode>(&options->dev_init_mode)->default_value(DEFAULT_DEV_INIT_MODE),
 					R"(NVMe SPDK Device initialization mode: "preserve", "reset")"
 				)
+                ("input-file,f", po::value<bool>(), "Name of file to write to ZNS SSD")
 				("vmmem", po::value<uint64_t>(), "uBPF vm memory size in bytes")
+                ("jit,j", po::value<bool>(), "uBPF jit compilation")
 				// SPDK env opts
 				("name", po::value<std::string>(), "Name for SPDK environment");
 		po::variables_map vm;
@@ -82,11 +84,17 @@ namespace qemucsd::arguments {
 			options->ubpf_mem_size = DEFAULT_UBPF_MEM_SIZE;
 		}
 
-//		if(vm.count("settings")) {
-//			options->settings = std::make_shared<std::string>(vm["settings"].as<std::string>());
-//		} else {
-//			options->settings = std::make_shared<std::string>("");
-//		}
+        if(vm.count("jit")) {
+            options->ubpf_jit = vm["jit"].as<bool>();
+        } else {
+            options->ubpf_jit = DEFAULT_UBPF_JIT;
+        }
+
+		if(vm.count("input-file")) {
+			options->input_file = std::make_shared<std::string>(vm["input-file"].as<std::string>());
+		} else {
+			options->input_file = std::make_shared<std::string>(DEFAULT_INPUT_FILE);
+		}
 
 		struct spdk_env_opts *opts = &options->spdk;
 		spdk_env_opts_init(opts);
