@@ -90,15 +90,15 @@ framework can not be statically linked (easily):
 
 | Dependency                                                         | Version                                                       |
 |--------------------------------------------------------------------|---------------------------------------------------------------|
-| [backward](https://github.com/bombela/backward-cpp)                | 1.5                                                           |
+| [backward](https://github.com/bombela/backward-cpp)                | 1.6                                                           |
 | [booost](https://www.boost.org/)                                   | 1.74.0                                                        |
 | [bpftool](https://github.com/Netronome/bpf-tool)                   | 5.10                                                          |
 | [dpdk](https://www.dpdk.org/)                                      | 20.11.0                                                       |
 | [generic-ebpf](https://github.com/generic-ebpf/generic-ebpf)       |                                                               |
-| [libbpf](https://github.com/libbpf/libbpf)                         | 0.3                                                           |
+| [libbpf](https://github.com/libbpf/libbpf)                         | 0.5                                                           |
 | [libbpf-bootstrap](https://github.com/libbpf/libbpf)               |                                                               |
 | [linux](https://www.kernel.org/)                                   | 5.10                                                          |
-| [spdk](https://github.com/spdk/spdk)                               | 21.01                                                         |
+| [spdk](https://github.com/spdk/spdk)                               | 21.07                                                         |
 | [isa-l](https://github.com/intel/isa-l)                            | spdk-v2.30.0                                                  |
 | [qemu](https://www.qemu.org/)                                      | [nvme-next d79d797b0d](git://git.infradead.org/qemu-nvme.git) |
 | [uBPF](https://github.com/iovisor/ubpf)                            |                                                               |
