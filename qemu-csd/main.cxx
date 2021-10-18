@@ -160,7 +160,7 @@ int main(int argc, char* argv[]) {
 
 		// Run bpf program on 'device'
 		uint64_t return_size = nvm_csd.nvm_cmd_bpf_run(
-			skel->skeleton->data, skel->skeleton->data_sz);
+		        (void*)skel->skeleton->data, skel->skeleton->data_sz);
 
 		if (return_size < 0) {
 			fprintf(stderr, "Error while executing BPF program on device\n");

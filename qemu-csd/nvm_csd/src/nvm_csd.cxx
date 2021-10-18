@@ -81,7 +81,8 @@ namespace qemucsd::nvm_csd {
         }
 
 		// Non jit path
-		if(ubpf_exec(this->vm, this->vm_mem, this->options.ubpf_mem_size) < 0)
+		uint64_t result;
+		if(ubpf_exec(this->vm, this->vm_mem, this->options.ubpf_mem_size, &result) < 0)
 			return -1;
 
 		return return_size;
