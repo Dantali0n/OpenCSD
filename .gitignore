@@ -63,6 +63,7 @@ dependencies/*
 !dependencies/libbpf
 !dependencies/libbpf-bootstrap
 !dependencies/linux
+!dependencies/linux-510
 !dependencies/qemu
 !dependencies/qemu-patches
 !dependencies/spdk

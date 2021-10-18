@@ -210,8 +210,8 @@ endif()
 
 add_custom_command(
     OUTPUT ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/bpf/bpftool/bpftool
-    COMMAND make -C tools/bpf/bpftool/
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/dependencies/linux
+    COMMAND make
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/bpf/bpftool
 )
 
 add_custom_command(OUTPUT bpftool_copy PRE_BUILD
@@ -253,12 +253,12 @@ set(BPFLOAD_LIBRARIES
 )
 
 set(BPFLOAD_SRC
-    ${CMAKE_SOURCE_DIR}/dependencies/linux/samples/bpf/bpf_load.c
+    ${CMAKE_SOURCE_DIR}/dependencies/linux-510/bpf_load.c
     ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/testing/selftests/bpf/trace_helpers.c
 )
 
 set(BPFLOAD_HEADERS
-    ${CMAKE_SOURCE_DIR}/dependencies/linux/samples/bpf/bpf_load.h
+    ${CMAKE_SOURCE_DIR}/dependencies/linux-510/bpf_load.h
     ${CMAKE_SOURCE_DIR}/dependencies/linux/tools/testing/selftests/bpf/trace_helpers.h
 )
 
