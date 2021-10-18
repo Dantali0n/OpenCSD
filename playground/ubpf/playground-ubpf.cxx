@@ -77,6 +77,6 @@ int main(int argc, char **argv) {
 
 	err = ubpf_load_elf(vm, skel->skeleton->data, skel->skeleton->data_sz, &message);
 
-	uint64_t result;
-	result =  ubpf_exec(vm, memory, mem_size, &result);
+	uint64_t return_code;
+	result = ubpf_exec(vm, memory, mem_size, &return_code);
 }
