@@ -324,6 +324,7 @@ set(PLAYGROUND_LIBBPF_BPF_LOAD_SOURCE
     libbpf-bpf-load/playground-libbpf.cxx
 )
 
+include_directories(${CMAKE_SOURCE_DIR}/dependencies/linux-510)
 include_directories(${CMAKE_SOURCE_DIR}/dependencies/linux/samples/bpf)
 include_directories(${CMAKE_SOURCE_DIR}/dependencies/linux/tools/testing/selftests/bpf)
 
