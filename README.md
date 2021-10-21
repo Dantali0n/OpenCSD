@@ -68,6 +68,7 @@ are already installed on the image used with QEMU**.
     * cmake 3.18 or higher
     * python 3.x
     * mesonbuild (`pip3 install meson`)
+    * pyelftools (`pip3 install pyelftools`)
     * ninja
     * cunit
 * Documentation
