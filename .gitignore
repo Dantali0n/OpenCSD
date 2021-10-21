@@ -91,6 +91,17 @@ documentation/*
 !documentation/**/python/
 
 # latex intermediate files
+thesis/*
+!thesis/**/
+!thesis/CMakeLists.txt
+!thesis/**/*.bib
+!thesis/**/*.tex
+!thesis/**/bash/
+!thesis/**/images/
+!thesis/**/drawio/
+!thesis/**/python/
+
+# latex intermediate files
 compsys2021/*
 !compsys2021/**/
 !compsys2021/CMakeLists.txt
