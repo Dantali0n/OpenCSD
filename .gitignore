@@ -37,6 +37,7 @@ playground/**
 !playground/*-dependency/glfw
 
 # Explicitly ignore generated headers
+playground/ubpf/bpf_ubpf_program.h
 playground/libbpf-bootstrap/bpf_bootstrap_program.h
 playground/generic-ebpf/bpf_bootstrap_program.h
 
