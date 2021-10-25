@@ -37,3 +37,6 @@
 [submodule "dependencies/fuse-lfs"]
 	path = dependencies/fuse-lfs
 	url = https://github.com/sphurti/Log-Structured-Filesystem.git
+[submodule "dependencies/rocksdb"]
+	path = dependencies/rocksdb
+	url = https://github.com/facebook/rocksdb.git

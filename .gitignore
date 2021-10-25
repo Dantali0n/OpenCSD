@@ -67,6 +67,7 @@ dependencies/*
 !dependencies/libbpf-bootstrap
 !dependencies/linux
 !dependencies/linux-510
+!dependencies/rocksdb
 !dependencies/qemu
 !dependencies/qemu-patches
 !dependencies/spdk
