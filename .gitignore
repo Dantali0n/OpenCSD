@@ -61,7 +61,9 @@ dependencies/*
 !dependencies/bpf-examples
 !dependencies/CMakeLists.txt
 !dependencies/generic-ebpf
+!dependencies/fuse-lfs
 !dependencies/libbpf
+!dependencies/libfuse
 !dependencies/libbpf-bootstrap
 !dependencies/linux
 !dependencies/linux-510
