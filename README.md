@@ -1,7 +1,17 @@
+# OpenCSD
+
+OpenCSD is an improved version of ZCSD achieving log-structure filesystem
+integration on Zoned Namespaces (ZNS) SSD Computational Storage Devices (CSD).
+Below is a diagram of the overall architecture as presented to the end user.
+However, the actual implementation differs due to the use of emulation using
+technologies such as QEMU, uBPF and SPDK.
+
+![](thesis/resources/images/loader-pfs-arch-2.drawio.png)
+
 # ZCSD
 
 ZCSD is a full stack prototype to execute eBPF programs as if they are
-running on a Zoned Namespace (ZNS) SSD Computational Storage Device (CSD). The
+running on a Zoned Namespaces (ZNS) SSD Computational Storage Device (CSD). The
 entire prototype can be run from userspace by utilizing existing technologies
 such as SPDK and uBPF. Since consumer ZNS SSDs are still unavailable, QEMU can
 be used to create a virtual ZNS SSD.
@@ -89,20 +99,23 @@ linked statically due to the nature of this project. However, for several depend
 this is not possible due to various reason. For Boost, it is because the unit test
 framework can not be statically linked (easily):
 
-| Dependency                                                         | Version                                                       |
-|--------------------------------------------------------------------|---------------------------------------------------------------|
-| [backward](https://github.com/bombela/backward-cpp)                | 1.6                                                           |
-| [booost](https://www.boost.org/)                                   | 1.74.0                                                        |
-| [bpftool](https://github.com/Netronome/bpf-tool)                   | 5.10                                                          |
-| [dpdk](https://www.dpdk.org/)                                      | 20.11.0                                                       |
-| [generic-ebpf](https://github.com/generic-ebpf/generic-ebpf)       |                                                               |
-| [libbpf](https://github.com/libbpf/libbpf)                         | 0.5                                                           |
-| [libbpf-bootstrap](https://github.com/libbpf/libbpf)               |                                                               |
-| [linux](https://www.kernel.org/)                                   | 5.10                                                          |
-| [spdk](https://github.com/spdk/spdk)                               | 21.07                                                         |
-| [isa-l](https://github.com/intel/isa-l)                            | spdk-v2.30.0                                                  |
-| [qemu](https://www.qemu.org/)                                      | [nvme-next d79d797b0d](git://git.infradead.org/qemu-nvme.git) |
-| [uBPF](https://github.com/iovisor/ubpf)                            |                                                               |
+| Dependency                                                         | Systen  | Version                                                                                                         |
+|--------------------------------------------------------------------|---------|-----------------------------------------------------------------------------------------------------------------|
+| [backward](https://github.com/bombela/backward-cpp)                | ZCSD    | 1.6                                                                                                             |
+| [booost](https://www.boost.org/)                                   | ZCSD    | 1.74.0                                                                                                          |
+| [bpftool](https://github.com/Netronome/bpf-tool)                   | ZCSD    | 5.10                                                                                                            |
+| [dpdk](https://www.dpdk.org/)                                      | ZCSD    | 20.11.0                                                                                                         |
+| [generic-ebpf](https://github.com/generic-ebpf/generic-ebpf)       | ZCSD    | [c9cee73](https://github.com/generic-ebpf/generic-ebpf/commit/c9cee73c73845c9d60aef807b7ee7891987cd6fd)         |
+| [fuse-lfs](https://github.com/sphurti/Log-Structured-Filesystem)   | OpenCSD | [526454b](https://github.com/sphurti/Log-Structured-Filesystem/commit/526454b99102d4e8875898550f92d577bbbb8ca2) |
+| [libbpf](https://github.com/libbpf/libbpf)                         | ZCSD    | 0.5                                                                                                             |
+| [libfuse](https://github.com/libfuse/libfuse)                      | OpenCSD | 3.10.5                                                                                                          |
+| [libbpf-bootstrap](https://github.com/libbpf/libbpf)               | ZCSD    | [67a29e5](https://github.com/libbpf/libbpf-bootstrap/commit/67a29e511cc9d0a570d4d3b9797827f3a08ccdb5)           |
+| [linux](https://www.kernel.org/)                                   | ZCSD    | 5.10                                                                                                            |
+| [spdk](https://github.com/spdk/spdk)                               | ZCSD    | 21.07                                                                                                           |
+| [isa-l](https://github.com/intel/isa-l)                            | ZCSD    | spdk-v2.30.0                                                                                                    |
+| [rocksdb](https://github.com/facebook/rocksdb)                     | OpenCSD | 6.25.3                                                                                                          |
+| [qemu](https://www.qemu.org/)                                      | ZCSD    | 6.1.0                                                                                                           |
+| [uBPF](https://github.com/iovisor/ubpf)                            | ZCSD    | [9eb26b4](https://github.com/iovisor/ubpf/commit/9eb26b4bfdec6cafbf629a056155363f12cec972)                      |
 
 ### Setup
 
