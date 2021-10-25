@@ -168,7 +168,7 @@
 \begin{titlepage}
 \begingroup
 \centering
-{\LARGE\bfseries eBPF Computational Storage Device for ZNS in QEMU}
+{\LARGE\bfseries Log Structured Filesystem for Computational Storage Device}
 
 \vspace{1cm}
 
@@ -188,14 +188,14 @@ info@dantalion.nl}
 
 \vspace{4.0cm}
 
-\includegraphics[width=0.8\textwidth]{resources/images/prototype-landscape.png}
+\includegraphics[width=0.8\textwidth]{resources/images/loader-pfs-arch-2.drawio.png}
 
 \vfill
 \endgroup
 \begin{minipage}{0.4\textwidth}
 	\begin{tabular}{ll}
-		\Large Project course: & \Large Individual Systems Practical (X\_405088) \\
-		\Large Supervisor: & \Large Giulia Frascaria and Animesh Trivedi \\
+		% \Large Thesis: & \Large Log Structured Filesystem for Computational Storage Device \\
+		\Large Supervisor: & \Large Animesh Trivedi \\
 	\end{tabular}
 \end{minipage} \hfill
 \begin{minipage}{0.3\textwidth}
@@ -376,37 +376,15 @@ This section hopes to define some common terminology as well as clearly detail
 how some of these terms are interpreted. Mainly, this section serves to avoid
 confusion.
 
-%\begin{tabularx}{\textwidth}{@{}l<{ -}@{\ }X@{}}
-%	ZNS & Zoned Namespace \\
-%	CSD & Computational Storage Device \\
-%	Upstream & When a certain patch or feature has been \\ merged into the main
-%		repository of a project. \\
-%
-%\end{tabularx}
+% \begin{tabularx}{\textwidth}{@{}l<{ -}@{\ }X@{}}
+% 	ZNS & Zoned Namespace \\
+% 	CSD & Computational Storage Device \\
+% 	Upstream & {When a certain patch or feature has been merged \\ into the main
+% 		repository of a project. }\\
+% \end{tabularx}
 
 \begin{enumerate}
-	\item ZNS - Zoned Namespace
-	\item CSD - Computational Storage Device
-	\item ACL - Access Level Control
-	\item Upstream - When a certain patch or feature has been merged into the
-					 main repository of a project.
-	\item GUI - Graphical User Interface
-	\item IDE - Integrated Development Environment
-	\item Target - A target is something that can be compiled or generated and
-					 sometimes executed. Examples include PDFs using LaTeX,
-					 binaries or libraries.
-	\item Binary   - A binary is a file containing machine instructions that can
-					 be directly executed. A compiled C file containing a main
-					 method is a binary while a shell script is not. Typically
-					 these binaries contain metadata information to aid the
-					 underlying operating system in executing them, a common
-					 format for this metadata is ELF.
-	\item ABI      - Application Binary Interface.
-	\item API      - Application Programming Interface.
-	\item SCSI     - Small Computer System Interface
-	\item ATA      - AT Attachment
-	\item ZBC      - (SCSI) Zoned Block Command
-	\item ZAC      - (ATA) Zoned ATA Commands
+	\item ACR - A C R
 \end{enumerate}
 
 \addcontentsline{toc}{section}{\protect\numberline{}REFERENCES}
