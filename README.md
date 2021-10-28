@@ -1,26 +1,38 @@
+![pipeline status](https://gitlab.dantalion.nl/vrije-universiteit-vu-/qemu-csd/badges/master/pipeline.svg)
+![coverage report](https://gitlab.dantalion.nl/vrije-universiteit-vu-/qemu-csd/badges/master/coverage.svg)
+
 # OpenCSD
 
-OpenCSD is an improved version of ZCSD achieving log-structure filesystem
+OpenCSD is an improved version of ZCSD achieving log-structured filesystem (LFS)
 integration on Zoned Namespaces (ZNS) SSD Computational Storage Devices (CSD).
 Below is a diagram of the overall architecture as presented to the end user.
 However, the actual implementation differs due to the use of emulation using
 technologies such as QEMU, uBPF and SPDK.
+
+### Progress Report
+
+- Week 1 -> Goal: get fuse-lfs working with libfuse
+  - Add libfuse, fuse-lfs and rocksdb as dependencies
+  - Create custom libfuse fork to support non-privileged installation
+  - Configure CMake to install libfuse
+  - Configure environment script to setup pkg-config path
+  - Use Docker in Docker (dind) to build docker image for Gitlab CI pipeline
 
 ![](thesis/resources/images/loader-pfs-arch-2.drawio.png)
 
 # ZCSD
 
 ZCSD is a full stack prototype to execute eBPF programs as if they are
-running on a Zoned Namespaces (ZNS) SSD Computational Storage Device (CSD). The
-entire prototype can be run from userspace by utilizing existing technologies
-such as SPDK and uBPF. Since consumer ZNS SSDs are still unavailable, QEMU can
-be used to create a virtual ZNS SSD.
+running on a ZNS SSD CSD. The entire prototype can be run from userspace by
+utilizing existing technologies such as SPDK and uBPF. Since consumer ZNS SSDs
+are still unavailable, QEMU can be used to create a virtual ZNS SSD. The
+programming and interactive steps of individual components is shown below.
 
 ![](documentation/resources/images/prototype-landscape.png)
 
 ## Getting Started
 
-To get started using ZCSD perform the steps described in the [Setup](#setup)
+To get started using OpenCSD perform the steps described in the [Setup](#setup)
 section, followed by the steps in [Usage Examples](#usage-examples).
 
 ### Index
