@@ -83,13 +83,16 @@ into the build directory. Anything that is not automatically
 compiled and linked is shown below. Note however, **these dependencies
 are already installed on the image used with QEMU**.
 
+**Warning** Meson must be below version 0.60 due to
+[a bug in DPDK](https://bugs.dpdk.org/show_bug.cgi?id=836)
+
 * General
     * Linux 5.5 or higher
     * compiler with c++17 support
     * clang 10 or higher
     * cmake 3.18 or higher
     * python 3.x
-    * mesonbuild (`pip3 install meson`)
+    * mesonbuild < 0.60 (`pip3 install meson==0.59`)
     * pyelftools (`pip3 install pyelftools`)
     * ninja
     * cunit
@@ -329,6 +332,8 @@ including:
 * [Getting started with ZNS in QEMU](https://www.snia.org/educational-library/getting-started-nvme-zns-qemu-2020)
 * [NVMe ZNS command set 1.0 ratified TP](https://nvmexpress.org/wp-content/uploads/NVM-Express-1.4-Ratified-TPs-1.zip)
 * [libnvme presentation](https://www.usenix.org/sites/default/files/conference/protected-files/vault20_slides_busch.pdf)
+* FUSE
+  * [FUSE kermel documentation](https://www.kernel.org/doc/html/latest/filesystems/fuse.html)
 * BPF
   * Linux Kernel related
     * [Linux bpf manpage](https://www.man7.org/linux/man-pages/man2/bpf.2.html)

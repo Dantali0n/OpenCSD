@@ -13,7 +13,7 @@ RUN pacman -Syy && \
     texlive-humanities
 
 # Install meson and pyelftools through pip
-RUN pip3 install meson pyelftools
+RUN pip3 install meson==0.59 pyelftools
 
 # Create builduser and setup sudoers
 RUN useradd builduser -m; \
