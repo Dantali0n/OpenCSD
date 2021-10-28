@@ -38,6 +38,7 @@ endif()
 
 add_custom_target(generic-ebpf-build DEPENDS generic-ebpf-copy)
 add_custom_target(ubpf-build DEPENDS ubpf-install)
+add_custom_target(libfuse-build DEPENDS libfuse-install)
 add_custom_target(libbpf-build DEPENDS libbpf-install)
 add_custom_target(spdk-build DEPENDS spdk-install)
 add_custom_target(dpdk-build DEPENDS dpdk-copy)
@@ -181,6 +182,41 @@ add_custom_command(OUTPUT generic-ebpf-copy PRE_BUILD
     COMMAND cp -r ${CMAKE_CURRENT_SOURCE_DIR}/generic-ebpf/sys/sys ${PRJ_HEADERS}
     DEPENDS generic-ebpf-compile
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/generic-ebpf
+)
+
+# ------- #
+# libfuse #
+# ------- #
+
+# Check if libbpf is already build, REQUIRES RE-RUNNING CMAKE COMMAND!
+# Limitations: this only tests the presence of a single file
+file_exists(${PRJ_ROOT}/lib/libfuse3.so has_libfuse)
+if(${has_libfuse})
+    add_custom_target(libfuse-install)
+endif()
+
+add_custom_command(OUTPUT libfuse-install PRE_BUILD
+    COMMAND ninja install
+    DEPENDS libfuse-compile
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libfuse/build
+)
+
+add_custom_command(OUTPUT libfuse-compile PRE_BUILD
+    COMMAND ninja
+    DEPENDS libfuse-configure
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libfuse/build
+)
+
+add_custom_command(OUTPUT libfuse-configure PRE_BUILD
+    COMMAND meson --prefix ${PRJ_ROOT} .. -Duseroot=false
+    COMMAND meson --prefix ${PRJ_ROOT} --reconfigure .. -Duseroot=false -Dudevrulesdir=${PRJ_ROOT}/etc/udev/rules.d
+    DEPENDS libfuse-directory
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libfuse/build
+)
+
+add_custom_command(OUTPUT libfuse-directory PRE_BUILD
+    COMMAND mkdir build -p
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libfuse
 )
 
 # ------ #
