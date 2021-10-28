@@ -6,11 +6,11 @@
 for i in *.a
 do
 	echo "$i"
-	nm $i | grep $1
+	nm "$i" | grep "$1"
 done
 
 for i in *.so
 do
 	echo "$i"
-	nm -D $i | grep $1
+	nm -D "$i" | grep "$1"
 done

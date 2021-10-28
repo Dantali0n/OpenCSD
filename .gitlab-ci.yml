@@ -38,7 +38,7 @@ shellcheck-linting:
     - linux
   before_script:
     - pacman -Syy
-    - sudo pacman install --noconfirm shellcheck
+    - sudo pacman -Sy --noconfirm shellcheck
   script:
     - shellcheck scripts/*.sh
     - shellcheck scripts/activate
