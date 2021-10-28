@@ -1,17 +1,7 @@
-image: archlinux:base-devel
-before_script:
-#  - echo "Server = https://mirrors.daan.vodka/archlinux/$repo/os/$arch" | sudo tee /etc/pacman.d/mirrormulti
-  - echo "[multilib]" | sudo tee -a /etc/pacman.conf
-  - echo "Include = /etc/pacman.d/mirrorlist" | sudo tee -a /etc/pacman.conf
-  - pacman -Syy
-  - sudo pacman -Sy --noconfirm base-devel cmake clang gcc llvm yasm ninja cunit pixman python-pip git libaio numactl lib32-glibc gcovr
-  - sudo pacman -Sy --noconfirm valgrind doxygen texlive-bin texlive-science texlive-publishers texlive-latexextra texlive-humanities
-  - pip install meson pyelftools
-  - useradd builduser -m
-  - passwd -d builduser
-  - printf 'builduser ALL=(ALL) ALL\n' | tee -a /etc/sudoers
-  - sudo -u builduser bash -c 'cd ~ && git clone https://aur.archlinux.org/lcov.git && cd lcov && makepkg -si --noconfirm'
+image: $CI_REGISTRY/vrije-universiteit-vu-/qemu-csd/qemu-csd:$CI_COMMIT_SHORT_SHA
 stages:
+  - image
+  - static-analysis
   - build
   - test
   - coverage
@@ -27,6 +17,31 @@ cache:
     - "build/qemu-csd/include/*"
 # before_script:
 #  - git submodule update --init
+build-image:
+  stage: image
+  tags:
+    - dind
+  image: docker
+  services:
+    - name: docker:dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - cd scripts # Minimize build context migrated to docker container
+    - docker build -t $CI_REGISTRY/vrije-universiteit-vu-/qemu-csd/qemu-csd:$CI_COMMIT_SHORT_SHA -f Dockerfile .
+    - docker push $CI_REGISTRY/vrije-universiteit-vu-/qemu-csd/qemu-csd:$CI_COMMIT_SHORT_SHA
+shellcheck-linting:
+  stage: static-analysis
+  tags:
+    - linux
+  before_script:
+    - pacman -Syy
+    - sudo pacman install --noconfirm shellcheck
+  script:
+    - shellcheck scripts/*.sh
+    - shellcheck scripts/activate
 build-documentation:
   stage: build
   tags:
