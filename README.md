@@ -1,5 +1,5 @@
-![pipeline status](https://gitlab.dantalion.nl/vrije-universiteit-vu-/qemu-csd/badges/master/pipeline.svg)
-![coverage report](https://gitlab.dantalion.nl/vrije-universiteit-vu-/qemu-csd/badges/master/coverage.svg)
+![pipeline status](https://gitlab.dantalion.nl/vu/qemu-csd/badges/master/pipeline.svg)
+![coverage report](https://gitlab.dantalion.nl/vu/qemu-csd/badges/master/coverage.svg)
 
 # OpenCSD
 
