@@ -12,11 +12,13 @@ technologies such as QEMU, uBPF and SPDK.
 ### Progress Report
 
 - Week 1 -> Goal: get fuse-lfs working with libfuse
-  - Add libfuse, fuse-lfs and rocksdb as dependencies
-  - Create custom libfuse fork to support non-privileged installation
-  - Configure CMake to install libfuse
-  - Configure environment script to setup pkg-config path
-  - Use Docker in Docker (dind) to build docker image for Gitlab CI pipeline
+  [X] Add libfuse, fuse-lfs and rocksdb as dependencies
+  [X] Create custom libfuse fork to support non-privileged installation
+  [X] Configure CMake to install libfuse
+  [X] Configure environment script to setup pkg-config path
+  [X] Use Docker in Docker (dind) to build docker image for Gitlab CI pipeline
+  [X] Investigate and document how to debug fuse filesystems
+  [ ] Determine and document RocksDB required syscalls.
 
 ![](thesis/resources/images/loader-pfs-arch-2.drawio.png)
 
@@ -46,6 +48,7 @@ section, followed by the steps in [Usage Examples](#usage-examples).
   * [Usage Examples](#usage-examples)
   * [Debugging on Host](#debugging-on-host)
   * [Debugging on QEMU](#debugging-on-qemu)
+  * [Debugging FUSE](#debugging-fuse)
 * [CMake Configuration](#cmake-configuration)
 * [Licensing](#licensing)
 * [References](#references)
@@ -136,7 +139,10 @@ framework can not be statically linked (easily):
 
 Building tools and dependencies is done by simply executing the following commands
 from the root directory. For a more complete list of cmake options see the
-[Configuration](#configuration) section.
+[Configuration](#configuration) section. The environment file sourced with
+`source builddir/qemu-csd/activate` needs to be sourced every time. It
+configures essential include and binary paths to be able to run all the
+dependencies.
 
 This first section of commands generates targets for host development. Among
 these is compiling and downloading an image for QEMU. Many parts of this project
@@ -145,7 +151,7 @@ the next section for on guest development.
 
 Navigate to the root directory of the project before executing the
 following instructions. These instructions will compile the dependencies on the
-host, these include an out-of-tree version of QEMU.
+host, these include a version of QEMU.
 
 ```shell script
 git submodule update --init
@@ -290,6 +296,18 @@ set substitute-path /home/arch/qemu-csd/ /path/to/root/of/project
 
 More detailed information about development & debugging for this project can be
 found in the report.
+
+#### Debugging FUSE:
+
+Debugging FUSE filesystem operations can be done through the compiled filesystem
+binaries by adding the `-f` argument. This argument will keep the FUSE
+filesystem process in the foreground.
+
+```bash
+gdb ./filesystem
+b ...
+run -f mountpoint
+```
 
 ### CMake Configuration
 
