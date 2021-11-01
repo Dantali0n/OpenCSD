@@ -41,6 +41,7 @@ add_custom_target(
     play-generic-ebpf
     play-libbpf-bpf-load
     play-libbpf-bootstrap
+    play-persist-state
     play-filter
     play-spdk
     play-ubpf
@@ -127,6 +128,8 @@ set(PLAYGROUND_FUSE_HELLO_SOURCE
 
 message("${PRJ_PRX}: playground fuse-hello cxx flags:${CMAKE_CXX_FLAGS}")
 add_executable(play-fuse-hello ${PLAYGROUND_FUSE_HELLO_SOURCE})
+
+add_dependencies(play-fuse-hello libfuse-build)
 
 target_link_libraries(
     play-fuse-hello
@@ -373,6 +376,51 @@ target_link_libraries(
 )
 
 qemucsd_target_postprocess(play-libbpf-bpf-load)
+
+# ----------------------------- #
+# Playground play-persist-state #
+# ----------------------------- #
+
+set(PLAYGROUND_PERSIST_LIB_SOURCE
+    persistent-state/persist-state.cxx
+)
+
+set(PLAYGROUND_PERSIST_LIB_HEADERS
+    persistent-state/persist-state.hpp
+)
+
+add_library(
+    play-persist-state-lib SHARED
+    ${PLAYGROUND_PERSIST_LIB_SOURCE}
+    ${PLAYGROUND_PERSIST_LIB_HEADERS}
+)
+set_target_properties(${PRJ_LIB} PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(
+    play-persist-state-lib
+    rt
+    pthread
+)
+
+set(PLAYGROUND_PERSIST_SOURCE
+    persistent-state/playground-persist-state.cxx
+)
+
+message("${PRJ_PRX}: playground persist state cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(play-persist-state
+    ${PLAYGROUND_PERSIST_SOURCE}
+    ${PLAYGROUND_PERSIST_LIB_HEADERS}
+)
+
+target_compile_options(play-persist-state PRIVATE -D_FILE_OFFSET_BITS=64)
+set_target_properties(play-persist-state PROPERTIES LINKER_LANGUAGE CXX)
+
+target_link_libraries(
+    play-persist-state
+    play-persist-state-lib
+    ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
+)
+
+qemucsd_target_postprocess(play-persist-state)
 
 # ---------------------- #
 # Playground play-filter #
