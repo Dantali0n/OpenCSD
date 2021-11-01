@@ -36,6 +36,7 @@ else()
     add_custom_target(boost-build DEPENDS boost-install)
 endif()
 
+add_custom_target(activate-build DEPENDS activate-copy)
 add_custom_target(generic-ebpf-build DEPENDS generic-ebpf-copy)
 add_custom_target(ubpf-build DEPENDS ubpf-install)
 add_custom_target(libfuse-build DEPENDS libfuse-install)
@@ -61,7 +62,7 @@ add_custom_command(OUTPUT generate-bin PRE_BUILD
 
 # As boost-build target since only this dependency requires it.
 add_custom_command(
-    TARGET boost-build POST_BUILD
+    OUTPUT activate-copy POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
     ${CMAKE_SOURCE_DIR}/scripts/activate
     ${PRJ_ROOT}/activate
@@ -136,7 +137,7 @@ endif()
 add_custom_command(OUTPUT boost-install PRE_BUILD
     COMMAND ${boost_source_build} address-model=${BOOST_ADDRESS} runtime-debugging=${BOOST_RUN_DEBUG} variant=${BOOST_BUILD_TYPE} ${boost_source_build_param} install --prefix=${PRJ_ROOT}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/boost/boost_1_74_0
-    DEPENDS boost-bootstrap
+    DEPENDS boost-bootstrap activate-build # Boost requires the activate script to work properly
 )
 
 # Boost uses different directory and file names for windows #genius!
@@ -197,7 +198,7 @@ endif()
 
 add_custom_command(OUTPUT libfuse-install PRE_BUILD
     COMMAND ninja install
-    DEPENDS libfuse-compile
+    DEPENDS libfuse-compile activate-build # fuse requires the activate script to work properly
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libfuse/build
 )
 
