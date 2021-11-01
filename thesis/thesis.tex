@@ -286,6 +286,34 @@ work and open questions that arise from this design (\cref{future}).
 The entire prototype including source files for reports and documentation
 is available online under an permissive open-source license\cite{qemu-csd}.
 
+\section{RocksDB integration}
+
+Required Syscalls, by analysis of https://github.com/facebook/rocksdb/blob/7743f033b17bf3e0ea338bc6751b28adcc8dc559/env/io_posix.cc
+
+clearerr (stdio.h)
+close (unistd.h)
+fclose (stdio.h)
+feof (stdio.h)
+ferror (stdio.h)
+fread_unlocked (stdio.h)
+fseek (stdio.h)
+fstat (sys/stat.h)
+fstatfs (sys/statfs.h / sys/vfs.h)
+ioctl (sys/ioctl.h)
+major (sys/sysmacros.h)
+open (fcntl.h)
+posix_fadvise (fcntl.h)
+pread (unistd.h)
+pwrite (unistd.h)
+readahead (fcntl.h + _GNU_SOURCE)
+realpath (stdlib.h)
+sync_file_range (fcntl.h + _GNU_SOURCE)
+write (unistd.h)
+
+Potential issues:
+ - Use of IOCTL
+ - Use of IO_URING
+
 % \footnotemark[1]
 
 % \footnotetext[1]{Time of writing is $10^{th}$ of February 2021.}
