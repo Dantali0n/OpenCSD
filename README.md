@@ -18,7 +18,12 @@ technologies such as QEMU, uBPF and SPDK.
   [X] Configure environment script to setup pkg-config path
   [X] Use Docker in Docker (dind) to build docker image for Gitlab CI pipeline
   [X] Investigate and document how to debug fuse filesystems
-  [ ] Determine and document RocksDB required syscalls.
+  [X] Determine and document RocksDB required syscalls
+  [X] Setup persistent memory that can be shared across processes
+    [ ] Split into daemon and client modes
+- Week 2 -> Goal get a working LFS filesystem
+  [ ] Get a working LFS filesystem using FUSE
+  [ ] Create solid digital logbook to track discussions
 
 ![](thesis/resources/images/loader-pfs-arch-2.drawio.png)
 
