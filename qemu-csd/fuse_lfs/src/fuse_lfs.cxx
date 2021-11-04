@@ -44,7 +44,7 @@ namespace qemucsd::fuse_lfs{
         *operations = &FuseLFS::operations;
     }
 
-    void* FuseLFS::init(struct fuse_conn_info *conn, struct fuse_config *cfg) {
+    void* FuseLFS::init(struct fuse_conn_info* conn, struct fuse_config* cfg) {
         FuseLFS::connection = conn;
         FuseLFS::config = cfg;
 
@@ -52,39 +52,43 @@ namespace qemucsd::fuse_lfs{
     }
 
     int FuseLFS::getattr(
-        const char *, struct stat *, struct fuse_file_info *fi)
+        const char* path, struct stat* stat, struct fuse_file_info* fi)
     {
         return 0;
     }
 
     int FuseLFS::readdir(
-        const char *, void *, fuse_fill_dir_t, off_t, struct fuse_file_info *,
-        enum fuse_readdir_flags)
+        const char* path, void* callback, fuse_fill_dir_t directory_type,
+        off_t offset, struct fuse_file_info *, enum fuse_readdir_flags)
     {
         return 0;
     }
 
-    int FuseLFS::open(const char *, struct fuse_file_info *) {
+    int FuseLFS::open(const char* path, struct fuse_file_info* fi) {
         return 0;
     }
 
-    int FuseLFS::create(const char *, mode_t, struct fuse_file_info *) {
+    int FuseLFS::create(
+        const char* path, mode_t mode, struct fuse_file_info* fi)
+    {
         return 0;
     }
 
     int FuseLFS::read(
-        const char *, char *, size_t, off_t, struct fuse_file_info *)
+        const char* path, char* buffer, size_t size, off_t offset,
+        struct fuse_file_info* fi)
     {
         return 0;
     }
 
     int FuseLFS::write(
-        const char *, const char *, size_t, off_t, struct fuse_file_info *)
+        const char* path, const char* buffer, size_t size, off_t offset,
+        struct fuse_file_info* fi)
     {
         return 0;
     }
 
-    int FuseLFS::unlink(const char *) {
+    int FuseLFS::unlink(const char* path) {
         return 0;
     }
 

@@ -48,14 +48,22 @@ namespace qemucsd::fuse_lfs {
 
         static void get_operations(const struct fuse_operations** operations);
 
-        static void* init(struct fuse_conn_info *conn, struct fuse_config *cfg);
-        static int getattr(const char *, struct stat *, struct fuse_file_info *fi);
-        static int readdir(const char *, void *, fuse_fill_dir_t, off_t, struct fuse_file_info *, enum fuse_readdir_flags);
-        static int open(const char *, struct fuse_file_info *);
-        static int create(const char *, mode_t, struct fuse_file_info *);
-        static int read(const char *, char *, size_t, off_t, struct fuse_file_info *);
-        static int write(const char *, const char *, size_t, off_t, struct fuse_file_info *);
-        static int unlink(const char *);
+        static void* init(struct fuse_conn_info* conn, struct fuse_config* cfg);
+        static int getattr(
+            const char* path, struct stat* stat, struct fuse_file_info* fi);
+        static int readdir(
+            const char* path, void* callback, fuse_fill_dir_t directory_type,
+            off_t offset, struct fuse_file_info *, enum fuse_readdir_flags);
+        static int open(const char* path, struct fuse_file_info* fi);
+        static int create(
+            const char* path, mode_t mode, struct fuse_file_info* fi);
+        static int read(
+            const char* path, char* buffer, size_t size, off_t offset,
+            struct fuse_file_info* fi);
+        static int write(
+            const char* path, const char* buffer, size_t size, off_t offset,
+            struct fuse_file_info* fi);
+        static int unlink(const char* path);
     };
 }
 
