@@ -9,6 +9,8 @@ Below is a diagram of the overall architecture as presented to the end user.
 However, the actual implementation differs due to the use of emulation using
 technologies such as QEMU, uBPF and SPDK.
 
+![](thesis/resources/images/loader-pfs-arch-2.drawio.png)
+
 ### Progress Report
 
 - Week 1 -> Goal: get fuse-lfs working with libfuse
@@ -25,7 +27,47 @@ technologies such as QEMU, uBPF and SPDK.
   [ ] Get a working LFS filesystem using FUSE
   [ ] Create solid digital logbook to track discussions
 
-![](thesis/resources/images/loader-pfs-arch-2.drawio.png)
+### Logbook
+
+Serves as a place to quickly store digital information until it can be refined
+and processed into the thesis.
+
+- [Discussion Notes](#discussion-notes)
+- [RocksDB Integration](#rocksdb-integration)
+
+#### Discussion Notes
+
+- In order to analyze the exact calls RocksDB makes during its benchmarks tools
+  like `strace` can be used.
+
+#### RocksDB Integration
+
+Required syscalls, by analysis of
+https://github.com/facebook/rocksdb/blob/7743f033b17bf3e0ea338bc6751b28adcc8dc559/env/io_posix.cc
+
+- clearerr (stdio.h)
+- close (unistd.h)
+- fclose (stdio.h)
+- feof (stdio.h)
+- ferror (stdio.h)
+- fread_unlocked (stdio.h)
+- fseek (stdio.h)
+- fstat (sys/stat.h)
+- fstatfs (sys/statfs.h / sys/vfs.h)
+- ioctl (sys/ioctl.h)
+- major (sys/sysmacros.h)
+- open (fcntl.h)
+- posix_fadvise (fcntl.h)
+- pread (unistd.h)
+- pwrite (unistd.h)
+- readahead (fcntl.h + _GNU_SOURCE)
+- realpath (stdlib.h)
+- sync_file_range (fcntl.h + _GNU_SOURCE)
+- write (unistd.h)
+
+Potential issues:
+- Use of IOCTL
+- Use of IO_URING
 
 # ZCSD
 
