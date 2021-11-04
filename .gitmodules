@@ -40,3 +40,6 @@
 [submodule "dependencies/rocksdb"]
 	path = dependencies/rocksdb
 	url = https://github.com/facebook/rocksdb.git
+[submodule "dependencies/ftools"]
+	path = dependencies/ftools
+	url = https://github.com/credativ/linux-ftools.git
