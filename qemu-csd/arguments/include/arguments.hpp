@@ -41,11 +41,17 @@
 
 namespace qemucsd::arguments {
 
+    // When generics get out of hand
+    typedef std::pair<int, std::vector<char*>> t_strip_args;
+    typedef std::vector<t_strip_args> t_auto_strip_args;
+
 	// Enum to Specify desired method to initialize NVMe device using SPDK
 	enum DeviceInitMode {
 		DEV_INIT_PRESERVE, // Preserve current device state
 		DEV_INIT_RESET, // Reset all zones of the device upon initialization
 	};
+
+    static const std::string ARG_SEPARATOR = "--";
 
 	static const std::string DEFAULT_SPDK_NAME = "";
     static const std::string DEFAULT_INPUT_FILE = "integers.dat";
@@ -62,7 +68,7 @@ namespace qemucsd::arguments {
 		uint64_t ubpf_mem_size;
 		bool ubpf_jit;
 
-		/** owned / referenced counted */
+		/** owned / reference counted */
 		std::shared_ptr<std::string> input_file;
 
 		/** SPDK environment options */
@@ -77,6 +83,19 @@ namespace qemucsd::arguments {
 	 * messages if necessary.
 	 */
 	void parse_args(int argc, char *argv[], struct options *options);
+
+    /**
+     * Create vector of argc, argv[] pairs separated by -- arguments. argv[0]
+     * is added to each pair and argc is atleast 1.
+     */
+    void auto_strip_args(
+        int argc, char *argv[], t_auto_strip_args* stripped_args);
+
+    /**
+     * Reduce the arguments to the first subset before finding an occurrence of
+     * -- as argument.
+     */
+    void strip_args(int argc, char *argv[], t_strip_args* strip_args);
 }
 
 #endif // QEMU_CSD_ARGUMENTS_HPP

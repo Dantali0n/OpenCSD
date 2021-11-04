@@ -20,52 +20,38 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Order of including submodules is of importance as the can only depend on
-# another if that has been included before the current one. This is a known
-# limitation either potentially solved using CMake globals or with loosely
-# coupled interfaces.
-
-# Commandline argument parsing
-add_subdirectory(arguments)
-
-# Performance measurements
-add_subdirectory(measurements)
-
-# Register bpf helper headers
-add_subdirectory(bpf_helpers)
-
-# Register bpf programs and generate headers
-add_subdirectory(bpf_programs)
-
-# SPDK initialization
-add_subdirectory(spdk_init)
-
-# Emulated new nvme command set
-add_subdirectory(nvm_csd)
-
-# Userspace LFS filesystem with FUSE
-add_subdirectory(fuse_lfs)
-
-# Targets of ZCSD prototype
-add_subdirectory(zcsd)
-
 qemucsd_include_directories()
 
-set(FUSE_ENTRY_SOURCE
-    fuse_entry.cxx
+set(ZCSD_SOURCE
+    main.cxx
 )
 
-message("${PRJ_PRX}: fuse-entry cxx flags:${CMAKE_CXX_FLAGS}")
-add_executable(fuse-entry ${FUSE_ENTRY_SOURCE})
+message("${PRJ_PRX}: zcsd cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(zcsd ${ZCSD_SOURCE})
 
 get_property(local_modules GLOBAL PROPERTY module_list)
 
 target_link_libraries(
-    fuse-entry
+    zcsd
     ${local_modules}
     ${${PRJ_PRX}_LIBRARIES}
 )
 
-add_dependencies(fuse-entry libfuse-build)
+add_dependencies(zcsd generate_bpf_zone_int_filter_header)
 
-qemucsd_target_postprocess(fuse-entry)
+qemucsd_target_postprocess(zcsd)
+
+set(ZCSD_SPDK_NATIVE_SOURCE
+    main_spdk.cxx
+)
+
+message("${PRJ_PRX}: zcsd-spdk cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(zcsd-spdk ${ZCSD_SPDK_NATIVE_SOURCE})
+
+target_link_libraries(
+    zcsd-spdk
+    ${local_modules}
+    ${${PRJ_PRX}_LIBRARIES}
+)
+
+qemucsd_target_postprocess(zcsd-spdk)

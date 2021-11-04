@@ -20,52 +20,37 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Order of including submodules is of importance as the can only depend on
-# another if that has been included before the current one. This is a known
-# limitation either potentially solved using CMake globals or with loosely
-# coupled interfaces.
+project(${PRJ_PRX}_fuse_lfs)
 
-# Commandline argument parsing
-add_subdirectory(arguments)
 
-# Performance measurements
-add_subdirectory(measurements)
+set(QEMUCSD_FUSE_LFS_LIBRARIES
+    fuse
+)
 
-# Register bpf helper headers
-add_subdirectory(bpf_helpers)
+set(QEMUCSD_FUSE_LFS_SRC
+    src/fuse_lfs.cxx
+)
 
-# Register bpf programs and generate headers
-add_subdirectory(bpf_programs)
+set(QEMUCSD_FUSE_LFS_HEADERS
+    include/fuse_lfs.hpp
+)
 
-# SPDK initialization
-add_subdirectory(spdk_init)
-
-# Emulated new nvme command set
-add_subdirectory(nvm_csd)
-
-# Userspace LFS filesystem with FUSE
-add_subdirectory(fuse_lfs)
-
-# Targets of ZCSD prototype
-add_subdirectory(zcsd)
-
+# Add qemucsd_measurements to the includes
+add_qemucsd_include(${CMAKE_CURRENT_SOURCE_DIR}/include)
 qemucsd_include_directories()
 
-set(FUSE_ENTRY_SOURCE
-    fuse_entry.cxx
+add_library(
+    qemucsd_fuse_lfs STATIC
+    ${QEMUCSD_FUSE_LFS_SRC}
+    ${QEMUCSD_FUSE_LFS_HEADERS}
 )
-
-message("${PRJ_PRX}: fuse-entry cxx flags:${CMAKE_CXX_FLAGS}")
-add_executable(fuse-entry ${FUSE_ENTRY_SOURCE})
-
-get_property(local_modules GLOBAL PROPERTY module_list)
-
+set_target_properties(${PRJ_LIB} PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(
-    fuse-entry
-    ${local_modules}
-    ${${PRJ_PRX}_LIBRARIES}
+    qemucsd_fuse_lfs
+    ${QEMUCSD_FUSE_LFS_LIBRARIES}
 )
 
-add_dependencies(fuse-entry libfuse-build)
+add_dependencies(qemucsd_fuse_lfs libfuse-build)
 
-qemucsd_target_postprocess(fuse-entry)
+# Add qemucsd_measurements to the modules
+add_qemucsd_module(qemucsd_fuse_lfs)

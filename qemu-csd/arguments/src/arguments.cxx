@@ -109,4 +109,43 @@ namespace qemucsd::arguments {
 			opts->name = options->_name->c_str();
 		}
 	}
+
+    void auto_strip_args(
+        int argc, char *argv[], t_auto_strip_args* stripped_args)
+    {
+        // First argument is always file, strip separately
+        stripped_args->resize(1);
+        stripped_args->at(0).first = 1;
+        stripped_args->at(0).second.push_back(argv[0]);
+        argc = argc - 1;
+        argv = argv + 1;
+
+        // Start stripping at argument 1
+        for(int i = 1; argc > 0; i++) {
+            stripped_args->resize(i + 1);
+            // Always add filename back as first argument for each set
+            stripped_args->at(i).second.push_back(stripped_args->at(0).second.at(0));
+            strip_args(argc, argv, &stripped_args->at(i));
+
+            // + 1 for adding file argument back, -1 in offset for removing --
+            argc = argc - (stripped_args->at(i).first);
+            argv = argv + (stripped_args->at(i).first);
+        }
+    }
+
+    void strip_args(
+        int argc, char *argv[], t_strip_args* strip_args)
+    {
+        for(int i = 0; i < argc; i++) {
+            // If argument not -- add it args and continue
+            if(ARG_SEPARATOR.compare(argv[i]) != 0) {
+                strip_args->second.push_back(argv[i]);
+                continue;
+            }
+            // Stop immediately upon encountering --
+            break;
+        }
+
+        strip_args->first = strip_args->second.size();
+    }
 }
