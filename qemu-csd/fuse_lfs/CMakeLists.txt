@@ -24,7 +24,7 @@ project(${PRJ_PRX}_fuse_lfs)
 
 
 set(QEMUCSD_FUSE_LFS_LIBRARIES
-    fuse
+    fuse3
 )
 
 set(QEMUCSD_FUSE_LFS_SRC
