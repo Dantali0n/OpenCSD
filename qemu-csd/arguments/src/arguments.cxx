@@ -61,11 +61,10 @@ namespace qemucsd::arguments {
 		desc.add_options()
 				("help,h", "Produce help message")
 //				("settings,s", po::value<std::string>(), "Alternative path to settings file")
-				(
-					"mode,m", po::value<DeviceInitMode>(&options->dev_init_mode)->default_value(DEFAULT_DEV_INIT_MODE),
-					R"(NVMe SPDK Device initialization mode: "preserve", "reset")"
-				)
-                ("input-file,f", po::value<bool>(), "Name of file to write to ZNS SSD")
+				("mode,m", po::value<DeviceInitMode>(&options->dev_init_mode)->default_value(DEFAULT_DEV_INIT_MODE),
+                 R"(NVMe SPDK Device initialization mode: "preserve", "reset")")
+                ("input-file,f", po::value<bool>(),
+                 "Name of file to write to ZNS SSD (Ignored in OpenCSD / FUSE)")
 				("vmmem", po::value<uint64_t>(), "uBPF vm memory size in bytes")
                 ("jit,j", po::value<bool>(), "uBPF jit compilation")
 				// SPDK env opts

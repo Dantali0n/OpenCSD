@@ -90,6 +90,9 @@ namespace qemucsd::spdk_init {
 		struct ns_entry *entry);
 
 	int reset_zones(struct ns_entry *entry);
+
+    int fill_first_zone(struct qemucsd::spdk_init::ns_entry *entry,
+        struct qemucsd::arguments::options *opts);
 }
 
 #endif //QEMU_CSD_SPDK_INIT_HPP

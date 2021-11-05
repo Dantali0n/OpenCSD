@@ -56,69 +56,6 @@ void segfault_handler(int signal, siginfo_t *si, void *arg) {
 	exit(1);
 }
 
-void fill_first_zone(struct qemucsd::spdk_init::ns_entry *entry,
-    struct qemucsd::arguments::options *opts)
-{
-    std::ifstream in(*opts->input_file, ios_base::in | ios_base::binary);
-
-    // Determine length of input file, Huge performance impact that will make
-    // the performance incomparable to nvme cli.
-//    in.seekg(0, ios_base::end);
-//    std::streamsize file_length = in.tellg();
-//    in.seekg(0, ios_base::beg);
-
-    in.seekg(0, ios_base::beg);
-    std::streamsize file_length = in.tellg();
-
-    // Check that the file exists
-    if(file_length < 0) {
-        std::cerr << "File " << *opts->input_file << " does not exist in" <<
-                  "current directory" << std::endl;
-        exit(1);
-    }
-    uint64_t zone_size = entry->lba_size * entry->zone_size;
-
-	// Determine if length of file is sufficient
-    in.seekg(zone_size, ios_base::beg);
-    file_length = in.tellg();
-    in.seekg(0, ios_base::beg);
-
-	// Ensure the input file has sufficient data to write the whole zone
-	assert(file_length >= zone_size);
-
-	// Create buffer to store file contents into
-    char* file_buffer = new char[file_length];
-    in.read(file_buffer, file_length);
-
-	uint32_t int_lba = entry->lba_size / sizeof(uint32_t);
-	assert(entry->lba_size % sizeof(uint32_t)== 0);
-
-	uint32_t *data = (uint32_t*) spdk_zmalloc(
-        entry->lba_size, entry->lba_size, NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
-
-	// Create a copy of the pointer we can safely advance
-    char* file_buffer_alias = file_buffer;
-	for(uint32_t i = 0; i < entry->zone_size; i++) {
-
-	    // Copy file contents into SPDK buffer
-        memcpy(data, file_buffer_alias, entry->lba_size);
-
-		// Zone append automatically tracks write pointer within block, so the
-		// zslba argument remains 0 for the entire zone.
-		spdk_nvme_zns_zone_append(entry->ns, entry->qpair, data, 0,
-								  1, qemucsd::spdk_init::error_print, entry, 0);
-		spin_complete(entry);
-
-		// Advance buffer pointer.
-        file_buffer_alias += entry->lba_size;
-	}
-
-	spdk_free(data);
-
-	// This is why alias is needed
-    delete[] file_buffer;
-}
-
 int main(int argc, char* argv[]) {
 	struct bpf_zone_int_filter *skel = nullptr;
 	qemucsd::arguments::options opts;
@@ -136,14 +73,15 @@ int main(int argc, char* argv[]) {
 
 		// Initialize SPDK with the first ZNS supporting zone found
         auto start = std::chrono::high_resolution_clock::now();
-		if (qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)
+		if(qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)
 			return EXIT_FAILURE;
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         std::cout << "Initialization and reset: " << duration.count() << "us." << std::endl;
 
         start = std::chrono::high_resolution_clock::now();
-		fill_first_zone(&entry, &opts);
+        if(qemucsd::spdk_init::fill_first_zone(&entry, &opts) < 0)
+            return EXIT_FAILURE;
         stop = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         std::cout << "Fill first zone: " << duration.count() << "us." << std::endl;

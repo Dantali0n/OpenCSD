@@ -31,7 +31,24 @@ extern "C" {
     #include "fuse3/fuse.h"
 }
 
+#include <string>
+
 namespace qemucsd::fuse_lfs {
+
+    static const uint32_t SEGMENT_SIZE = 512;
+    static const uint64_t MAGIC_COOKIE = 0x10ADEDB00BDEC0DE;
+
+    // One time write, read only information
+    struct superblock {
+        uint64_t magic_cookie;
+        unsigned char padding[504];
+    };
+    static_assert(sizeof(superblock) == SEGMENT_SIZE);
+
+    struct zone_info_table_entry {
+        unsigned char padding[512];
+    };
+    static_assert(sizeof(zone_info_table_entry) == SEGMENT_SIZE);
 
     /**
      * Static wrapper class around FUSE LFS filesystem.
@@ -40,6 +57,8 @@ namespace qemucsd::fuse_lfs {
     protected:
         static struct fuse_conn_info* connection;
         static struct fuse_config* config;
+
+        static const std::string PATH_ROOT;
 
         static const struct fuse_operations operations;
     public:

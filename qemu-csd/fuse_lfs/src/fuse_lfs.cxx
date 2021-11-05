@@ -29,6 +29,8 @@ namespace qemucsd::fuse_lfs{
     struct fuse_conn_info* FuseLFS::connection = nullptr;
     struct fuse_config* FuseLFS::config = nullptr;
 
+    const std::string FuseLFS::PATH_ROOT = "/";
+
     const struct fuse_operations FuseLFS::operations = {
         .getattr    = FuseLFS::getattr,
         .unlink     = FuseLFS::unlink,
@@ -54,13 +56,36 @@ namespace qemucsd::fuse_lfs{
     int FuseLFS::getattr(
         const char* path, struct stat* stat, struct fuse_file_info* fi)
     {
-        return 0;
+        // Root directory
+        if (PATH_ROOT.compare(path) == 0) {
+            stat->st_mode = S_IFDIR | 0755;
+            stat->st_nlink = 2;
+            return 0;
+        }
+        // Find the file
+        else if(true == false){
+
+        }
+        // File not found
+        else {
+            return -ENOENT;
+        }
     }
 
     int FuseLFS::readdir(
-        const char* path, void* callback, fuse_fill_dir_t directory_type,
+        const char* path, void* buffer, fuse_fill_dir_t directory_type,
         off_t offset, struct fuse_file_info *, enum fuse_readdir_flags)
     {
+        // Only support root directory for now
+        if (PATH_ROOT.compare(path) != 0)
+            return -ENOENT;
+
+        // I don't think this would still be necessary with fuse > 3
+        directory_type(buffer, ".", nullptr, 0, (fuse_fill_dir_flags) 0);
+        directory_type(buffer, "..", nullptr, 0, (fuse_fill_dir_flags) 0);
+
+        // TOOD(Dantali0n): Fill directory with all files
+
         return 0;
     }
 

@@ -26,6 +26,8 @@
 
 namespace qemucsd::spdk_init {
 
+    using std::ios_base;
+
 	int initialize_zns_spdk(struct arguments::options *options,
 		struct ns_entry *entry)
 	{
@@ -38,7 +40,7 @@ namespace qemucsd::spdk_init {
 		entry->ns = nullptr;
 
 		rc = spdk_env_init(&options->spdk);
-		if (rc < 0) {
+		if(rc < 0) {
 			std::cerr << "Unable to initialize SPDK env: " << strerror(rc) <<
 		  		std::endl;
 			return -1;
@@ -46,19 +48,21 @@ namespace qemucsd::spdk_init {
 
 		rc = spdk_nvme_probe(NULL, entry, probe_cb_attach_all,
 	   		attach_cb_ns_entry,NULL);
-		if (rc < 0) {
+		if(rc < 0) {
 			std::cerr << "spdk_nvme_probe() failed: " << strerror(rc) <<
 		  		std::endl;
 			return -1;
 		}
 
 		// Reset all zones in the namespace.
-		if(options->dev_init_mode == arguments::DEV_INIT_RESET)
-			spdk_nvme_zns_reset_zone(entry->ns, entry->qpair, 0, true,
-									 error_print, &entry);
-
-		// Wait for I/O operation to complete
-		spin_complete(entry);
+		if(options->dev_init_mode == arguments::DEV_INIT_RESET) {
+            rc = reset_zones(entry);
+            if(rc < 0) {
+                std::cerr << "spdk_nvme_zns_reset_zone() failed: " <<
+                          strerror(rc) << std::endl;
+                return -1;
+            }
+        }
 
 		return 0;
 	}
@@ -97,7 +101,7 @@ namespace qemucsd::spdk_init {
 		// Determine total amount of namespaces on this controller
 		num_ns = spdk_nvme_ctrlr_get_num_ns(ctrlr);
 		// Loop through all active namespaces trying to find a ZNS namespace
-		for (nsid = 1; nsid <= num_ns; nsid++) {
+		for(nsid = 1; nsid <= num_ns; nsid++) {
 			ns = spdk_nvme_ctrlr_get_ns(ctrlr, nsid);
 
 			// Check that namespace exists
@@ -146,7 +150,7 @@ namespace qemucsd::spdk_init {
 	{
 		struct ns_entry *entry = (ns_entry*) void_entry;
 
-		if (spdk_nvme_cpl_is_error(completion)) {
+		if(spdk_nvme_cpl_is_error(completion)) {
 			spdk_nvme_qpair_print_completion(
 					entry->qpair, (struct spdk_nvme_cpl *) completion);
 			fprintf(stderr, "I/O error status: %s\n",
@@ -155,4 +159,78 @@ namespace qemucsd::spdk_init {
 			spdk_nvme_detach(entry->ctrlr);
 		}
 	}
+
+    int fill_first_zone(struct qemucsd::spdk_init::ns_entry *entry,
+        struct qemucsd::arguments::options *opts)
+    {
+        int rc = 0;
+
+        std::ifstream in(*opts->input_file, ios_base::in | ios_base::binary);
+
+        // Determine length of input file, Huge performance impact that will make
+        // the performance incomparable to nvme cli.
+        //    in.seekg(0, ios_base::end);
+        //    std::streamsize file_length = in.tellg();
+        //    in.seekg(0, ios_base::beg);
+
+        in.seekg(0, ios_base::beg);
+        std::streamsize file_length = in.tellg();
+
+        // Check that the file exists
+        if(file_length < 0) {
+            std::cerr << "File " << *opts->input_file << " does not exist in" <<
+                      "current directory" << std::endl;
+            exit(1);
+        }
+        uint64_t zone_size = entry->lba_size * entry->zone_size;
+
+        // Determine if length of file is sufficient
+        in.seekg(zone_size, ios_base::beg);
+        file_length = in.tellg();
+        in.seekg(0, ios_base::beg);
+
+        // Ensure the input file has sufficient data to write the whole zone
+        assert(file_length >= zone_size);
+
+        // Create buffer to store file contents into
+        char* file_buffer = new char[file_length];
+        in.read(file_buffer, file_length);
+
+        uint32_t int_lba = entry->lba_size / sizeof(uint32_t);
+        assert(entry->lba_size % sizeof(uint32_t)== 0);
+
+        uint32_t *data = (uint32_t*) spdk_zmalloc(
+            entry->lba_size, entry->lba_size, NULL, SPDK_ENV_SOCKET_ID_ANY,
+            SPDK_MALLOC_DMA);
+
+        if(data == nullptr) return -1;
+
+        // Create a copy of the pointer we can safely advance
+        char* file_buffer_alias = file_buffer;
+        for(uint32_t i = 0; i < entry->zone_size; i++) {
+
+            // Copy file contents into SPDK buffer
+            memcpy(data, file_buffer_alias, entry->lba_size);
+
+            // Zone append automatically tracks write pointer within block, so the
+            // zslba argument remains 0 for the entire zone.
+            rc = spdk_nvme_zns_zone_append(entry->ns, entry->qpair, data, 0,
+                                      1, qemucsd::spdk_init::error_print,
+                                      entry, 0);
+
+            if(rc < 0) return -1;
+
+            spin_complete(entry);
+
+            // Advance buffer pointer.
+            file_buffer_alias += entry->lba_size;
+        }
+
+        spdk_free(data);
+
+        // This is why alias is needed
+        delete[] file_buffer;
+
+        return 0;
+    }
 }
