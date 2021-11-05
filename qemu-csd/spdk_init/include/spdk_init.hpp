@@ -86,10 +86,22 @@ namespace qemucsd::spdk_init {
 	void error_print(void *void_entry,
  		const struct spdk_nvme_cpl *completion);
 
+    /**
+     * Initializes SPDK environment and fills out entry with controller and
+     * namespace information. Resets the device depending on options
+     * @param entry
+     * @return 0 upon success, < 0 upon error
+     */
 	int initialize_zns_spdk(struct arguments::options *options,
 		struct ns_entry *entry);
 
+    /**
+     * Small function to reset all zones of a device
+     * @param entry data wrapper required to perform operations.
+     * @return 0 upon success, < 0 upon failure.
+     */
 	int reset_zones(struct ns_entry *entry);
+
 
     int fill_first_zone(struct qemucsd::spdk_init::ns_entry *entry,
         struct qemucsd::arguments::options *opts);

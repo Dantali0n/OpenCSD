@@ -33,22 +33,24 @@ extern "C" {
 
 #include <string>
 
+#include "spdk_init.hpp"
+
 namespace qemucsd::fuse_lfs {
 
-    static const uint32_t SEGMENT_SIZE = 512;
+    static const uint32_t SECTOR_SIZE = 512;
     static const uint64_t MAGIC_COOKIE = 0x10ADEDB00BDEC0DE;
 
-    // One time write, read only information
+    // One time write, read only information. Always stored at zone 0, sector 0.
     struct superblock {
         uint64_t magic_cookie;
         unsigned char padding[504];
     };
-    static_assert(sizeof(superblock) == SEGMENT_SIZE);
+    static_assert(sizeof(superblock) == SECTOR_SIZE);
 
     struct zone_info_table_entry {
         unsigned char padding[512];
     };
-    static_assert(sizeof(zone_info_table_entry) == SEGMENT_SIZE);
+    static_assert(sizeof(zone_info_table_entry) == SECTOR_SIZE);
 
     /**
      * Static wrapper class around FUSE LFS filesystem.
@@ -56,7 +58,10 @@ namespace qemucsd::fuse_lfs {
     class FuseLFS {
     protected:
         static struct fuse_conn_info* connection;
+        static struct fuse_context* context;
         static struct fuse_config* config;
+
+        static struct spdk_init::ns_entry* spdk_entry;
 
         static const std::string PATH_ROOT;
 

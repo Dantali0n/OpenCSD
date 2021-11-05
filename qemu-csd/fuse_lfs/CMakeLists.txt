@@ -24,6 +24,7 @@ project(${PRJ_PRX}_fuse_lfs)
 
 
 set(QEMUCSD_FUSE_LFS_LIBRARIES
+    qemucsd_spdk_init
     fuse3
 )
 

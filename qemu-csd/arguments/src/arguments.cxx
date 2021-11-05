@@ -75,6 +75,7 @@ namespace qemucsd::arguments {
 
 		if (vm.count("help")) {
 			std::cout << desc << std::endl;
+            exit(0);
 		}
 
 		if(vm.count("vmmem")) {

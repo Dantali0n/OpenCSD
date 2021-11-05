@@ -71,6 +71,9 @@ int main(int argc, char* argv[]) {
 		// Parse commandline arguments
 		qemucsd::arguments::parse_args(argc, argv, &opts);
 
+        // Always reset the device
+        opts.dev_init_mode = qemucsd::arguments::DEV_INIT_RESET;
+
 		// Initialize SPDK with the first ZNS supporting zone found
         auto start = std::chrono::high_resolution_clock::now();
 		if(qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)

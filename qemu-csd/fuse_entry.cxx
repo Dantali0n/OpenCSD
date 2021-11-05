@@ -86,8 +86,8 @@ int main(int argc, char* argv[]) {
 
         qemucsd::arguments::parse_args(qemu_argc, qemu_argv, &opts);
 
-        if (qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)
-            return EXIT_FAILURE;
+//        if (qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)
+//            return EXIT_FAILURE;
 
         // Second set of arguments is for fuse
         if(stripped_args.size() >= 3) {
@@ -98,6 +98,20 @@ int main(int argc, char* argv[]) {
         else {
             fuse_argc = stripped_args.at(0).first;
             fuse_argv = stripped_args.at(0).second.data();
+        }
+
+        // Check sequential performance mode
+        bool safe = false;
+        static const std::string FUSE_SEQUANTIAL_PARAM = "-s";
+        for(int i = 0; i < fuse_argc; i++) {
+            if(FUSE_SEQUANTIAL_PARAM.compare(fuse_argv[i]) == 0) {
+                safe = true;
+                break;
+            }
+        }
+        if(safe == false) {
+            std::cerr << "FUSE LFS requires -s sequential mode" << std::endl;
+            return -1;
         }
 
         // Get fuse operations structure
