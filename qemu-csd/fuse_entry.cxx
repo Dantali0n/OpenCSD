@@ -41,21 +41,27 @@ void segfault_handler(int signal, siginfo_t *si, void *arg) {
 
 #include "arguments.hpp"
 #include "fuse_lfs.hpp"
+#include "spdk_init.hpp"
 
 /**
  * Entrypoint for fuse LFS filesystem
  */
 int main(int argc, char* argv[]) {
+    // Arguments separated intended for qemu
     int qemu_argc = 0;
     char** qemu_argv = nullptr;
 
+    // arguments separated intended for fuse
     int fuse_argc = 0;
     char** fuse_argv = nullptr;
 
+    // Special datastructure to separate arguments from argc, argv using --
     qemucsd::arguments::t_auto_strip_args stripped_args;
 
     const struct fuse_operations* ops;
     qemucsd::arguments::options opts;
+
+    struct qemucsd::spdk_init::ns_entry entry = {0};
 
     // Setup segfault handler to print backward stacktraces
     sigemptyset(&glob_sigaction.sa_mask);
@@ -72,18 +78,32 @@ int main(int argc, char* argv[]) {
             qemu_argc = stripped_args.at(1).first;
             qemu_argv = stripped_args.at(1).second.data();
         }
+        // If no arguments use inherit arguments (filename)
+        else {
+            qemu_argc = stripped_args.at(0).first;
+            qemu_argv = stripped_args.at(0).second.data();
+        }
 
         qemucsd::arguments::parse_args(qemu_argc, qemu_argv, &opts);
+
+        if (qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)
+            return EXIT_FAILURE;
 
         // Second set of arguments is for fuse
         if(stripped_args.size() >= 3) {
             fuse_argc = stripped_args.at(2).first;
             fuse_argv = stripped_args.at(2).second.data();
         }
+        // If no arguments use inherit arguments (filename)
+        else {
+            fuse_argc = stripped_args.at(0).first;
+            fuse_argv = stripped_args.at(0).second.data();
+        }
 
         // Get fuse operations structure
         qemucsd::fuse_lfs::FuseLFS::get_operations(&ops);
-        return fuse_main(fuse_argc, fuse_argv, ops, nullptr);
+        // TODO(Dantali0n): Figure out where private data ends up.
+        return fuse_main(fuse_argc, fuse_argv, ops, &entry);
     }
     catch(...) {
         #ifdef QEMUCSD_DEBUG
