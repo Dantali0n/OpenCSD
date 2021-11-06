@@ -42,6 +42,7 @@ void segfault_handler(int signal, siginfo_t *si, void *arg) {
 #include "arguments.hpp"
 #include "fuse_lfs.hpp"
 #include "spdk_init.hpp"
+#include "nvme_zns.hpp"
 
 /**
  * Entrypoint for fuse LFS filesystem
@@ -61,6 +62,8 @@ int main(int argc, char* argv[]) {
     const struct fuse_operations* ops;
     qemucsd::arguments::options opts;
 
+    NvmeZnsBackend* trash = (NvmeZnsBackend*) nullptr;
+    qemucsd::nvme_zns::NvmeZns<NvmeZnsBackend> nvme_zns(trash);
     struct qemucsd::spdk_init::ns_entry entry = {0};
 
     // Setup segfault handler to print backward stacktraces
@@ -124,5 +127,6 @@ int main(int argc, char* argv[]) {
             StackTrace st; st.load_here(32);
             Printer p; p.print(st);
         #endif
+        throw;
     }
 }
