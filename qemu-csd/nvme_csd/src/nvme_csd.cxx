@@ -22,15 +22,15 @@
  * SOFTWARE.
  */
 
-#include "nvm_csd.hpp"
+#include "nvme_csd.hpp"
 
-static qemucsd::nvm_csd::NvmCsd *nvm_instance = nullptr;
+static qemucsd::nvme_csd::NvmeCsd *nvme_instance = nullptr;
 static void *return_data = nullptr;
 static uint64_t return_size = 0;
 
-namespace qemucsd::nvm_csd {
+namespace qemucsd::nvme_csd {
 
-	NvmCsd::NvmCsd(struct arguments::options *options,
+	NvmeCsd::NvmeCsd(struct arguments::options *options,
 		struct spdk_init::ns_entry *entry)
 	{
 		this->options = *options;
@@ -40,7 +40,7 @@ namespace qemucsd::nvm_csd {
 		this->vm = ubpf_create();
 		this->vm_mem = malloc(this->options.ubpf_mem_size);
 
-		nvm_instance = this;
+		nvme_instance = this;
 
 		ubpf_register(vm, 1, "bpf_return_data", (void*)bpf_return_data);
 		ubpf_register(vm, 2, "bpf_read", (void*)bpf_read);
@@ -49,14 +49,14 @@ namespace qemucsd::nvm_csd {
 		ubpf_register(vm, 5, "bpf_get_mem_info", (void*)bpf_get_mem_info);
 	}
 
-	NvmCsd::~NvmCsd() {
+	NvmeCsd::~NvmeCsd() {
 		if(entry.ctrlr != nullptr) spdk_nvme_detach(entry.ctrlr);
 		if(entry.buffer != nullptr) spdk_free(entry.buffer);
 		if(vm != nullptr) ubpf_destroy(vm);
 		if(vm_mem != nullptr) free(vm_mem);
 	}
 
-	uint64_t NvmCsd::nvm_cmd_bpf_run(void *bpf_elf, uint64_t bpf_elf_size) {
+	uint64_t NvmeCsd::nvm_cmd_bpf_run(void *bpf_elf, uint64_t bpf_elf_size) {
 		char *msg_buf = (char*) malloc(256);
 		if(ubpf_load_elf(this->vm, bpf_elf, bpf_elf_size, &msg_buf) < 0) {
 			std::cerr << msg_buf << std::endl;
@@ -88,7 +88,7 @@ namespace qemucsd::nvm_csd {
 		return return_size;
 	}
 
-	void NvmCsd::nvm_cmd_bpf_result(void *data) {
+	void NvmeCsd::nvm_cmd_bpf_result(void *data) {
 		if(return_data == nullptr) return;
 
 		memcpy(data, return_data, return_size);
@@ -98,7 +98,7 @@ namespace qemucsd::nvm_csd {
 		return_size = 0;
 	}
 
-	void NvmCsd::bpf_return_data(void *data, uint64_t size) {
+	void NvmeCsd::bpf_return_data(void *data, uint64_t size) {
 		if(return_data != nullptr) free(return_data);
 
 		return_data = malloc(size);
@@ -106,8 +106,8 @@ namespace qemucsd::nvm_csd {
 		return_size = size;
 	}
 
-	void NvmCsd::bpf_read(uint64_t lba, uint64_t offset, uint64_t limit, void *data) {
-		auto *self = nvm_instance;
+	void NvmeCsd::bpf_read(uint64_t lba, uint64_t offset, uint64_t limit, void *data) {
+		auto *self = nvme_instance;
 
 		// Safer, still unsafe, limit is only uint16_t
 		uint64_t lba_size = bpf_get_lba_size();
@@ -121,16 +121,16 @@ namespace qemucsd::nvm_csd {
 		memcpy(data, (uint8_t*)self->entry.buffer + offset, limit);
 	}
 
-	uint64_t NvmCsd::bpf_get_lba_size() {
-		return nvm_instance->entry.buffer_size;
+	uint64_t NvmeCsd::bpf_get_lba_size() {
+		return nvme_instance->entry.buffer_size;
 	}
 
-    uint64_t NvmCsd::bpf_get_zone_size() {
-        return nvm_instance->entry.zone_size;
+    uint64_t NvmeCsd::bpf_get_zone_size() {
+        return nvme_instance->entry.zone_size;
     }
 
-	void NvmCsd::bpf_get_mem_info(void **mem_ptr, uint64_t *mem_size) {
-		auto *self = nvm_instance;
+	void NvmeCsd::bpf_get_mem_info(void **mem_ptr, uint64_t *mem_size) {
+		auto *self = nvme_instance;
 		*mem_ptr = self->vm_mem;
 		*mem_size = self->options.ubpf_mem_size;
 	}

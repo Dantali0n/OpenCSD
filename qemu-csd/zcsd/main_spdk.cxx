@@ -36,7 +36,6 @@ using std::ios_base;
 
 #include "arguments.hpp"
 #include "spdk_init.hpp"
-#include "nvm_csd.hpp"
 
 extern "C" {
     #include <signal.h>
@@ -110,10 +109,11 @@ int main(int argc, char* argv[]) {
         std::cout << "BPF device result: " << num_ints << std::endl;
     }
     catch(...) {
-    #ifdef QEMUCSD_DEBUG
-        StackTrace st; st.load_here(32);
-        Printer p; p.print(st);
-    #endif
+        #ifdef QEMUCSD_DEBUG
+            StackTrace st; st.load_here(32);
+            Printer p; p.print(st);
+        #endif
+        throw;
     }
 
     return EXIT_SUCCESS;

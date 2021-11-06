@@ -117,13 +117,15 @@ section, followed by the steps in [Usage Examples](#usage-examples).
 
 ### Modules
 
-| Module       | Task                                                  |
-|--------------|-------------------------------------------------------|
-| arguments    | Parse commandline arguments to relevant components    |
-| bpf_helpers  | Headers to define functions available from within BPF |
-| bpf_programs | BPF programs ready to run on a CSD using bpf_helpers  |
-| nvm_csd      | Emulated additional NVMe commands to enable BPF CSDs  |
-| spdk_init    | Provides SPDK initialization and handles for nvm_csd  |
+| Module       | Task                                                    |
+|--------------|---------------------------------------------------------|
+| arguments    | Parse commandline arguments to relevant components      |
+| bpf_helpers  | Headers to define functions available from within BPF   |
+| bpf_programs | BPF programs ready to run on a CSD using bpf_helpers    |
+| fuse_lfs     | Log Structured Filesystem in FUSE                       |
+| nvme_csd     | Emulated additional NVMe commands to enable BPF CSDs    |
+| nvme_zns     | Interface to handle zoned I/O using abstracted backends |
+| spdk_init    | Provides SPDK initialization and handles for nvme_csd   |
 
 ### Dependencies
 

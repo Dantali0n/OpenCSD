@@ -20,19 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-project(${PRJ_PRX}_nvm_csd)
+project(${PRJ_PRX}_nvme_csd)
 
 
-set(QEMUCSD_NVM_CSD_LIBRARIES
+set(QEMUCSD_NVME_CSD_LIBRARIES
     qemucsd_spdk_init
 )
 
-set(QEMUCSD_NVM_CSD_SRC
-    src/nvm_csd.cxx
+set(QEMUCSD_NVME_CSD_SRC
+    src/nvme_csd.cxx
 )
 
-set(QEMUCSD_NVM_CSD_HEADERS
-    include/nvm_csd.hpp
+set(QEMUCSD_NVME_CSD_HEADERS
+    include/nvme_csd.hpp
 )
 
 # Add qemucsd_nvm_csd to the includes
@@ -40,13 +40,13 @@ add_qemucsd_include(${CMAKE_CURRENT_SOURCE_DIR}/include)
 qemucsd_include_directories()
 
 add_library(
-    qemucsd_nvm_csd STATIC
-    ${QEMUCSD_NVM_CSD_SRC}
-    ${QEMUCSD_NVM_CSD_HEADERS}
+    qemucsd_nvme_csd STATIC
+    ${QEMUCSD_NVME_CSD_SRC}
+    ${QEMUCSD_NVME_CSD_HEADERS}
 )
 set_target_properties(${PRJ_LIB} PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(
-    qemucsd_nvm_csd
+    qemucsd_nvme_csd
     -Wl,--whole-archive
     spdk_log.a spdk_env_dpdk.a spdk_nvme.a spdk_util.a spdk_sock.a spdk_json.a
     spdk_rpc.a spdk_jsonrpc.a
@@ -59,10 +59,10 @@ target_link_libraries(
     #    rte_eal.a rte_mempool.a rte_telemetry.a rte_ring.a rte_kvargs.a rte_bus_pci.a
     #    rte_pci.a rte_vhost.a rte_power.a
     #    isal.a uuid numa dl
-    ${QEMUCSD_NVM_CSD_LIBRARIES}
+    ${QEMUCSD_NVME_CSD_LIBRARIES}
 )
 
-add_dependencies(qemucsd_nvm_csd ubpf-build spdk-build dpdk-build isa-l-build)
+add_dependencies(qemucsd_nvme_csd ubpf-build spdk-build dpdk-build isa-l-build)
 
 # Add qemucsd_nvm_csd to the modules
-add_qemucsd_module(qemucsd_nvm_csd)
+add_qemucsd_module(qemucsd_nvme_csd)

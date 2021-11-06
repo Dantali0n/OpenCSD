@@ -25,25 +25,25 @@
 # limitation either potentially solved using CMake globals or with loosely
 # coupled interfaces.
 
-# Commandline argument parsing
+# Commandline argument parsing and stripping
 add_subdirectory(arguments)
 
 # Performance measurements
 add_subdirectory(measurements)
 
-# Register bpf helper headers
+# Register BPF helper headers
 add_subdirectory(bpf_helpers)
 
-# Register bpf programs and generate headers
+# Register BPF programs and generate headers
 add_subdirectory(bpf_programs)
 
-# SPDK initialization
+# SPDK initialization and data wrappers
 add_subdirectory(spdk_init)
 
-# Emulated new nvme command set
-add_subdirectory(nvm_csd)
+# Emulated new NVMe command set for Computational Storage Devices (CSx)
+add_subdirectory(nvme_csd)
 
-# Abstracted nvme backends
+# Abstracted NVMe ZNS backends
 add_subdirectory(nvme_zns)
 
 # Userspace LFS filesystem with FUSE

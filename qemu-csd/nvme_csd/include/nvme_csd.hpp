@@ -22,8 +22,8 @@
  * SOFTWARE.
  */
 
-#ifndef QEMU_CSD_NVM_CSD_HPP
-#define QEMU_CSD_NVM_CSD_HPP
+#ifndef QEMU_CSD_NVME_CSD_HPP
+#define QEMU_CSD_NVME_CSD_HPP
 
 #include "arguments.hpp"
 #include "spdk_init.hpp"
@@ -37,14 +37,16 @@ extern "C" {
 #include <spdk/nvme.h>
 #include <spdk/nvme_zns.h>
 
-namespace qemucsd::nvm_csd {
+namespace qemucsd::nvme_csd {
 
-	class NvmCsd {
+	class NvmeCsd {
 	public:
-		NvmCsd(struct arguments::options *options,
+		NvmeCsd(struct arguments::options *options,
 			   struct spdk_init::ns_entry *entry);
 
-		~NvmCsd();
+        // Destructor must always be virtual otherwise won't be called in
+        // superclasses!
+		virtual ~NvmeCsd();
 
 		/**
 		 * Emulated NVMe command to pass a BPF program to a Computational
@@ -79,4 +81,4 @@ namespace qemucsd::nvm_csd {
 	};
 }
 
-#endif //QEMU_CSD_NVM_CSD_HPP
+#endif //QEMU_CSD_NVME_CSD_HPP

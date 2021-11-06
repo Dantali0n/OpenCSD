@@ -36,7 +36,7 @@ using std::ios_base;
 
 #include "arguments.hpp"
 #include "spdk_init.hpp"
-#include "nvm_csd.hpp"
+#include "nvme_csd.hpp"
 
 extern "C" {
 	#include <signal.h>
@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
 
 		// Initialize simulator for NVMe BPF command set
         start = std::chrono::high_resolution_clock::now();
-		qemucsd::nvm_csd::NvmCsd nvm_csd(&opts, &entry);
+		qemucsd::nvme_csd::NvmeCsd nvme_csd(&opts, &entry);
 
 		skel = bpf_zone_int_filter__open();
 		if (!skel) {
@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
 		}
 
 		// Run bpf program on 'device'
-		uint64_t return_size = nvm_csd.nvm_cmd_bpf_run(
+		uint64_t return_size = nvme_csd.nvm_cmd_bpf_run(
 		        (void*)skel->skeleton->data, skel->skeleton->data_sz);
 
 		if (return_size < 0) {
@@ -109,7 +109,7 @@ int main(int argc, char* argv[]) {
 		}
 
 		void *data = malloc(return_size);
-		nvm_csd.nvm_cmd_bpf_result(data);
+		nvme_csd.nvm_cmd_bpf_result(data);
         stop = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         std::cout << "BPF execution time: " << duration.count() << "us." << std::endl;
@@ -122,7 +122,8 @@ int main(int argc, char* argv[]) {
 		#ifdef QEMUCSD_DEBUG
 			StackTrace st; st.load_here(32);
 			Printer p; p.print(st);
-		#endif
+        #endif
+        throw;
 	}
 
 	return EXIT_SUCCESS;
