@@ -33,6 +33,7 @@ playground/**
 !playground/**/*.cxx
 !playground/**/*.h
 !playground/**/*.hpp
+!playground/**/*.tpp
 !playground/**/*.sh
 !playground/*-dependency/glfw
 
@@ -49,6 +50,7 @@ qemu-csd/**
 !qemu-csd/**/*.cxx
 !qemu-csd/**/*.h
 !qemu-csd/**/*.hpp
+!qemu-csd/**/*.tpp
 !qemu-csd/**/CMakeLists.txt
 
 # Ignore generated headers
@@ -82,6 +84,7 @@ tests*/**
 !tests*/**/*.cxx
 !tests*/**/*.h
 !tests*/**/*.hpp
+!tests*/**/*.tpp
 !tests*/**/CMakeLists.txt
 
 # latex intermediate files
