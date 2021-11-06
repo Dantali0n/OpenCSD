@@ -28,7 +28,7 @@ set(QEMUCSD_NVME_ZNS_LIBRARIES
 )
 
 set(QEMUCSD_NVME_ZNS_SRC
-    src/nvme_zns.tpp
+    include/nvme_zns.tpp
 )
 
 set(QEMUCSD_NVME_ZNS_HEADERS
