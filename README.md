@@ -14,18 +14,21 @@ technologies such as QEMU, uBPF and SPDK.
 ### Progress Report
 
 - Week 1 -> Goal: get fuse-lfs working with libfuse
-  [X] Add libfuse, fuse-lfs and rocksdb as dependencies
-  [X] Create custom libfuse fork to support non-privileged installation
-  [X] Configure CMake to install libfuse
-  [X] Configure environment script to setup pkg-config path
-  [X] Use Docker in Docker (dind) to build docker image for Gitlab CI pipeline
-  [X] Investigate and document how to debug fuse filesystems
-  [X] Determine and document RocksDB required syscalls
-  [X] Setup persistent memory that can be shared across processes
-    [ ] Split into daemon and client modes
+  - [X] Add libfuse, fuse-lfs and rocksdb as dependencies
+  - [X] Create custom libfuse fork to support non-privileged installation
+  - [X] Configure CMake to install libfuse
+  - [X] Configure environment script to setup pkg-config path
+  - [X] Use Docker in Docker (dind) to build docker image for Gitlab CI pipeline
+  - [X] Investigate and document how to debug fuse filesystems
+  - [X] Determine and document RocksDB required syscalls
+  - [X] Setup persistent memory that can be shared across processes
+    - [ ] Split into daemon and client modes
 - Week 2 -> Goal get a working LFS filesystem
-  [ ] Get a working LFS filesystem using FUSE
-  [ ] Create solid digital logbook to track discussions
+  - [ ] Get a working LFS filesystem using FUSE
+  - [X] Create solid digital logbook to track discussions
+- Week 3 -> Investigate FUSE I/O calls and fadvise
+  - [ ] Create FUSE LFS path to inode function.
+  - [ ] Setup research questions in thesis.
 
 ### Logbook
 
@@ -33,12 +36,65 @@ Serves as a place to quickly store digital information until it can be refined
 and processed into the thesis.
 
 - [Discussion Notes](#discussion-notes)
+- [Correlation POSIX and FUSE](#correlation-posix-and-fuse)
 - [RocksDB Integration](#rocksdb-integration)
 
 #### Discussion Notes
 
 - In order to analyze the exact calls RocksDB makes during its benchmarks tools
   like `strace` can be used.
+- Several methods exist to prototype filesystem integration for CSDs. Among
+  these are using LD_PRELOAD to override system calls such as read(), write()
+  and open(). In this design we choose to use FUSE as this simplifies some of
+  the management and opens the possibility of allowing parallelism while the
+  interface between FUSE and the filesystem calls is still thin enough it can be
+  correlated.
+- The filesystem can use a snapshot concurrency model with reference counts.
+- Each file can maintain a special table that associates system calls with CSD
+  kernels. To isolate this behavior (to specific users) we can use filehandles
+  and process IDs (These should be available for most FUSE API calls anyway).
+- The design should reuse existing operating system interfaces as much as
+  possible. Any new API or call should be well motivated with solid arguments.
+  As an initial idea we can investigate reusing POSIX fadvise.
+- As requirements our FUSE LFS requires gc and snapshots. It would be nice to
+  have parallelism.
+- Crossing kernel and userspace boundaries can be achieved using ioctl should
+  the need arise.
+- As experiment for evaluation we should try to run RocksDB benchmarks on top
+  of the FUSE LFS filesystem while offloading bloom filter computations from SST
+  tables
+- Filebench benchmark to identify filesystems calls. db_bench from RocksDB, run
+  both with strace
+- Filesystem design why FUSE, why build from scratch
+- FUSE, is it enough? filesystem calls, does the API support what we need.
+  Research question.
+
+#### Correlation POSIX and FUSE
+
+For convenience and reasonings sake a map between common POSIX I/O and FUSE API
+calls is needed.
+
+POSIX
+
+- close
+- (p/w)read
+- (p/w)write
+- lseek
+- open
+- fcntl
+- readdir
+- posix_fadvise
+
+FUSE
+
+- getattr
+- readdir
+- open
+- create
+- read
+- write
+- unlink
+- statfs
 
 #### RocksDB Integration
 
