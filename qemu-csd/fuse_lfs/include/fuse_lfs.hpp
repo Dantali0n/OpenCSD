@@ -31,9 +31,12 @@ extern "C" {
     #include "fuse3/fuse.h"
 }
 
+#include <map>
+#include <iostream>
+#include <sstream>
 #include <string>
 
-#include "spdk_init.hpp"
+#include "nvme_zns.hpp"
 
 namespace qemucsd::fuse_lfs {
 
@@ -52,6 +55,11 @@ namespace qemucsd::fuse_lfs {
     };
     static_assert(sizeof(zone_info_table_entry) == SECTOR_SIZE);
 
+    struct file_info {
+        uint64_t size;
+        std::string name;
+    };
+
     /**
      * Static wrapper class around FUSE LFS filesystem.
      */
@@ -61,7 +69,13 @@ namespace qemucsd::fuse_lfs {
         static struct fuse_context* context;
         static struct fuse_config* config;
 
-        static struct spdk_init::ns_entry* spdk_entry;
+        static struct nvme_zns::nvme_zns_info* nvme_info;
+
+        // Map filenames and their respective depth to inodes
+        static std::map<std::pair<uint32_t, std::string>, int> path_inode_map;
+
+        // Inode to file_info, reconstructed from 'disc' upon initialization
+        static std::map<int, struct file_info> inode_map;
 
         static const std::string PATH_ROOT;
 
@@ -71,6 +85,8 @@ namespace qemucsd::fuse_lfs {
         ~FuseLFS() = delete;
 
         static void get_operations(const struct fuse_operations** operations);
+
+        static void path_to_inode(const char* path, int& fd);
 
         static void* init(struct fuse_conn_info* conn, struct fuse_config* cfg);
         static int getattr(

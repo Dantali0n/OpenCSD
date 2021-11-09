@@ -30,7 +30,7 @@ namespace qemucsd::fuse_lfs{
     struct fuse_context* FuseLFS::context = nullptr;
     struct fuse_config* FuseLFS::config = nullptr;
 
-    struct spdk_init::ns_entry* FuseLFS::spdk_entry = nullptr;
+    struct nvme_zns::nvme_zns_info* FuseLFS::nvme_info = nullptr;
 
     const std::string FuseLFS::PATH_ROOT = "/";
 
@@ -49,28 +49,38 @@ namespace qemucsd::fuse_lfs{
         *operations = &FuseLFS::operations;
     }
 
+    /**
+     * Translate the (inefficient) char* path to an inode.
+     */
+    void FuseLFS::path_to_inode(const char* path, int& fd) {
+        std::istringstream spath(path);
+        std::string token;
+        int depth = 0;
+
+        // Iterate over the path with increased depth
+        while(std::getline(spath, token, '/')) {
+            // iterate...
+//            path_inode_map.find(std::make_pair<int, std::string>(depth, token));
+            depth++;
+        }
+    }
+
     void* FuseLFS::init(struct fuse_conn_info* conn, struct fuse_config* cfg) {
         connection = conn;
         context = fuse_get_context();
         config = cfg;
 
         // Get ns_entry from FUSE_MAIN call
-        spdk_entry = (struct spdk_init::ns_entry*) FuseLFS::context->private_data;
+        nvme_info = (struct nvme_zns::nvme_zns_info*) FuseLFS::context->private_data;
 
-        if(!spdk_entry->ctrlr || !spdk_entry->ns || !spdk_entry->qpair) {
-            std::cerr << "Private data from FUSE_MAIN incorrectly " <<
-                "configured should contain spdk_init::ns_entry*";
-            exit(1);
-        }
-
-        if(SECTOR_SIZE > spdk_entry->lba_size) {
-            std::cerr << "Sector size (" << spdk_entry->lba_size << ") is " <<
+        if(SECTOR_SIZE > nvme_info->sector_size) {
+            std::cerr << "Sector size (" << nvme_info->sector_size << ") is " <<
                 "to small, minimal is " << SECTOR_SIZE << " bytes, aborting";
             exit(1);
         }
 
-        if(spdk_entry->lba_size % SECTOR_SIZE != 0) {
-            std::cerr << "Sector size (" << spdk_entry->lba_size << ") is " <<
+        if(nvme_info->sector_size % SECTOR_SIZE != 0) {
+            std::cerr << "Sector size (" << nvme_info->sector_size << ") is " <<
                 "not clean multiple of " << SECTOR_SIZE << ", aborting";
             exit(1);
         }
