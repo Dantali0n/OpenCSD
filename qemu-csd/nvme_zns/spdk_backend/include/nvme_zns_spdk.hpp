@@ -22,28 +22,31 @@
  * SOFTWARE.
  */
 
-#ifndef QEMU_CSD_NVME_ZNS_BACKEND_HPP
-#define QEMU_CSD_NVME_ZNS_BACKEND_HPP
+#ifndef QEMU_CSD_NVME_ZNS_SPDK_HPP
+#define QEMU_CSD_NVME_ZNS_SPDK_HPP
 
-#include "nvme_zns_info.hpp"
+#include "nvme_zns_backend.hpp"
 
 namespace qemucsd::nvme_zns {
 
-    class NvmeZnsBackend {
+    class NvmeZnsMemorySpdk : NvmeZnsBackend {
+    protected:
+        struct nvme_zns_info info;
+        struct ns_entry* entry;
     public:
-        virtual void get_nvme_zns_info(struct nvme_zns_info* info) = 0;
+        NvmeZnsMemorySpdk(struct ns_entry* entry);
 
-        virtual int read(
-            uint64_t zone, uint64_t sector, size_t offset, void *buffer,
-            size_t size) = 0;
+        void get_nvme_zns_info(struct nvme_zns_info* info) override;
 
-        virtual int append(
-            uint64_t zone, uint64_t &sector, size_t offset, void *buffer,
-            size_t size) = 0;
+        int read(uint64_t zone, uint64_t sector, size_t offset, void *buffer,
+                 size_t size) override;
 
-        virtual int reset(uint64_t zone) = 0;
+        int append(uint64_t zone, uint64_t &sector, size_t offset, void *buffer,
+                   size_t size) override;
+
+        int reset(uint64_t zone) override;
     };
 
 }
 
-#endif // QEMU_CSD_NVME_ZNS_BACKEND_HPP
+#endif // QEMU_CSD_NVME_ZNS_SPDK_HPP

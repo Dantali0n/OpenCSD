@@ -20,19 +20,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-project(${PRJ_PRX}_nvme_zns)
+project(${PRJ_PRX}_nvme_zns_spdk)
 
-set(QEMUCSD_NVME_ZNS_LIBRARIES
+set(QEMUCSD_NVME_ZNS_SPDK_LIBRARIES
+    qemucsd_spdk_init
 )
 
-set(QEMUCSD_NVME_ZNS_SRC
-    include/nvme_zns.tpp
+set(QEMUCSD_NVME_ZNS_SPDK_SRC
+    src/nvme_zns_spdk.cxx
 )
 
-set(QEMUCSD_NVME_ZNS_HEADERS
-    include/nvme_zns.hpp
-    include/nvme_zns_backend.hpp
-    include/nvme_zns_info.hpp
+set(QEMUCSD_NVME_ZNS_SPDK_HEADERS
+    include/nvme_zns_spdk.hpp
 )
 
 # Add qemucsd_measurements to the includes
@@ -40,21 +39,16 @@ add_qemucsd_include(${CMAKE_CURRENT_SOURCE_DIR}/include)
 qemucsd_include_directories()
 
 add_library(
-    qemucsd_nvme_zns STATIC
-    ${QEMUCSD_NVME_ZNS_SRC}
-    ${QEMUCSD_NVME_ZNS_HEADERS}
+    qemucsd_nvme_zns_spdk STATIC
+    ${QEMUCSD_NVME_ZNS_SPDK_SRC}
+    ${QEMUCSD_NVME_ZNS_SPDK_HEADERS}
 )
-set_target_properties(qemucsd_nvme_zns PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(
-    qemucsd_nvme_zns
-    ${QEMUCSD_NVME_ZNS_LIBRARIES}
+    qemucsd_nvme_zns_spdk
+    ${QEMUCSD_NVME_ZNS_SPDK_LIBRARIES}
 )
 
 #add_dependencies(qemucsd_nvme_zns)
 
 # Add qemucsd_measurements to the modules
-add_qemucsd_module(qemucsd_nvme_zns)
-
-add_subdirectory(memory_backend)
-
-add_subdirectory(spdk_backend)
+add_qemucsd_module(qemucsd_nvme_zns_spdk)

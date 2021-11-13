@@ -43,8 +43,9 @@ qemucsd_include_directories()
 add_custom_target(
 	tests
 	DEPENDS
-	testcpp17
 	testarguments
+	testcpp17
+	testnvme-zns-memory
 )
 
 set(${PRJ_PRX}_TEST_LIBRARIES
@@ -63,7 +64,7 @@ set(${PRJ_PRX}_LIBRARIES_PACK
 # ----------- #
 
 set(TEST_CPP17_SOURCE
-	src/test-cpp-17.cxx
+	src/test_cpp_17.cxx
 	src/tests.cxx
 )
 
@@ -87,7 +88,7 @@ qemucsd_target_postprocess(testcpp17)
 # --------------- #
 
 set(TEST_ARGUMENTS_SOURCE
-	src/test-arguments.cxx
+	src/test_arguments.cxx
 	src/tests.cxx
 )
 
@@ -110,8 +111,38 @@ target_link_libraries(
 
 qemucsd_target_postprocess(testarguments)
 
+# --------------------- #
+# nvme_zns_memory tests #
+# --------------------- #
+
+set(TEST_NVME_ZNS_MEMORY_SOURCE
+	src/test_nvme_zns_memory.cxx
+	src/tests.cxx
+)
+
+set(TEST_NVME_ZNS_MEMORY_HEADERS
+	include/tests.hpp
+)
+
+message("${PRJ_PRX}: test nvme_zns_memory cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(testnvme-zns-memory ${TEST_NVME_ZNS_MEMORY_SOURCE} ${TEST_NVME_ZNS_MEMORY_HEADERS} ${${PRJ_PRX}_SOURCES})
+#add_dependencies(testarguments)
+
+target_link_libraries(
+	testnvme-zns-memory
+	qemucsd_nvme_zns
+	qemucsd_nvme_zns_memory
+	${${PRJ_PRX}_LIBRARIES_PACK}
+)
+
+qemucsd_target_postprocess(testnvme-zns-memory)
+
+# ------------- #
+# combine tests #
+# ------------- #
 
 add_test(TestArguments testarguments)
 add_test(TestCPP17 testcpp17)
+add_test(TestNvmeZnsBackendMemory testnvme-zns-memory)
 
-add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS testarguments testcpp17)
+add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS testarguments testcpp17 testnvme-zns-memory)

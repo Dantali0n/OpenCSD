@@ -22,33 +22,51 @@
  * SOFTWARE.
  */
 
-#ifndef QEMU_CSD_NVME_ZNS_HPP
-#define QEMU_CSD_NVME_ZNS_HPP
+#ifndef QEMU_CSD_NVME_ZNS_MEMORY_HPP
+#define QEMU_CSD_NVME_ZNS_MEMORY_HPP
+
+#include <cstddef>
+#include <cstring>
+#include <iostream>
+#include <vector>
 
 #include "nvme_zns_backend.hpp"
-#include "nvme_zns_info.hpp"
 
 namespace qemucsd::nvme_zns {
 
-    template<class nvme_zns_backend>
-    class NvmeZns {
-        static_assert(
-            std::is_base_of<NvmeZnsBackend, nvme_zns_backend>::value,
-            "template argument nvme_zns_backend must inherit NvmeZnsBackend");
+    class NvmeZnsMemoryBackend : NvmeZnsBackend {
     protected:
-        nvme_zns_backend* backend;
+        std::vector<uint64_t> write_pointers;
+
+        uintptr_t memory_limit;
+        uint64_t zone_byte_size;
+
+        unsigned char* data;
+        struct nvme_zns_info info;
+
+        bool in_range(uint64_t zone, uint64_t sector, size_t offset);
+
+        int compute_address(uint64_t zone, uint64_t sector, size_t offset,
+            size_t size, uintptr_t& address);
+
     public:
-        NvmeZns(nvme_zns_backend* backend);
+        NvmeZnsMemoryBackend(
+            size_t num_zones,  size_t zone_size, size_t sector_size);
 
-        void get_nvme_zns_info(struct nvme_zns_info* info);
+        // Virtual required to enforce destructor is called in super classes
+        virtual ~NvmeZnsMemoryBackend();
 
-        int read(uint64_t zone, uint64_t sector, size_t offset, void* buffer, size_t size);
-        int append(uint64_t zone, uint64_t& sector, size_t offset, void* buffer, size_t size);
-        int reset(uint64_t zone);
+        void get_nvme_zns_info(struct nvme_zns_info* info) override;
+
+        int read(uint64_t zone, uint64_t sector, size_t offset, void* buffer,
+            size_t size) override;
+
+        int append(uint64_t zone, uint64_t& sector, size_t offset, void* buffer,
+            size_t size) override;
+
+        int reset(uint64_t zone) override;
     };
-
-    #include "nvme_zns.tpp"
 
 }
 
-#endif // QEMU_CSD_NVME_ZNS_HPP
+#endif // QEMU_CSD_NVME_ZNS_MEMORY_HPP

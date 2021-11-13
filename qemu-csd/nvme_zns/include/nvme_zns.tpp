@@ -4,6 +4,11 @@ NvmeZns<nvme_zns_backend>::NvmeZns(nvme_zns_backend* backend) {
 }
 
 template<class nvme_zns_backend>
+void NvmeZns<nvme_zns_backend>::get_nvme_zns_info(struct nvme_zns_info* info) {
+    this->backend->get_nvme_zns_info(info);
+}
+
+template<class nvme_zns_backend>
 int NvmeZns<nvme_zns_backend>::read(
     uint64_t zone, uint64_t sector, size_t offset, void* buffer, size_t size)
 {

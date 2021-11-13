@@ -22,28 +22,27 @@
  * SOFTWARE.
  */
 
-#ifndef QEMU_CSD_NVME_ZNS_BACKEND_HPP
-#define QEMU_CSD_NVME_ZNS_BACKEND_HPP
-
-#include "nvme_zns_info.hpp"
+#ifndef QEMU_CSD_NVME_ZNS_INFO_HPP
+#define QEMU_CSD_NVME_ZNS_INFO_HPP
 
 namespace qemucsd::nvme_zns {
 
-    class NvmeZnsBackend {
-    public:
-        virtual void get_nvme_zns_info(struct nvme_zns_info* info) = 0;
+    /**
+     * Basic structure that should be made available to users of NvmeZns
+     * instances.
+     */
+    struct nvme_zns_info {
+        // Number of zones
+        uint64_t num_zones;
+        // Number of maximum open zones
+        uint64_t max_open;
 
-        virtual int read(
-            uint64_t zone, uint64_t sector, size_t offset, void *buffer,
-            size_t size) = 0;
-
-        virtual int append(
-            uint64_t zone, uint64_t &sector, size_t offset, void *buffer,
-            size_t size) = 0;
-
-        virtual int reset(uint64_t zone) = 0;
+        // In bytes
+        uint64_t sector_size;
+        // In number of sectors
+        uint64_t zone_size;
     };
 
 }
 
-#endif // QEMU_CSD_NVME_ZNS_BACKEND_HPP
+#endif // QEMU_CSD_NVME_ZNS_INFO_HPP
