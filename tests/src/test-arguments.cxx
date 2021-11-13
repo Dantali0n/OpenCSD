@@ -34,7 +34,20 @@
 
 BOOST_AUTO_TEST_SUITE(Test_Arguments)
 
-	BOOST_AUTO_TEST_CASE(Test_Arguments_Window_Mode) {
+    BOOST_AUTO_TEST_CASE(Test_Arguments_Defaults) {
+        int argc = 1;
+        char *argv[1] = {(char*)"test"};
+        qemucsd::arguments::options opts;
+        qemucsd::arguments::parse_args(argc, argv, &opts);
+
+        BOOST_CHECK(
+            opts.dev_init_mode == qemucsd::arguments::DEFAULT_DEV_INIT_MODE);
+        BOOST_CHECK(
+            opts.ubpf_mem_size == qemucsd::arguments::DEFAULT_UBPF_MEM_SIZE);
+        BOOST_CHECK(opts.ubpf_jit == qemucsd::arguments::DEFAULT_UBPF_JIT);
+    }
+
+	BOOST_AUTO_TEST_CASE(Test_Arguments_Device_Mode) {
 		int argc = 3;
 		char *argv[3] = {(char*)"test", (char*)"-m", (char*)"preserve"};
 		qemucsd::arguments::options opts;
@@ -43,6 +56,16 @@ BOOST_AUTO_TEST_SUITE(Test_Arguments)
 		BOOST_CHECK(
 			opts.dev_init_mode == qemucsd::arguments::DEV_INIT_PRESERVE);
 	}
+
+    BOOST_AUTO_TEST_CASE(Test_Arguments_Device_Mode_reset) {
+        int argc = 3;
+        char *argv[3] = {(char*)"test", (char*)"-m", (char*)"reset"};
+        qemucsd::arguments::options opts;
+        qemucsd::arguments::parse_args(argc, argv, &opts);
+
+        BOOST_CHECK(
+                opts.dev_init_mode == qemucsd::arguments::DEV_INIT_RESET);
+    }
 
 	BOOST_AUTO_TEST_CASE(Test_Arguments_Settings) {
 		int argc = 3;
@@ -63,5 +86,57 @@ BOOST_AUTO_TEST_SUITE(Test_Arguments)
 
 		BOOST_CHECK(reference.compare(opts.spdk.name) == 0);
 	}
+
+    BOOST_AUTO_TEST_CASE(Test_Arguments_Jit_true) {
+        int argc = 3;
+        char *argv[3] = {(char*)"test", (char*)"--jit", (char*)"true"};
+        qemucsd::arguments::options opts;
+        qemucsd::arguments::parse_args(argc, argv, &opts);
+
+        BOOST_CHECK(opts.ubpf_jit == true);
+    }
+
+    BOOST_AUTO_TEST_CASE(Test_Arguments_Jit_false) {
+        int argc = 3;
+        char *argv[3] = {(char*)"test", (char*)"--jit", (char*)"false"};
+        qemucsd::arguments::options opts;
+        qemucsd::arguments::parse_args(argc, argv, &opts);
+
+        BOOST_CHECK(opts.ubpf_jit == false);
+    }
+
+    BOOST_AUTO_TEST_CASE(Test_Arguments_auto_strip_first) {
+        int argc = 3;
+        char *argv[3] = {(char*)"test", (char*)"--jit", (char*)"false"};
+
+        qemucsd::arguments::t_auto_strip_args parsed_args;
+        qemucsd::arguments::auto_strip_args(argc, argv, &parsed_args);
+
+        // No -- so should be size 2, one for isolated first arg
+        BOOST_CHECK(parsed_args.size() == 2);
+
+        BOOST_CHECK(strcmp(parsed_args.at(0).second.at(0), argv[0]) == 0);
+        BOOST_CHECK(strcmp(parsed_args.at(1).second.at(0), argv[0]) == 0);
+
+        BOOST_CHECK(strcmp(parsed_args.at(1).second.at(1), argv[1]) == 0);
+        BOOST_CHECK(strcmp(parsed_args.at(1).second.at(2), argv[2]) == 0);
+    }
+
+    BOOST_AUTO_TEST_CASE(Test_Arguments_auto_strip_second) {
+        int argc = 3;
+        char *argv[3] = {(char*)"test", (char*)"--", (char*)"false"};
+
+        qemucsd::arguments::t_auto_strip_args parsed_args;
+        qemucsd::arguments::auto_strip_args(argc, argv, &parsed_args);
+
+        // One -- so should be size 3, one for isolated first arg
+        BOOST_CHECK(parsed_args.size() == 3);
+
+        BOOST_CHECK(strcmp(parsed_args.at(0).second.at(0), argv[0]) == 0);
+        BOOST_CHECK(strcmp(parsed_args.at(1).second.at(0), argv[0]) == 0);
+        BOOST_CHECK(strcmp(parsed_args.at(2).second.at(0), argv[0]) == 0);
+
+        BOOST_CHECK(strcmp(parsed_args.at(2).second.at(1), argv[2]) == 0);
+    }
 
 BOOST_AUTO_TEST_SUITE_END()
