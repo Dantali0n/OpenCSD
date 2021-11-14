@@ -80,13 +80,13 @@ namespace qemucsd::fuse_lfs {
         static const std::string PATH_ROOT;
 
         static const struct fuse_operations operations;
+
+        static void path_to_inode(const char* path, int& fd);
     public:
         FuseLFS() = delete;
         ~FuseLFS() = delete;
 
         static void get_operations(const struct fuse_operations** operations);
-
-        static void path_to_inode(const char* path, int& fd);
 
         static void* init(struct fuse_conn_info* conn, struct fuse_config* cfg);
         static int getattr(

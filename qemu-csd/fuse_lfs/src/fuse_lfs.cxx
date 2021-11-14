@@ -59,8 +59,12 @@ namespace qemucsd::fuse_lfs{
 
         // Iterate over the path with increased depth
         while(std::getline(spath, token, '/')) {
-            // iterate...
-//            path_inode_map.find(std::make_pair<int, std::string>(depth, token));
+            // If find does not return the end of the map its a match
+            auto it = path_inode_map.find(std::make_pair(depth, token));
+            if(it != path_inode_map.end()) {
+                fd = it->second;
+                return;
+            }
             depth++;
         }
     }
