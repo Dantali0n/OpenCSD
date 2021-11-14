@@ -43,6 +43,9 @@ void segfault_handler(int signal, siginfo_t *si, void *arg) {
 #include "fuse_lfs.hpp"
 #include "spdk_init.hpp"
 #include "nvme_zns.hpp"
+#include "nvme_zns_memory.hpp"
+
+using qemucsd::nvme_zns::NvmeZnsMemoryBackend;
 
 /**
  * Entrypoint for fuse LFS filesystem
@@ -62,9 +65,9 @@ int main(int argc, char* argv[]) {
     const struct fuse_operations* ops;
     qemucsd::arguments::options opts;
 
-    NvmeZnsBackend* trash = (NvmeZnsBackend*) nullptr;
-    qemucsd::nvme_zns::NvmeZns<NvmeZnsBackend> nvme_zns(trash);
-    struct qemucsd::spdk_init::ns_entry entry = {0};
+    NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
+    qemucsd::nvme_zns::NvmeZns<NvmeZnsMemoryBackend> nvme_zns(&nvme_memory);
+//    struct qemucsd::spdk_init::ns_entry entry = {0};
 
     // Setup segfault handler to print backward stacktraces
     sigemptyset(&glob_sigaction.sa_mask);
@@ -120,7 +123,7 @@ int main(int argc, char* argv[]) {
         // Get fuse operations structure
         qemucsd::fuse_lfs::FuseLFS::get_operations(&ops);
         // TODO(Dantali0n): Figure out where private data ends up.
-        return fuse_main(fuse_argc, fuse_argv, ops, &entry);
+        return fuse_main(fuse_argc, fuse_argv, ops, &nvme_memory);
     }
     catch(...) {
         #ifdef QEMUCSD_DEBUG
