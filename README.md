@@ -28,7 +28,11 @@ technologies such as QEMU, uBPF and SPDK.
   - [X] Create solid digital logbook to track discussions
 - Week 3 -> Investigate FUSE I/O calls and fadvise
   - [ ] Create FUSE LFS path to inode function.
+    - [ ] Test path to inode function using unit tests.
   - [ ] Setup research questions in thesis.
+  - [ ] Run filesystem benchmarks with strace
+    - [ ] RocksDB DBBench
+    - [ ] Filebench
 
 ### Logbook
 
