@@ -37,6 +37,7 @@ add_custom_target(
     play-boost-locale
     play-example
     play-fuse-hello
+    play-fuse-hooks-hl
     play-generate-integer-data
     play-generic-ebpf
     play-libbpf-bpf-load
@@ -146,6 +147,35 @@ target_include_directories(
 )
 
 qemucsd_target_postprocess(play-fuse-hello)
+
+# ------------------------ #
+# Playground fuse-hooks-hl #
+# ------------------------ #
+
+set(PLAYGROUND_FUSE_HOOKS_HL_SOURCE
+    fuse-hooks-hl/playground-fuse-hooks-hl.cxx
+)
+
+message("${PRJ_PRX}: playground fuse-hooks-hl cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(play-fuse-hooks-hl ${PLAYGROUND_FUSE_HOOKS_HL_SOURCE})
+
+add_dependencies(play-fuse-hooks-hl libfuse-build)
+
+target_link_libraries(
+        play-fuse-hooks-hl
+    fuse3
+    ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
+)
+
+# Include fuse3 directory directly to prevent accidental inclusion of
+# global fuse installations
+target_include_directories(
+    play-fuse-hooks-hl
+    PUBLIC
+    ${PRJ_ROOT}/include/fuse3
+)
+
+qemucsd_target_postprocess(play-fuse-hooks-hl)
 
 # ------------------------------------- #
 # Playground play-generate-integer-data #
