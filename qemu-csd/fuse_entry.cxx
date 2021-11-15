@@ -122,8 +122,9 @@ int main(int argc, char* argv[]) {
 
         // Get fuse operations structure
         qemucsd::fuse_lfs::FuseLFS::get_operations(&ops);
-        // TODO(Dantali0n): Figure out where private data ends up.
-        return fuse_main(fuse_argc, fuse_argv, ops, &nvme_memory);
+        struct qemucsd::nvme_zns::nvme_zns_info nvme_info;
+        nvme_memory.get_nvme_zns_info(&nvme_info);
+        return fuse_main(fuse_argc, fuse_argv, ops, &nvme_info);
     }
     catch(...) {
         #ifdef QEMUCSD_DEBUG

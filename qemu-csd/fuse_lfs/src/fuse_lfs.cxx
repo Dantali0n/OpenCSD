@@ -34,6 +34,9 @@ namespace qemucsd::fuse_lfs{
 
     const std::string FuseLFS::PATH_ROOT = "/";
 
+    typedef std::map<std::pair<uint32_t, std::__cxx11::basic_string<char> >, int> template_hell;
+    template_hell FuseLFS::path_inode_map = template_hell();
+
     const struct fuse_operations FuseLFS::operations = {
         .getattr    = FuseLFS::getattr,
         .unlink     = FuseLFS::unlink,
