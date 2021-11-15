@@ -36,12 +36,12 @@ add_custom_target(
     play-backward
     play-boost-locale
     play-example
-    play-fuse-hello
     play-fuse-hooks-hl
     play-generate-integer-data
     play-generic-ebpf
-    play-libbpf-bpf-load
     play-libbpf-bootstrap
+    play-libbpf-bpf-load
+    play-lockf-csd
     play-persist-state
     play-filter
     play-spdk
@@ -119,35 +119,6 @@ target_link_libraries(
 
 qemucsd_target_postprocess(play-example)
 
-# --------------------- #
-# Playground fuse-hello #
-# --------------------- #
-
-set(PLAYGROUND_FUSE_HELLO_SOURCE
-    fuse-hello/playground-fuse-hello.cxx
-)
-
-message("${PRJ_PRX}: playground fuse-hello cxx flags:${CMAKE_CXX_FLAGS}")
-add_executable(play-fuse-hello ${PLAYGROUND_FUSE_HELLO_SOURCE})
-
-add_dependencies(play-fuse-hello libfuse-build)
-
-target_link_libraries(
-    play-fuse-hello
-    fuse3
-    ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
-)
-
-# Include fuse3 directory directly to prevent accidental inclusion of
-# global fuse installations
-target_include_directories(
-    play-fuse-hello
-    PUBLIC
-    ${PRJ_ROOT}/include/fuse3
-)
-
-qemucsd_target_postprocess(play-fuse-hello)
-
 # ------------------------ #
 # Playground fuse-hooks-hl #
 # ------------------------ #
@@ -176,6 +147,35 @@ target_include_directories(
 )
 
 qemucsd_target_postprocess(play-fuse-hooks-hl)
+
+# ------------------------- #
+# Playground fuse-xattr-csd #
+# ------------------------- #
+
+set(PLAYGROUND_FUSE_XATTR_CSD_SOURCE
+    fuse-xattr-csd/playground-fuse-xattr-csd.cxx
+)
+
+message("${PRJ_PRX}: playground fuse-xattr-csd cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(play-fuse-xattr-csd ${PLAYGROUND_FUSE_XATTR_CSD_SOURCE})
+
+add_dependencies(play-fuse-xattr-csd libfuse-build)
+
+target_link_libraries(
+    play-fuse-xattr-csd
+    fuse3
+    ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
+)
+
+# Include fuse3 directory directly to prevent accidental inclusion of
+# global fuse installations
+target_include_directories(
+    play-fuse-xattr-csd
+    PUBLIC
+    ${PRJ_ROOT}/include/fuse3
+)
+
+qemucsd_target_postprocess(play-fuse-xattr-csd)
 
 # ------------------------------------- #
 # Playground play-generate-integer-data #
@@ -406,6 +406,24 @@ target_link_libraries(
 )
 
 qemucsd_target_postprocess(play-libbpf-bpf-load)
+
+# -------------------- #
+# Playground lockf-csd #
+# -------------------- #
+
+set(PLAYGROUND_LOCKF_CSD_SOURCE
+    lockf-csd/playground-lockf-csd.cxx
+)
+
+message("${PRJ_PRX}: playground lockf-csd cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(play-lockf-csd ${PLAYGROUND_LOCKF_CSD_SOURCE})
+
+target_link_libraries(
+    play-lockf-csd
+    ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
+)
+
+qemucsd_target_postprocess(play-lockf-csd)
 
 # ----------------------------- #
 # Playground play-persist-state #
