@@ -12,7 +12,7 @@ technologies such as QEMU, uBPF and SPDK.
 ![](thesis/resources/images/loader-pfs-arch-2.drawio.png)
 
 ### Progress Report
-
+provisional
 - Week 1 -> Goal: get fuse-lfs working with libfuse
   - [X] Add libfuse, fuse-lfs and rocksdb as dependencies
   - [X] Create custom libfuse fork to support non-privileged installation
@@ -27,12 +27,14 @@ technologies such as QEMU, uBPF and SPDK.
   - [ ] Get a working LFS filesystem using FUSE
   - [X] Create solid digital logbook to track discussions
 - Week 3 -> Investigate FUSE I/O calls and fadvise
-  - [ ] Create FUSE LFS path to inode function.
+  - [X] Create FUSE LFS path to inode function.
     - [ ] Test path to inode function using unit tests.
-  - [ ] Setup research questions in thesis.
+  - [X] Setup research questions in thesis.
   - [ ] Run filesystem benchmarks with strace
     - [ ] RocksDB DBBench
     - [ ] Filebench
+  - [ ] Use fsetxattr for 'process' attributes in FUSE
+    - [ ] 
 
 ### Logbook
 
@@ -41,6 +43,7 @@ and processed into the thesis.
 
 - [Discussion Notes](#discussion-notes)
 - [Correlation POSIX and FUSE](#correlation-posix-and-fuse)
+- [Non-persistent Conditional Extended Attributes in FUSE](#non-persistent-conditional-extended-attributes-in-FUSE)
 - [RocksDB Integration](#rocksdb-integration)
 
 #### Discussion Notes
@@ -99,6 +102,29 @@ FUSE
 - write
 - unlink
 - statfs
+
+#### Non-persistent Conditional Extended Attributes in FUSE
+
+Extended filesystem attributes support various namespaces with different
+behavior and responsibility. Since the underlying filesystem is still tasked
+with storing these attributes persistently regardless of namespace, the FUSE
+filesystem is effectively in full control on how to proceed.
+
+Given the already existing standard to use namespaces for permissions roles and
+behavior an additional namespace is an easy and clean extension. Introducing
+the _process_ namespace. Non-persistent extended file attributes that are only
+visible to the process that created them. Effectively an in memory map that
+lives inside the filesystem instead of in the calling process.
+
+Requirements:
+
+* Calling PID must be (made) available to either the high level or low level
+  FUSE API hooks (By observing the `-d` FUSE output the PID is already available
+  in some contexts just not to the API calls).
+* A clean method to deregister all hooks is needed, this either needs to be done
+  when the file is released or when the file is reopened using a previously used
+  PID. Using the release / releasedir system calls is difficult as the calling
+  PID is not available in this context.
 
 #### RocksDB Integration
 
