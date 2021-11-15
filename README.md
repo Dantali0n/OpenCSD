@@ -24,18 +24,31 @@ provisional
   - [X] Setup persistent memory that can be shared across processes
     - [ ] Split into daemon and client modes
 - Week 2 -> Goal get a working LFS filesystem
-  - [ ] Get a working LFS filesystem using FUSE
   - [X] Create solid digital logbook to track discussions
 - Week 3 -> Investigate FUSE I/O calls and fadvise
-  - [X] Create FUSE LFS path to inode function.
-    - [ ] Test path to inode function using unit tests.
+  - [ ] Get a working LFS filesystem using FUSE
+    - [ ] What are the requirements for these filesystems.
+    - [X] Create FUSE LFS path to inode function.
+      - [ ] Test path to inode function using unit tests.
   - [X] Setup research questions in thesis.
   - [ ] Run filesystem benchmarks with strace
     - [ ] RocksDB DBBench
     - [ ] Filebench
-  - [ ] Use fsetxattr for 'process' attributes in FUSE
-    - [ ] 
-
+  - [X] Use fsetxattr for 'process' attributes in FUSE
+    - [X] Document how this can enable CSD functionality in regular filesystems
+- Week 4 -> FUSE LFS filesystem
+  - [ ] Get a working LFS filesystem using FUSE
+    - [ ] What are the requirements for these filesystems? (research question)
+      - [ ] Snapshots
+      - [ ] GC
+   - [ ] Test path to inode function using unit tests.
+- Week 5 -> FUSE LFS filesystem
+- Week 6 -> FUSE LFS filesystem
+- Week 7 -> FUSE LFS filesystem
+- Week 8 -> FUSE LFS filesystem
+- [ ] Run filesystem benchmarks with strace
+  - [ ] RocksDB DBBench
+  - [ ] Filebench
 ### Logbook
 
 Serves as a place to quickly store digital information until it can be refined

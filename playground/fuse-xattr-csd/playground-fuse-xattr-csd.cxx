@@ -174,7 +174,7 @@ void x_release(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi) {
 }
 
 void x_setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
-               const char *value, size_t size, int flags)
+                const char *value, size_t size, int flags)
 {
     const fuse_ctx* context = fuse_req_ctx(req);
 
