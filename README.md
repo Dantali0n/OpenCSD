@@ -1,5 +1,8 @@
-![pipeline status](https://gitlab.dantalion.nl/vu/qemu-csd/badges/master/pipeline.svg)
-![coverage report](https://gitlab.dantalion.nl/vu/qemu-csd/badges/master/coverage.svg)
+[![pipeline status](https://gitlab.dantalion.nl/vu/qemu-csd/badges/master/pipeline.svg)](https://gitlab.dantalion.nl/vu/qemu-csd/-/pipelines)
+[![coverage report](https://gitlab.dantalion.nl/vu/qemu-csd/badges/master/coverage.svg)](https://gitlab.dantalion.nl/vu/qemu-csd/-/jobs/artifacts/master/download?job=coverage)
+[![latest commit](https://shields.io/github/last-commit/Dantali0n/qemu-csd)](https://gitlab.dantalion.nl/vu/qemu-csd/-/commits/master)
+[![source code license MIT](https://shields.io/github/license/Dantali0n/qemu-csd)](https://gitlab.dantalion.nl/vu/qemu-csd/-/blob/master/LICENSE)
+[![follow me on twitter](https://img.shields.io/twitter/follow/D4ntali0n?style=social)](https://twitter.com/D4ntali0n)
 
 # OpenCSD
 
