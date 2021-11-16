@@ -154,8 +154,7 @@ memory-valgrind:
     - cd build || exit
     - cmake -DENABLE_PLAYGROUND=off -DENABLE_DOCUMENTATION=off -DENABLE_TESTS=on ..
     - make tests
-    - valgrind --leak-check=full tests/testcpp17
-    - valgrind --leak-check=full tests/testarguments
+    - 'for test in $(ls tests/test*); do valgrind --leak-check=full "$test"; done'
 memory-sanitizer:
   stage: memory
   tags:
