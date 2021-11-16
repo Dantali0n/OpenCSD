@@ -72,10 +72,10 @@
 #
 
 # Check prereqs
-FIND_PROGRAM( GCOV_PATH gcov )
-FIND_PROGRAM( LCOV_PATH lcov )
-FIND_PROGRAM( GENHTML_PATH genhtml )
-FIND_PROGRAM( GCOVR_PATH gcovr PATHS ${CMAKE_SOURCE_DIR}/tests)
+FIND_PROGRAM(GCOV_PATH gcov )
+FIND_PROGRAM(LCOV_PATH lcov )
+FIND_PROGRAM(GENHTML_PATH genhtml )
+FIND_PROGRAM(GCOVR_PATH gcovr PATHS ${CMAKE_SOURCE_DIR}/tests)
 
 IF(NOT GCOV_PATH)
     MESSAGE(FATAL_ERROR "gcov not found! Aborting...")
@@ -189,8 +189,10 @@ FUNCTION(SETUP_TARGET_FOR_COVERAGE_COBERTURA _targetname _testrunner _outputname
         MESSAGE(FATAL_ERROR "genhtml not found! Aborting...")
     ENDIF() # NOT GENHTML_PATH
 
-    SET(coverage_info "${CMAKE_BINARY_DIR}/${_outputname}.info")
-    SET(coverage_cleaned "${coverage_info}.cleaned")
+    SET(coverage_base "${CMAKE_BINARY_DIR}/${_outputname}.base.info")
+    SET(coverage_info "${CMAKE_BINARY_DIR}/${_outputname}.test.info")
+    SET(coverage_total "${CMAKE_BINARY_DIR}/${_outputname}.total.info")
+    SET(coverage_cleaned "${coverage_info}clean.info")
 
     ADD_CUSTOM_TARGET(${_targetname}
 
@@ -198,8 +200,10 @@ FUNCTION(SETUP_TARGET_FOR_COVERAGE_COBERTURA _targetname _testrunner _outputname
         ${_testrunner} ${ARGV3}
 
         # Running gcovr
+        COMMAND ${LCOV_PATH} -i --directory . --capture --output-file ${coverage_base}
         COMMAND ${LCOV_PATH} --directory . --capture --output-file ${coverage_info}
-        COMMAND ${LCOV_PATH} --remove ${coverage_info} '${CMAKE_BINARY_DIR}/qemu-csd/include/*' '${CMAKE_SOURCE_DIR}/tests/*' '/usr/*' --output-file ${coverage_cleaned}
+        COMMAND ${LCOV_PATH} -a ${coverage_base} -a ${coverage_info} -o ${coverage_total}
+        COMMAND ${LCOV_PATH} --remove ${coverage_total} '${CMAKE_BINARY_DIR}/qemu-csd/include/*' '${CMAKE_SOURCE_DIR}/tests/*' '/usr/*' --output-file ${coverage_cleaned}
         COMMAND ${GENHTML_PATH} -o ${_outputname} ${coverage_cleaned}
         COMMAND ${CMAKE_SOURCE_DIR}/python/lcov-to-cobertura/lcov_cobertura/lcov_cobertura.py ${coverage_cleaned}
         COMMAND ${CMAKE_COMMAND} -E remove ${coverage_info} ${coverage_cleaned}

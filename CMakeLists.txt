@@ -189,12 +189,11 @@ if(ENABLE_CODECOV)
 	endif()
 	message("${PRJ_PRX}: Running CodeCoverage, forcing ENABLE_TESTS & "
 		"CMAKE_BUILD_TYPE=Debug")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
+	# CLANG -> -fprofile-instr-generate -fcoverage-mapping
+	# GCC -> -fprofile-arcs -ftest-coverage -lgcov
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -fno-inline -fno-inline-small-functions -fno-default-inline"
+	)
 	set(ENABLE_TESTS ON) # tests need to be enabled for code coverage
-	if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-		message(WARNING "${PRJ_PRX}: Forcing build type to Debug to allow code coverage!")
-		set(CMAKE_BUILD_TYPE Debug) # debug needed to disable compiler optimization
-	endif()
 endif()
 
 # Collection of concrete implementations
@@ -224,7 +223,7 @@ if(ENABLE_CODECOV)
 
 	message(${local_modules})
 #	setup_target_for_coverage(${PRJ_PRX}_coverage ctest ${local_modules})
-	setup_target_for_coverage_cobertura(${PRJ_PRX}_coverage ctest ${local_modules})
+	setup_target_for_coverage_cobertura(${PRJ_PRX}_coverage ctest coverage)
 #	SETUP_TARGET_FOR_COVERAGE_COBERTURA(${PRJ_PRX}_coverage ctest ${local_modules})
 endif(ENABLE_CODECOV)
 
