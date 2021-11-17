@@ -141,7 +141,7 @@ coverage:
     - make qemu-csd_coverage
   artifacts:
     paths:
-      - build/qemucsd_arguments/*
+      - build/coverage/*
     reports:
       cobertura: build/coverage.xml
 memory-valgrind:
