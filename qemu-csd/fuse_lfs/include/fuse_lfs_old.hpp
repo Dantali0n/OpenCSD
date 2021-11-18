@@ -28,7 +28,7 @@
 #define FUSE_USE_VERSION	36
 
 extern "C" {
-    #include "fuse3/fuse_lowlevel.h"
+#include "fuse3/fuse.h"
 }
 
 #include <map>
@@ -77,41 +77,33 @@ namespace qemucsd::fuse_lfs {
         // Inode to file_info, reconstructed from 'disc' upon initialization
         static std::map<int, struct file_info> inode_map;
 
-        static const std::string FUSE_LFS_NAME_PREFIX;
-        static const std::string FUSE_SEQUENTIAL_PARAM;
-
         static const std::string PATH_ROOT;
 
-        static const struct fuse_lowlevel_ops operations;
+        static const struct fuse_operations operations;
 
-        template<typename T>
-        static void output(std::ostream &out, T &&t);
-
-        template<typename Head, typename... Tail>
-        static void output(std::ostream &out, Head &&head, Tail&&... tail);
+        static void path_to_inode(const char* path, int& fd);
     public:
         FuseLFS() = delete;
         ~FuseLFS() = delete;
 
-        static int initialize(int argc, char* argv[],
-                              struct nvme_zns::nvme_zns_info* nvme_info);
+        static void get_operations(const struct fuse_operations** operations);
 
-        static void init(void *userdata, struct fuse_conn_info *conn);
-        static void lookup(fuse_req_t req, fuse_ino_t parent, const char *name);
-        static void getattr(fuse_req_t req, fuse_ino_t ino,
-                           struct fuse_file_info *fi);
-        static void readdir(
-            fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
-            struct fuse_file_info *fi);
-        static void open(fuse_req_t req, fuse_ino_t ino,
-                         struct fuse_file_info *fi);
-        static void create(fuse_req_t req, fuse_ino_t parent, const char *name,
-                          mode_t mode, struct fuse_file_info *fi);
-        static void read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
-                        struct fuse_file_info *fi);
-        static void write(fuse_req_t req, fuse_ino_t ino, const char *buf,
-                         size_t size, off_t off, struct fuse_file_info *fi);
-        static void unlink(fuse_req_t req, fuse_ino_t parent, const char *name);
+        static void* init(struct fuse_conn_info* conn, struct fuse_config* cfg);
+        static int getattr(
+                const char* path, struct stat* stat, struct fuse_file_info* fi);
+        static int readdir(
+                const char* path, void* callback, fuse_fill_dir_t directory_type,
+                off_t offset, struct fuse_file_info *, enum fuse_readdir_flags);
+        static int open(const char* path, struct fuse_file_info* fi);
+        static int create(
+                const char* path, mode_t mode, struct fuse_file_info* fi);
+        static int read(
+                const char* path, char* buffer, size_t size, off_t offset,
+                struct fuse_file_info* fi);
+        static int write(
+                const char* path, const char* buffer, size_t size, off_t offset,
+                struct fuse_file_info* fi);
+        static int unlink(const char* path);
     };
 }
 

@@ -106,25 +106,10 @@ int main(int argc, char* argv[]) {
             fuse_argv = stripped_args.at(0).second.data();
         }
 
-        // Check sequential performance mode
-        bool safe = false;
-        static const std::string FUSE_SEQUANTIAL_PARAM = "-s";
-        for(int i = 0; i < fuse_argc; i++) {
-            if(FUSE_SEQUANTIAL_PARAM.compare(fuse_argv[i]) == 0) {
-                safe = true;
-                break;
-            }
-        }
-        if(safe == false) {
-            std::cerr << "FUSE LFS requires -s sequential mode" << std::endl;
-            return -1;
-        }
-
-        // Get fuse operations structure
-        qemucsd::fuse_lfs::FuseLFS::get_operations(&ops);
         struct qemucsd::nvme_zns::nvme_zns_info nvme_info;
         nvme_memory.get_nvme_zns_info(&nvme_info);
-        return fuse_main(fuse_argc, fuse_argv, ops, &nvme_info);
+        return qemucsd::fuse_lfs::FuseLFS::initialize(
+            fuse_argc, fuse_argv, &nvme_info);
     }
     catch(...) {
         #ifdef QEMUCSD_DEBUG

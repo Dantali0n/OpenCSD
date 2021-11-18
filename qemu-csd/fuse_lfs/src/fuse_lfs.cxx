@@ -32,24 +32,109 @@ namespace qemucsd::fuse_lfs{
 
     struct nvme_zns::nvme_zns_info* FuseLFS::nvme_info = nullptr;
 
+    const std::string FuseLFS::FUSE_LFS_NAME_PREFIX = "[FUSE LFS] ";
+    const std::string FuseLFS::FUSE_SEQUENTIAL_PARAM = "-s";
+
+    // Need string manipulations for lookup call
     const std::string FuseLFS::PATH_ROOT = "/";
 
     typedef std::map<std::pair<uint32_t, std::__cxx11::basic_string<char> >, int> template_hell;
     template_hell FuseLFS::path_inode_map = template_hell();
 
-    const struct fuse_operations FuseLFS::operations = {
+    const struct fuse_lowlevel_ops FuseLFS::operations = {
+        .init       = FuseLFS::init,
+        .lookup     = FuseLFS::lookup,
         .getattr    = FuseLFS::getattr,
         .unlink     = FuseLFS::unlink,
         .open	    = FuseLFS::open,
         .read       = FuseLFS::read,
         .write      = FuseLFS::write,
         .readdir    = FuseLFS::readdir,
-        .init       = FuseLFS::init,
         .create     = FuseLFS::create,
     };
 
-    void FuseLFS::get_operations(const struct fuse_operations** operations) {
-        *operations = &FuseLFS::operations;
+    /**
+     * Initialize fuse using the low level API
+     * @return
+     */
+    int FuseLFS::initialize(int argc, char* argv[],
+                            struct nvme_zns::nvme_zns_info* nvme_info)
+    {
+        struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
+        struct fuse_session *session;
+        struct fuse_cmdline_opts opts = {0};
+        struct fuse_loop_config loop_config = {0};
+        int ret = -1;
+
+        // Check sequential performance mode
+        bool safe = false;
+        for(int i = 0; i < argc; i++) {
+            if(FUSE_SEQUENTIAL_PARAM.compare(argv[i]) == 0) {
+                safe = true;
+                break;
+            }
+        }
+        if(safe == false) {
+            output(std::cerr, "requires -s sequential mode\n");
+            return -1;
+        }
+
+        if (fuse_parse_cmdline(&args, &opts) != 0)
+            return 1;
+        if (opts.show_help) {
+            output(std::cout, "usage: ", argv[0],
+                   " [options] <mountpoint>\n\n");
+            fuse_cmdline_help();
+            fuse_lowlevel_help();
+            ret = 0;
+            goto err_out1;
+        } else if (opts.show_version) {
+            output(std::cout, "FUSE library version ", fuse_pkgversion(),
+                   "\n");
+            fuse_lowlevel_version();
+            ret = 0;
+            goto err_out1;
+        }
+
+        if(opts.mountpoint == nullptr) {
+            output(std::cout, "usage: ", argv[0], " [options] <mountpoint>\n");
+            output(std::cout, "       ", argv[0], " --help\n");
+            ret = 1;
+            goto err_out1;
+        }
+
+        session = fuse_session_new(
+            &args, &operations, sizeof(operations), nvme_info);
+        if (session == nullptr)
+            goto err_out1;
+
+        if (fuse_set_signal_handlers(session) != 0)
+            goto err_out2;
+
+        if (fuse_session_mount(session, opts.mountpoint) != 0)
+            goto err_out3;
+
+        fuse_daemonize(opts.foreground);
+
+        /* Block until ctrl+c or fusermount -u */
+        if (opts.singlethread)
+            ret = fuse_session_loop(session);
+        else {
+            loop_config.clone_fd = opts.clone_fd;
+            loop_config.max_idle_threads = opts.max_idle_threads;
+            ret = fuse_session_loop_mt(session, &loop_config);
+        }
+
+        fuse_session_unmount(session);
+        err_out3:
+        fuse_remove_signal_handlers(session);
+        err_out2:
+        fuse_session_destroy(session);
+        err_out1:
+        free(opts.mountpoint);
+        fuse_opt_free_args(&args);
+
+        return ret ? 1 : 0;
     }
 
     /**
@@ -72,91 +157,78 @@ namespace qemucsd::fuse_lfs{
         }
     }
 
-    void* FuseLFS::init(struct fuse_conn_info* conn, struct fuse_config* cfg) {
-        connection = conn;
-        context = fuse_get_context();
-        config = cfg;
+    template<typename T>
+    void FuseLFS::output(std::ostream &out, T &&t) {
+        out << FUSE_LFS_NAME_PREFIX << t << "\n";
+    }
 
-        // Get ns_entry from FUSE_MAIN call
-        nvme_info = (struct nvme_zns::nvme_zns_info*) FuseLFS::context->private_data;
+    template<typename Head, typename... Tail>
+    void FuseLFS::output(std::ostream &out, Head &&head, Tail&&... tail) {
+        out << head;
+        output(out, std::forward<Tail>(tail)...);
+    }
+
+    void FuseLFS::init(void *userdata, struct fuse_conn_info *conn) {
+        connection = conn;
+
+        // Get nvme_zns_info from main call
+        nvme_info = (struct nvme_zns::nvme_zns_info*) userdata;
 
         if(SECTOR_SIZE > nvme_info->sector_size) {
-            std::cerr << "Sector size (" << nvme_info->sector_size << ") is " <<
-                "to small, minimal is " << SECTOR_SIZE << " bytes, aborting";
+            output(std::cerr, "Sector size (", nvme_info->sector_size,
+                   ") is to small, minimal is ", SECTOR_SIZE,
+                   " bytes, aborting\n");
             exit(1);
         }
 
         if(nvme_info->sector_size % SECTOR_SIZE != 0) {
-            std::cerr << "Sector size (" << nvme_info->sector_size << ") is " <<
-                "not clean multiple of " << SECTOR_SIZE << ", aborting";
+            output(std::cerr, "Sector size (", nvme_info->sector_size,
+                   ") is not clean multiple of ", SECTOR_SIZE, ", aborting");
             exit(1);
         }
-
-        return nullptr;
     }
 
-    int FuseLFS::getattr(
-        const char* path, struct stat* stat, struct fuse_file_info* fi)
+    void FuseLFS::lookup(fuse_req_t req, fuse_ino_t parent, const char *name) {
+
+    }
+
+    void FuseLFS::getattr(fuse_req_t req, fuse_ino_t ino,
+                          struct fuse_file_info *fi)
     {
-        // Root directory
-        if (PATH_ROOT.compare(path) == 0) {
-            stat->st_mode = S_IFDIR | 0755;
-            stat->st_nlink = 2;
-            return 0;
-        }
-        // Find the file
-        else if(true == false){
 
-        }
-        // File not found
-        else {
-            return -ENOENT;
-        }
     }
 
-    int FuseLFS::readdir(
-        const char* path, void* buffer, fuse_fill_dir_t directory_type,
-        off_t offset, struct fuse_file_info *, enum fuse_readdir_flags)
+    void FuseLFS::readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
+                         struct fuse_file_info *fi)
     {
-        // Only support root directory for now
-        if (PATH_ROOT.compare(path) != 0)
-            return -ENOENT;
-
-        // I don't think this would still be necessary with fuse > 3
-        directory_type(buffer, ".", nullptr, 0, (fuse_fill_dir_flags) 0);
-        directory_type(buffer, "..", nullptr, 0, (fuse_fill_dir_flags) 0);
-
-        // TOOD(Dantali0n): Fill directory with all files
-
-        return 0;
     }
 
-    int FuseLFS::open(const char* path, struct fuse_file_info* fi) {
-        return 0;
-    }
-
-    int FuseLFS::create(
-        const char* path, mode_t mode, struct fuse_file_info* fi)
+    void FuseLFS::open(fuse_req_t req, fuse_ino_t ino,
+                      struct fuse_file_info *fi)
     {
-        return 0;
+        return;
     }
 
-    int FuseLFS::read(
-        const char* path, char* buffer, size_t size, off_t offset,
-        struct fuse_file_info* fi)
+    void FuseLFS::create(fuse_req_t req, fuse_ino_t parent, const char *name,
+                        mode_t mode, struct fuse_file_info *fi)
     {
-        return 0;
+        return;
     }
 
-    int FuseLFS::write(
-        const char* path, const char* buffer, size_t size, off_t offset,
-        struct fuse_file_info* fi)
+    void FuseLFS::read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
+                      struct fuse_file_info *fi)
     {
-        return 0;
+        return;
     }
 
-    int FuseLFS::unlink(const char* path) {
-        return 0;
+    void FuseLFS::write(fuse_req_t req, fuse_ino_t ino, const char *buf,
+                       size_t size, off_t off, struct fuse_file_info *fi)
+    {
+        return;
+    }
+
+    void FuseLFS::unlink(fuse_req_t req, fuse_ino_t parent, const char *name) {
+        return;
     }
 
 }
