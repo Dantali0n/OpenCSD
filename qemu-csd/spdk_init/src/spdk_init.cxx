@@ -135,7 +135,13 @@ namespace qemucsd::spdk_init {
 
 			// Add zone size to entry
             uint32_t zone_size = spdk_nvme_zns_ns_get_zone_size(entry->ns);
-            entry->zone_size = zone_size / entry->buffer_size;
+            entry->zone_size = zone_size / entry->lba_size;
+
+            // Add size of device to entry
+            entry->device_size = spdk_nvme_zns_ns_get_num_zones(entry->ns);
+
+            // Determine maximum number of open zones
+            entry->max_open = spdk_nvme_zns_ns_get_max_open_zones(entry->ns);
 
 			// Only want first ZNS supporting namespace
 			break;
