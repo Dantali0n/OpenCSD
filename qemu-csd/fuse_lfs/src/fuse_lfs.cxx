@@ -27,8 +27,6 @@
 namespace qemucsd::fuse_lfs{
 
     struct fuse_conn_info* FuseLFS::connection = nullptr;
-    struct fuse_context* FuseLFS::context = nullptr;
-    struct fuse_config* FuseLFS::config = nullptr;
 
     struct nvme_zns::nvme_zns_info* FuseLFS::nvme_info = nullptr;
 

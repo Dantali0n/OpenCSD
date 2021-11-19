@@ -56,6 +56,7 @@ namespace qemucsd::fuse_lfs {
     static_assert(sizeof(zone_info_table_entry) == SECTOR_SIZE);
 
     struct file_info {
+        fuse_ino_t inode;
         uint64_t size;
         std::string name;
     };
@@ -66,8 +67,6 @@ namespace qemucsd::fuse_lfs {
     class FuseLFS {
     protected:
         static struct fuse_conn_info* connection;
-        static struct fuse_context* context;
-        static struct fuse_config* config;
 
         static struct nvme_zns::nvme_zns_info* nvme_info;
 
@@ -89,6 +88,8 @@ namespace qemucsd::fuse_lfs {
 
         template<typename Head, typename... Tail>
         static void output(std::ostream &out, Head &&head, Tail&&... tail);
+
+        static void path_to_inode(const char* path, int& fd);
     public:
         FuseLFS() = delete;
         ~FuseLFS() = delete;
