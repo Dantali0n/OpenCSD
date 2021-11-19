@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_SUITE(Test_NvmeZnsMemoryBackend)
             buffer[i] = i % UINT8_MAX;
         }
 
-        size_t sector;
+        uint64_t sector;
         for(uint32_t i = 0; i < 16; i++) {
             backend.append(0, sector, 0, buffer, sector_size);
         }
