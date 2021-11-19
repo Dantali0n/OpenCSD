@@ -35,7 +35,7 @@ namespace qemucsd::nvme_zns {
         // Number of zones
         uint64_t num_zones;
         // Number of maximum open zones
-        uint64_t max_open;
+        uint32_t max_open;
 
         // In bytes
         uint64_t sector_size;

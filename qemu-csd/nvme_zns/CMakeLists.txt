@@ -20,6 +20,28 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+project(${PRJ_PRX}_nvme_zns_backend)
+
+set(QEMUCSD_NVME_ZNS_BACKEND_SRC
+    src/nvme_zns_backend.cxx
+)
+
+set(QEMUCSD_NVME_ZNS_BACKEND_HEADERS
+    include/nvme_zns_backend.hpp
+    include/nvme_zns_info.hpp
+)
+
+# Add qemucsd_nvme_zns to the includes
+add_qemucsd_include(${CMAKE_CURRENT_SOURCE_DIR}/include)
+qemucsd_include_directories()
+
+add_library(
+    qemucsd_nvme_zns_backend SHARED
+    ${QEMUCSD_NVME_ZNS_BACKEND_SRC}
+    ${QEMUCSD_NVME_ZNS_BACKEND_HEADERS}
+)
+set_target_properties(qemucsd_nvme_zns_backend PROPERTIES LINKER_LANGUAGE CXX)
+
 project(${PRJ_PRX}_nvme_zns)
 
 set(QEMUCSD_NVME_ZNS_LIBRARIES
@@ -31,13 +53,8 @@ set(QEMUCSD_NVME_ZNS_SRC
 
 set(QEMUCSD_NVME_ZNS_HEADERS
     include/nvme_zns.hpp
-    include/nvme_zns_backend.hpp
     include/nvme_zns_info.hpp
 )
-
-# Add qemucsd_measurements to the includes
-add_qemucsd_include(${CMAKE_CURRENT_SOURCE_DIR}/include)
-qemucsd_include_directories()
 
 add_library(
     qemucsd_nvme_zns STATIC
@@ -47,6 +64,7 @@ add_library(
 set_target_properties(qemucsd_nvme_zns PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(
     qemucsd_nvme_zns
+    qemucsd_nvme_zns_backend
     ${QEMUCSD_NVME_ZNS_LIBRARIES}
 )
 

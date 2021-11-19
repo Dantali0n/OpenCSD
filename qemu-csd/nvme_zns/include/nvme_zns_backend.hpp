@@ -25,21 +25,37 @@
 #ifndef QEMU_CSD_NVME_ZNS_BACKEND_HPP
 #define QEMU_CSD_NVME_ZNS_BACKEND_HPP
 
+#include <cstddef>
+#include <cstdint>
+
 #include "nvme_zns_info.hpp"
 
 namespace qemucsd::nvme_zns {
 
     class NvmeZnsBackend {
+    protected:
+        uint64_t device_byte_size;
+        uint64_t zone_byte_size;
+
+        struct nvme_zns_info info;
+
+        bool in_range(uint64_t zone, uint64_t sector, uint64_t offset,
+            uint64_t size);
     public:
+        explicit NvmeZnsBackend(struct nvme_zns_info* info);
+
+        NvmeZnsBackend(uint64_t num_zones,  uint64_t zone_size,
+            uint64_t sector_size, uint64_t max_open);
+
         virtual void get_nvme_zns_info(struct nvme_zns_info* info) = 0;
 
         virtual int read(
-            uint64_t zone, uint64_t sector, size_t offset, void *buffer,
-            size_t size) = 0;
+            uint64_t zone, uint64_t sector, uint64_t offset, void *buffer,
+            uint64_t size) = 0;
 
         virtual int append(
-            uint64_t zone, uint64_t &sector, size_t offset, void *buffer,
-            size_t size) = 0;
+            uint64_t zone, uint64_t &sector, uint64_t offset, void *buffer,
+            uint64_t size) = 0;
 
         virtual int reset(uint64_t zone) = 0;
     };

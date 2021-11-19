@@ -42,8 +42,8 @@ namespace qemucsd::nvme_zns {
 
         void get_nvme_zns_info(struct nvme_zns_info* info);
 
-        int read(uint64_t zone, uint64_t sector, size_t offset, void* buffer, size_t size);
-        int append(uint64_t zone, uint64_t& sector, size_t offset, void* buffer, size_t size);
+        int read(uint64_t zone, uint64_t sector, uint64_t offset, void* buffer, uint64_t size);
+        int append(uint64_t zone, uint64_t& sector, uint64_t offset, void* buffer, uint64_t size);
         int reset(uint64_t zone);
     };
 

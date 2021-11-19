@@ -39,30 +39,26 @@ namespace qemucsd::nvme_zns {
         std::vector<uint64_t> write_pointers;
 
         uintptr_t memory_limit;
-        uint64_t zone_byte_size;
 
         unsigned char* data;
-        struct nvme_zns_info info;
 
-        bool in_range(uint64_t zone, uint64_t sector, size_t offset);
-
-        int compute_address(uint64_t zone, uint64_t sector, size_t offset,
-            size_t size, uintptr_t& address);
+        int compute_address(uint64_t zone, uint64_t sector, uint64_t offset,
+                            uint64_t size, uintptr_t& address);
 
     public:
         NvmeZnsMemoryBackend(
-            size_t num_zones,  size_t zone_size, size_t sector_size);
+            uint64_t num_zones,  uint64_t zone_size, uint64_t sector_size);
 
         // Virtual required to enforce destructor is called in super classes
         virtual ~NvmeZnsMemoryBackend();
 
         void get_nvme_zns_info(struct nvme_zns_info* info) override;
 
-        int read(uint64_t zone, uint64_t sector, size_t offset, void* buffer,
-            size_t size) override;
+        int read(uint64_t zone, uint64_t sector, uint64_t offset, void* buffer,
+                 uint64_t size) override;
 
-        int append(uint64_t zone, uint64_t& sector, size_t offset, void* buffer,
-            size_t size) override;
+        int append(uint64_t zone, uint64_t& sector, uint64_t offset, void* buffer,
+                   uint64_t size) override;
 
         int reset(uint64_t zone) override;
     };

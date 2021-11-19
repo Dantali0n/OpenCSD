@@ -27,7 +27,8 @@
 namespace qemucsd::nvme_zns {
 
     NvmeZnsMemoryBackend::NvmeZnsMemoryBackend(
-        size_t num_zones, size_t zone_size, size_t sector_size)
+        uint64_t num_zones, uint64_t zone_size, uint64_t sector_size) :
+        NvmeZnsBackend(num_zones, zone_size, sector_size, 0)
     {
         info.num_zones = num_zones;
         info.zone_size = zone_size;
@@ -57,39 +58,23 @@ namespace qemucsd::nvme_zns {
         free(data);
     }
 
-    bool NvmeZnsMemoryBackend::in_range(
-        uint64_t zone, uint64_t sector, size_t offset)
-    {
-        // Ranges are zero indexed so equal is already out of range
-        if(zone >= info.num_zones ||
-            sector >= info.zone_size ||
-            offset >= info.sector_size) {
-            return false;
-        }
-
-        return true;
-    }
-
     int NvmeZnsMemoryBackend::compute_address(
-        uint64_t zone, uint64_t sector, size_t offset, size_t size, uintptr_t& address)
+        uint64_t zone, uint64_t sector, uint64_t offset, uint64_t size, uintptr_t& address)
     {
-        if(in_range(zone, sector, offset) == false) return -1;
+        if(in_range(zone, sector, offset, size) == false) return -1;
 
-        // Address = modifies external variable before guaranteed success
-        // this is okaj because compute_address is a protected member function.
         address = (zone * zone_byte_size) + (sector * info.sector_size) + offset;
-        if(memory_limit < (uintptr_t) data + address + size) return -1;
 
         return 0;
     }
 
     void NvmeZnsMemoryBackend::get_nvme_zns_info(struct nvme_zns_info* info) {
-        *info = this->info;
+        NvmeZnsBackend::get_nvme_zns_info(info);
     }
 
     int NvmeZnsMemoryBackend::read(
-        uint64_t zone, uint64_t sector, size_t offset, void* buffer,
-        size_t size)
+        uint64_t zone, uint64_t sector, uint64_t offset, void* buffer,
+        uint64_t size)
     {
         uintptr_t address;
         // Determine address offset and verify in range
@@ -105,10 +90,10 @@ namespace qemucsd::nvme_zns {
     }
 
     int NvmeZnsMemoryBackend::append(
-        uint64_t zone, uint64_t& sector, size_t offset, void* buffer,
-        size_t size)
+        uint64_t zone, uint64_t& sector, uint64_t offset, void* buffer,
+        uint64_t size)
     {
-        size_t remainder = (offset + size) % info.sector_size;
+        uint64_t remainder = (offset + size) % info.sector_size;
         uintptr_t address;
         // Determine address offset and verify in range
         if(compute_address(zone, write_pointers.at(zone), offset, size,

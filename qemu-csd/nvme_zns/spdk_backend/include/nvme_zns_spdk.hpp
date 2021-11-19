@@ -25,7 +25,14 @@
 #ifndef QEMU_CSD_NVME_ZNS_SPDK_HPP
 #define QEMU_CSD_NVME_ZNS_SPDK_HPP
 
+#include <cstddef>
+#include <cstdint>
+#include <iostream>
+
 #include "nvme_zns_backend.hpp"
+#include "spdk_init.hpp"
+
+using qemucsd::spdk_init::ns_entry;
 
 namespace qemucsd::nvme_zns {
 
@@ -33,16 +40,19 @@ namespace qemucsd::nvme_zns {
     protected:
         struct nvme_zns_info info;
         struct ns_entry* entry;
+
+        int compute_sector(uint64_t zone, uint64_t sector, uint64_t offset,
+            uint64_t size, uint64_t& result_sector);
     public:
         NvmeZnsMemorySpdk(struct ns_entry* entry);
 
         void get_nvme_zns_info(struct nvme_zns_info* info) override;
 
-        int read(uint64_t zone, uint64_t sector, size_t offset, void *buffer,
-                 size_t size) override;
+        int read(uint64_t zone, uint64_t sector, uint64_t offset, void *buffer,
+            uint64_t size) override;
 
-        int append(uint64_t zone, uint64_t &sector, size_t offset, void *buffer,
-                   size_t size) override;
+        int append(uint64_t zone, uint64_t &sector, uint64_t offset, void *buffer,
+            uint64_t size) override;
 
         int reset(uint64_t zone) override;
     };
