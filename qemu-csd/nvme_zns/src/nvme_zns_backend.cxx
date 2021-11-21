@@ -45,25 +45,29 @@ namespace qemucsd::nvme_zns {
         device_byte_size = zone_byte_size * num_zones;
     }
 
-    bool NvmeZnsBackend::in_range(
+    int NvmeZnsBackend::in_range(
         uint64_t zone, uint64_t sector, uint64_t offset, uint64_t size)
     {
         // Ranges are zero indexed so equal is already out of range
         if(zone >= info.num_zones ||
            sector >= info.zone_size ||
            offset >= info.sector_size) {
-            return false;
+            return -1;
         }
 
         // Verify that desired size does not cause operation to
         // exceed total device size limits
         if((zone_byte_size * zone) + (info.sector_size * sector) +
             offset + size >= device_byte_size)
-            return false;
+            return -1;
 
-        return true;
+        return 0;
     }
 
+    /**
+     * Concrete implementation of virtual void function, recommended to just
+     * call this from within the overriding function.
+     */
     void NvmeZnsBackend::get_nvme_zns_info(struct nvme_zns_info* info) {
         *info = this->info;
     }

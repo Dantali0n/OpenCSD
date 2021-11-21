@@ -38,6 +38,11 @@ namespace qemucsd::nvme_zns {
 
     class NvmeZnsMemorySpdk : NvmeZnsBackend {
     protected:
+        // Write pointers for each zone have to be maintained in memory as it is
+        // extremely costly to query this at runtime from SPDK
+        // (see spdk_nvme_zns_report_zones)
+        std::vector<uint64_t> write_pointers;
+
         struct nvme_zns_info info;
         struct ns_entry* entry;
 

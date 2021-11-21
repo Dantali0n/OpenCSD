@@ -58,10 +58,16 @@ namespace qemucsd::nvme_zns {
         free(data);
     }
 
+    /**
+     * Determine if the requested zone, sector, offset and size fit within the
+     * allocated memory. Puts the resulting address in the address parameter.
+     * @param address the resulting memory address is copied into this variable
+     * @return 0 upon success, < 0 upon failure
+     */
     int NvmeZnsMemoryBackend::compute_address(
         uint64_t zone, uint64_t sector, uint64_t offset, uint64_t size, uintptr_t& address)
     {
-        if(in_range(zone, sector, offset, size) == false) return -1;
+        if(in_range(zone, sector, offset, size) != 0) return -1;
 
         address = (zone * zone_byte_size) + (sector * info.sector_size) + offset;
 

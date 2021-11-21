@@ -40,13 +40,30 @@ namespace qemucsd::nvme_zns {
         }
 
         this->entry = entry;
+
+        write_pointers.resize(info.num_zones);
+        for(auto& write_pointer : write_pointers) {
+            write_pointer = 0;
+        }
     }
 
+    /**
+     * For simplicity users of NvmeZns can use zone, sector, offset and size
+     * directly while not having to deal with the complexity of computing
+     * absolute Logical Block Addresses (LBAs). This method performs the
+     * necessary translation
+     * @param result_sector resulting sector otherwise known as LBA
+     * @return 0 upon success, < 0 upon failure
+     */
     int NvmeZnsMemorySpdk::compute_sector(
         uint64_t zone, uint64_t sector, uint64_t offset,
         uint64_t size, uint64_t& result_sector)
     {
+        if(in_range(zone, sector, offset, size) != 0) return -1;
 
+        result_sector = (zone * info.zone_size) + sector;
+
+        return 0;
     }
 
     void NvmeZnsMemorySpdk::get_nvme_zns_info(struct nvme_zns_info* info) {
@@ -60,8 +77,11 @@ namespace qemucsd::nvme_zns {
         uint64_t res_sector;
         struct ns_entry entry = *this->entry;
 
-        if(compute_sector(zone, sector, offset, size, res_sector) == false)
+        if(compute_sector(zone, sector, offset, size, res_sector) != 0)
             return -1;
+
+        // Refuse to read unwritten sectors
+        if(write_pointers.at(zone) < res_sector) return -1;
 
         // Only support reading a single sector for now
         // TODO(Dantali0n): Allow to read multiple sectors in one call
@@ -74,6 +94,8 @@ namespace qemucsd::nvme_zns {
         spdk_init::spin_complete(&entry);
 
         memcpy(buffer, (uint8_t*)entry.buffer + offset, size);
+
+        return 0;
     }
 
     int NvmeZnsMemorySpdk::append(
@@ -86,9 +108,24 @@ namespace qemucsd::nvme_zns {
         if(compute_sector(zone, 0, offset, size, res_sector) == false)
             return -1;
 
+        // Refuse to append to full zone
+        if(write_pointers.at(zone) >= info.zone_size)
+            return -1;
+
+        // Only support appending a single sector for now
+        // TODO(Dantali0n): Allow to append multiple sectors in one call
+        if(offset + size != info.sector_size)
+            return -1;
+
         spdk_nvme_zns_zone_append(entry.ns, entry.qpair, entry.buffer,
             res_sector, 1, spdk_init::error_print, &entry, 0);
 
+        spdk_init::spin_complete(&entry);
+
+        // Advance write pointer by one
+        write_pointers.at(zone) = write_pointers.at(zone) + 1;
+
+        return 0;
     }
 
     int NvmeZnsMemorySpdk::reset(uint64_t zone) {
@@ -104,5 +141,9 @@ namespace qemucsd::nvme_zns {
                                  spdk_init::error_print, &entry);
 
         spdk_init::spin_complete(&entry);
+
+        write_pointers.at(zone) = 0;
+
+        return 0;
     }
 }

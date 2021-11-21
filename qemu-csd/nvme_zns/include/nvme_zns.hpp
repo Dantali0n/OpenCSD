@@ -30,20 +30,62 @@
 
 namespace qemucsd::nvme_zns {
 
+    /**
+     * Special class to abstract away concrete backends that provided NVMe ZNS
+     * drivers. Prevents excessive linkage of dependencies for FUSE_LFS while
+     * also allowing to switch backends on the fly (decoupling).
+     *
+     * Method documentation written from the perspective of the caller, for
+     * callee required behavior and expectations see NvmeZnsBackend instead.
+     *
+     * @tparam nvme_zns_backend The concrete backend implementation implementing
+     *         NvmeZnsBackend
+     */
     template<class nvme_zns_backend>
     class NvmeZns {
         static_assert(
             std::is_base_of<NvmeZnsBackend, nvme_zns_backend>::value,
-            "template argument nvme_zns_backend must inherit NvmeZnsBackend");
+            "template argument nvme_zns_backend must inherent NvmeZnsBackend");
     protected:
         nvme_zns_backend* backend;
     public:
         NvmeZns(nvme_zns_backend* backend);
 
+        /**
+         * Fill the nvme_zns_info struct with details about the underlying
+         * drive.
+         * @param info nvme_zns_info pointer
+         */
         void get_nvme_zns_info(struct nvme_zns_info* info);
 
-        int read(uint64_t zone, uint64_t sector, uint64_t offset, void* buffer, uint64_t size);
-        int append(uint64_t zone, uint64_t& sector, uint64_t offset, void* buffer, uint64_t size);
+        /**
+         * Perform a read operation on the drive at the specified _zone_ and
+         * _sector_. All parameters are zero-indexed. _buffer_ must be of at
+         * least size _size_. _offset_ + _size_ must be equal to
+         * nvme_zns_info.sector_size. The combination of all size and location
+         * parameters must be within the bounds of the underlying drive.
+         * @return 0 upon success, < 0 upon failure
+         */
+        int read(uint64_t zone, uint64_t sector, uint64_t offset, void* buffer,
+                 uint64_t size);
+
+        /**
+         * Perform a write append operation on the drive at the specified
+         * _zone_. _sector_ will indicate the location of the appended data. All
+         * parameters are zero-indexed. _buffer_ must be of at least size
+         * _size_. _offset_ + _size_ must be equal to nvme_zns_info.sector_size.
+         * The combination of all size and location parameters must be within
+         * the bounds of the underlying drive.
+         * @return 0 upon success, < 0 upon failure
+         */
+        int append(uint64_t zone, uint64_t& sector, uint64_t offset,
+                   void* buffer, uint64_t size);
+
+        /**
+         * Resets the specified zone, all data within the zone will be lost.
+         * _zone_ parameter is zero indexed.
+         * @return 0 upon success, < 0 upon failure
+         */
         int reset(uint64_t zone);
     };
 

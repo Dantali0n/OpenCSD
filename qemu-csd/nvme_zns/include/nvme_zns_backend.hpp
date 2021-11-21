@@ -39,24 +39,56 @@ namespace qemucsd::nvme_zns {
 
         struct nvme_zns_info info;
 
-        bool in_range(uint64_t zone, uint64_t sector, uint64_t offset,
+        /**
+         * Check that each of the individual params does not exceed the
+         * underlying device hierarchy. In addition check that the combination
+         * of parameters does not exceed the total device size.
+         * @return 0 upon success, < 0 upon failure
+         */
+        int in_range(uint64_t zone, uint64_t sector, uint64_t offset,
             uint64_t size);
     public:
         explicit NvmeZnsBackend(struct nvme_zns_info* info);
 
+        /**
+         * Initializes nvme_zns_info _info_ member variable and computes
+         * _device_byte_size_ and _zone_byte_size_
+         */
         NvmeZnsBackend(uint64_t num_zones,  uint64_t zone_size,
             uint64_t sector_size, uint64_t max_open);
 
+        /**
+         * Provide nvme_zns_info to caller, can be implemented by calling
+         * NvmeZnsBackend base implementation in almost all cases.
+         */
         virtual void get_nvme_zns_info(struct nvme_zns_info* info) = 0;
 
+        /**
+         * Perform a read operation on the requested zone and sector for size
+         * _size_. Put this data in _buffer_ starting from _offset_. Make sure
+         * to use _in_range_ to determine if the request is possible.
+         * @return 0 upon success, < 0 upon failure
+         */
         virtual int read(
             uint64_t zone, uint64_t sector, uint64_t offset, void *buffer,
             uint64_t size) = 0;
 
+        /**
+         * Perform a write append to the requested zone for size _size_.
+         * Write the data from _buffer to the device starting from _offset_.
+         * Update _sector_ to indicate start location of written data. Make sure
+         * to use _in_range_ to determine if the request is possible.
+         * @return 0 upon success, < 0 upon failure
+         */
         virtual int append(
             uint64_t zone, uint64_t &sector, uint64_t offset, void *buffer,
             uint64_t size) = 0;
 
+        /**
+         * Reset the indicated zone and ensure the requested zones is below
+         * < num_zones from nvme_zns_info.
+         * @return  0 upon success, < 0 upon failure
+         */
         virtual int reset(uint64_t zone) = 0;
     };
 
