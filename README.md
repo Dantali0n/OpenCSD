@@ -6,11 +6,12 @@
 
 # OpenCSD
 
-OpenCSD is an improved version of ZCSD achieving log-structured filesystem (LFS)
-integration on Zoned Namespaces (ZNS) SSD Computational Storage Devices (CSD).
-Below is a diagram of the overall architecture as presented to the end user.
-However, the actual implementation differs due to the use of emulation using
-technologies such as QEMU, uBPF and SPDK.
+OpenCSD is an improved version of ZCSD achieving snapshot consistency
+log-structured filesystem (LFS) integration on Zoned Namespaces (ZNS)
+Computational Storage Devices (CSD). Below is a diagram of the overall
+architecture as presented to the end user. However, the actual implementation
+differs due to the use of emulation using technologies such as QEMU, uBPF and
+SPDK.
 
 ![](thesis/resources/images/loader-pfs-arch-2.drawio.png)
 
@@ -46,12 +47,17 @@ provisional
       - [ ] GC
    - [ ] Test path to inode function using unit tests.
 - Week 5 -> FUSE LFS filesystem
+  - [ ] Get a working LFS filesystem using FUSE
+    - [ ] Filesystem considerations for fair testing against proven filesystems
+      - [ ] _fsync_ must actually flush to disc.
+      - [ ] In memory caching is only allowed if filesystem can recover to a
+            stable state upon crash or power loss.
 - Week 6 -> FUSE LFS filesystem
 - Week 7 -> FUSE LFS filesystem
 - Week 8 -> FUSE LFS filesystem
-- [ ] Run filesystem benchmarks with strace
-  - [ ] RocksDB DBBench
-  - [ ] Filebench
+  - [ ] Run filesystem benchmarks with strace
+    - [ ] RocksDB DBBench
+    - [ ] Filebench
 ### Logbook
 
 Serves as a place to quickly store digital information until it can be refined
@@ -504,6 +510,9 @@ including:
 * [libnvme presentation](https://www.usenix.org/sites/default/files/conference/protected-files/vault20_slides_busch.pdf)
 * FUSE
   * [FUSE kermel documentation](https://www.kernel.org/doc/html/latest/filesystems/fuse.html)
+* LFS
+  * [f2fs usenix paper](https://www.usenix.org/system/files/conference/fast15/fast15-paper-lee.pdf)
+  * [f2fs kernel documentation](https://www.kernel.org/doc/html/latest/filesystems/f2fs.html)
 * BPF
   * Linux Kernel related
     * [Linux bpf manpage](https://www.man7.org/linux/man-pages/man2/bpf.2.html)
