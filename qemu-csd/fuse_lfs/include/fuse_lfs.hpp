@@ -36,19 +36,12 @@ extern "C" {
 #include <sstream>
 #include <string>
 
+#include "fuse_lfs_constants.hpp"
+#include "fuse_lfs_disc.hpp"
+#include "fuse_lfs_memory.hpp"
 #include "nvme_zns.hpp"
 
 namespace qemucsd::fuse_lfs {
-
-    static const uint32_t SECTOR_SIZE = 512;
-    static const uint64_t MAGIC_COOKIE = 0x10ADEDB00BDEC0DE;
-
-    // One time write, read only information. Always stored at zone 0, sector 0.
-    struct superblock {
-        uint64_t magic_cookie;
-        unsigned char padding[504];
-    };
-    static_assert(sizeof(superblock) == SECTOR_SIZE);
 
     struct zone_info_table_entry {
         unsigned char padding[512];

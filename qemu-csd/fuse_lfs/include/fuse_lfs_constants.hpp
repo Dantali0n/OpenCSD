@@ -22,19 +22,32 @@
  * SOFTWARE.
  */
 
-#ifndef QEMU_CSD_FUSE_LFS_MEMORY_HPP
-#define QEMU_CSD_FUSE_LFS_MEMORY_HPP
+#ifndef QEMU_CSD_FUSE_LFS_CONSTANTS_HPP
+#define QEMU_CSD_FUSE_LFS_CONSTANTS_HPP
 
-#include "fuse_lfs_constants.hpp"
+#define FUSE_USE_VERSION	36
+
+extern "C" {
+#include "fuse3/fuse_lowlevel.h"
+}
+
+#include <map>
+#include <iostream>
+#include <sstream>
+#include <string>
+
+#include "nvme_zns.hpp"
 
 namespace qemucsd::fuse_lfs {
 
     /**
-     * This header contains data structures to be stored in memory by fuse_lfs
+     * Non dependent constants that should be accesible by all header files in
+     * fuse_lfs
      */
 
-
+    static const uint32_t SECTOR_SIZE = 512;
+    static const uint64_t MAGIC_COOKIE = 0x10ADEDB00BDEC0DE;
 
 }
 
-#endif //QEMU_CSD_FUSE_LFS_MEMORY_HPP
+#endif // QEMU_CSD_FUSE_LFS_CONSTANTS_HPP
