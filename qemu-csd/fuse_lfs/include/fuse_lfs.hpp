@@ -67,10 +67,7 @@ namespace qemucsd::fuse_lfs {
         static nvme_zns::NvmeZnsBackend* nvme;
 
         // Map filenames and their respective depth to inodes
-        static std::map<std::pair<uint32_t, std::string>, int> path_inode_map;
-
-        // Inode to file_info, reconstructed from 'disc' upon initialization
-        static std::map<int, struct file_info> inode_map;
+        static path_inode_map_t path_inode_map;
 
         static const std::string FUSE_LFS_NAME_PREFIX;
         static const std::string FUSE_SEQUENTIAL_PARAM;
@@ -85,7 +82,8 @@ namespace qemucsd::fuse_lfs {
         template<typename Head, typename... Tail>
         static void output(std::ostream &out, Head &&head, Tail&&... tail);
 
-        static void path_to_inode(const char* path, int& fd);
+        static void path_to_inode(
+            fuse_ino_t parent, const char* path, fuse_ino_t &ino);
 
         static int ino_stat(fuse_ino_t ino, struct stat *stbuf);
 

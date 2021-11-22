@@ -40,8 +40,7 @@ namespace qemucsd::fuse_lfs {
     // Need string manipulations for lookup call
     const std::string FuseLFS::PATH_ROOT = "/";
 
-    typedef std::map<std::pair<uint32_t, std::__cxx11::basic_string<char> >, int> template_hell;
-    template_hell FuseLFS::path_inode_map = template_hell();
+    path_inode_map_t FuseLFS::path_inode_map = path_inode_map_t();
 
     const struct fuse_lowlevel_ops FuseLFS::operations = {
         .init       = FuseLFS::init,
@@ -180,23 +179,33 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
-     * Translate the (inefficient) char* path to an inode.
+     * Translate the (inefficient) char* path to an inode starting from parent.
      */
-    void FuseLFS::path_to_inode(const char* path, int& fd) {
+    void FuseLFS::path_to_inode(
+        fuse_ino_t parent, const char* path, fuse_ino_t &ino)
+    {
         std::istringstream spath(path);
         std::string token;
-        int depth = 0;
+        fuse_ino_t cur_parent = parent;
 
-        // Iterate over the path with increased depth
+        // Iterate over the path with increased depth, finding the inode from
+        // the parent
         while(std::getline(spath, token, '/')) {
-            // If find does not return the end of the map its a match
-            auto it = path_inode_map.find(std::make_pair(depth, token));
-            if(it != path_inode_map.end()) {
-                fd = it->second;
+            // If find does not return the end of the map it's a match
+            auto it = path_inode_map.find(std::make_pair(cur_parent, token));
+            if(it == path_inode_map.end()) {
+                // Indicate not found, 0 is invalid inode
+                ino = 0;
                 return;
             }
-            depth++;
+
+            // Update the parent
+            cur_parent = it->second;
         }
+
+        // If we traversed the entire path and found an entry at each stage in
+        // the map then the final update pointed to the actual inode.
+        ino = cur_parent;
     }
 
     /**
@@ -225,7 +234,7 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
-     *
+     * Create a fuse reply taking into account buffer and offset constraints
      * @return result of fuse_reply_buf, 0 upon success
      */
     int FuseLFS::reply_buf_limited(fuse_req_t req, const char *buf,
@@ -269,7 +278,8 @@ namespace qemucsd::fuse_lfs {
      */
     int FuseLFS::verify_superblock() {
         struct super_block sblock;
-        if(nvme->read(0, 0, 0, &sblock, sizeof(super_block)) != 0)
+        if(nvme->read(SBLOCK_POS.zone, SBLOCK_POS.sector, SBLOCK_POS.offset,
+                      &sblock, sizeof(super_block)) != 0)
             return -1;
         if(sblock.magic_cookie != MAGIC_COOKIE)
             return -1;
@@ -296,7 +306,11 @@ namespace qemucsd::fuse_lfs {
         sblock.sector_size = nvme_info.sector_size;
 
         uint64_t sector;
-        if(nvme->append(0, sector, 0, &sblock, sizeof(super_block)) != 0)
+        if(nvme->append(SBLOCK_POS.zone, sector, SBLOCK_POS.offset, &sblock,
+                        sizeof(super_block)) != 0)
+            return -1;
+
+        if(sector != SBLOCK_POS.sector)
             return -1;
 
         return 0;
@@ -306,6 +320,11 @@ namespace qemucsd::fuse_lfs {
         connection = conn;
     }
 
+    /**
+     * Lookup the given inode for the parent, name pair and use ino_stat
+     * to fill out information about the found inode.
+     * TODO(Dantali0n): Make lookup use path_to_inode function.
+     */
     void FuseLFS::lookup(fuse_req_t req, fuse_ino_t parent, const char *name) {
         struct fuse_entry_param e;
         if (parent != 1 || strcmp(name, "test") != 0)

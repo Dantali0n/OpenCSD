@@ -81,7 +81,7 @@ namespace qemucsd::nvme_zns {
             return -1;
 
         // Refuse to read unwritten sectors
-        if(write_pointers.at(zone) < res_sector) return -1;
+        if(write_pointers.at(zone) <= sector) return -1;
 
         // Only support reading a single sector for now
         // TODO(Dantali0n): Allow to read multiple sectors in one call
@@ -121,6 +121,9 @@ namespace qemucsd::nvme_zns {
             res_sector, 1, spdk_init::error_print, &entry, 0);
 
         spdk_init::spin_complete(&entry);
+
+        // Indicate location of written data
+        sector = write_pointers.at(zone);
 
         // Advance write pointer by one
         write_pointers.at(zone) = write_pointers.at(zone) + 1;

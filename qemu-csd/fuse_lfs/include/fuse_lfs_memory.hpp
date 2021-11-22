@@ -33,18 +33,20 @@ namespace qemucsd::fuse_lfs {
      * This header contains data structures to be stored in memory by fuse_lfs
      */
 
-    struct static_position {
-        uint64_t zone;
-        uint64_t sector;
-        uint64_t offset;
-        uint64_t size;
-    };
-
+    /**
+     * Directory buffer used to fill directory information before it is
+     * returned to the caller. See dir_buf_add
+     */
     struct dir_buf {
         char* p;
         size_t size;
     };
 
+    // Section of path at with a certain parent.
+    typedef std::pair<fuse_ino_t, std::string> path_node_t;
+
+    // Map path sections to their corresponding inode
+    typedef std::map<path_node_t, fuse_ino_t> path_inode_map_t;
 }
 
 #endif //QEMU_CSD_FUSE_LFS_MEMORY_HPP

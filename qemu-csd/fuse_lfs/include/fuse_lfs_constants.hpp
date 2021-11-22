@@ -50,6 +50,31 @@ namespace qemucsd::fuse_lfs {
     static const uint32_t SECTOR_SIZE = 512;
     static const uint64_t MAGIC_COOKIE = 0x10ADEDB00BDEC0DE;
 
+    /**
+     * Non dependent structs that should only be used for constant data
+     */
+
+    struct data_position {
+        uint64_t zone;
+        uint64_t sector;
+        uint64_t offset;
+        uint64_t size;
+    };
+
+    /**
+     * Position of super block on device
+     */
+    static constexpr struct data_position SBLOCK_POS = {
+        0, 0, 0, sizeof(SECTOR_SIZE)
+    };
+
+    /**
+     * Position of first nat block on device
+     */
+    static constexpr struct data_position NBLOCK_POS = {
+        1, 0, 0, sizeof(SECTOR_SIZE)
+    };
+
 }
 
 #endif // QEMU_CSD_FUSE_LFS_CONSTANTS_HPP
