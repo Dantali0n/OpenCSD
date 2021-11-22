@@ -180,6 +180,7 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Translate the (inefficient) char* path to an inode starting from parent.
+     * Absolute paths need to set parent to 0.
      */
     void FuseLFS::path_to_inode(
         fuse_ino_t parent, const char* path, fuse_ino_t &ino)
@@ -206,6 +207,36 @@ namespace qemucsd::fuse_lfs {
         // If we traversed the entire path and found an entry at each stage in
         // the map then the final update pointed to the actual inode.
         ino = cur_parent;
+    }
+
+    /**
+     * Find the Logical Block Address (LBA) of any given inode. Behavior
+     * undefined if the inode does not actually exist.
+     */
+    void FuseLFS::inode_to_lba(fuse_ino_t ino, uint64_t &lba) {
+
+    }
+
+    /**
+     * Compute the position of data from a Logical Block Address (LBA).
+     * TODO(Dantali0n): Use an LRU cache of configurable size for recent
+     *                  positions.
+     */
+    void FuseLFS::lba_to_position(
+        uint64_t lba, struct data_position &position)
+    {
+        position.zone = lba / nvme_info.zone_size;
+        position.sector = lba % nvme_info.zone_size;
+    }
+
+    /**
+     * Compute the Logical Block Address (LBA) from an position.
+     */
+    void FuseLFS::position_to_lba(
+        struct data_position position, uint64_t &lba)
+    {
+        lba = position.zone * nvme_info.zone_size;
+        lba += position.sector;
     }
 
     /**

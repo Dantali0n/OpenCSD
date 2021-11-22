@@ -45,17 +45,6 @@ extern "C" {
 
 namespace qemucsd::fuse_lfs {
 
-    struct zone_info_table_entry {
-        unsigned char padding[512];
-    };
-    static_assert(sizeof(zone_info_table_entry) == SECTOR_SIZE);
-
-    struct file_info {
-        fuse_ino_t inode;
-        uint64_t size;
-        std::string name;
-    };
-
     /**
      * Static wrapper class around FUSE LFS filesystem.
      */
@@ -66,13 +55,11 @@ namespace qemucsd::fuse_lfs {
         static struct nvme_zns::nvme_zns_info nvme_info;
         static nvme_zns::NvmeZnsBackend* nvme;
 
-        // Map filenames and their respective depth to inodes
+        // Map filenames and their respective parent to inodes
         static path_inode_map_t path_inode_map;
 
         static const std::string FUSE_LFS_NAME_PREFIX;
         static const std::string FUSE_SEQUENTIAL_PARAM;
-
-        static const std::string PATH_ROOT;
 
         static const struct fuse_lowlevel_ops operations;
 
@@ -84,6 +71,14 @@ namespace qemucsd::fuse_lfs {
 
         static void path_to_inode(
             fuse_ino_t parent, const char* path, fuse_ino_t &ino);
+
+        static void inode_to_lba(fuse_ino_t ino, uint64_t &lba);
+
+        static void lba_to_position(
+            uint64_t lba, struct data_position &position);
+
+        static void position_to_lba(
+            struct data_position position, uint64_t &lba);
 
         static int ino_stat(fuse_ino_t ino, struct stat *stbuf);
 
