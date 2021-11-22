@@ -88,7 +88,7 @@ namespace qemucsd::nvme_zns {
             return -1;
 
         // Refuse to read unwritten sectors
-        if(write_pointers.at(zone) < sector) return -1;
+        if(write_pointers.at(zone) <= sector) return -1;
 
         memcpy(buffer, data + address, size);
 
@@ -114,11 +114,11 @@ namespace qemucsd::nvme_zns {
         // Write pointer should never advance into next zone
         if(temp_write_pointer > info.zone_size) return -1;
 
-        // All is well, update the write pointer
-        write_pointers.at(zone) = temp_write_pointer;
-
         // Only modify external variable after guaranteeing success
         sector = write_pointers.at(zone);
+
+        // All is well, update the write pointer
+        write_pointers.at(zone) = temp_write_pointer;
 
         // Zero offset into the sector if the offset is non zeros
         if(offset != 0) memset(data + address - offset, 0, offset);

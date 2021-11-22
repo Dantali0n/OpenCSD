@@ -60,15 +60,19 @@ BOOST_AUTO_TEST_SUITE(Test_NvmeZnsMemoryBackend)
         backend.reset(0);
 
         // Create buffer with pre and post fence space
+        unsigned char zero_buffer[buffer_size];
         unsigned char buffer[buffer_size];
 
         // Set the entire buffer to non zero
         for(uint32_t i = 0; i < buffer_size; i++) {
+            zero_buffer[i] = 0x00;
             buffer[i] = 0xff;
         }
 
         // Parse buffer to function past the pre fence
-        backend.read(0, 0, 0, buffer + 1, sector_size);
+        uint64_t sector;
+        backend.append(0, sector, 0, zero_buffer, sector_size);
+        backend.read(0, sector, 0, buffer + 1, sector_size);
 
         // check contents of buffer is zeroed
         for(uint32_t i = 1; i < sector_size+1; i++) {
@@ -118,9 +122,9 @@ BOOST_AUTO_TEST_SUITE(Test_NvmeZnsMemoryBackend)
 
         uint64_t sector = 0;
         for(uint32_t i = 0; i < 16; i++) {
-            BOOST_CHECK(sector == i);
             BOOST_CHECK(backend.append(0, sector, 0, buffer, sector_size) == 0);
-            BOOST_CHECK(backend.read(0, 0, 0, buffer, sector_size) == 0);
+            BOOST_CHECK(sector == i);
+            BOOST_CHECK(backend.read(0, sector, 0, buffer, sector_size) == 0);
         }
 
         // Try to append beyond the size of the zone
@@ -145,7 +149,7 @@ BOOST_AUTO_TEST_SUITE(Test_NvmeZnsMemoryBackend)
         for(uint32_t i = 0; i < 16; i++) {
             backend.append(0, sector, 0, buffer, sector_size);
         }
-        BOOST_CHECK(sector == 16);
+        BOOST_CHECK(sector == 15);
 
         // should not affect data in zone 0
         backend.reset(1);

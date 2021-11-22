@@ -130,7 +130,7 @@ namespace qemucsd::fuse_lfs {
         }
 
         // TODO(Dantali0n): Only write super block when a certain command line
-        //                  argument is supplied.
+        //                  argument is supplied. See fuse hello_ll for example.
         if(write_superblock() != 0) {
             output(std::cerr, "Failed to write super block, check",
                    "NvmeZns backend");
@@ -139,8 +139,8 @@ namespace qemucsd::fuse_lfs {
         }
 
         if(verify_superblock() != 0) {
-            output(std::cerr, "Failed to verify super block, are you "
-                   , "sure partition does not contain another filesystem?");
+            output(std::cerr, "Failed to verify super block, are you ",
+                   "sure partition does not contain another filesystem?");
             ret = 1;
             goto err_out1;
         }
