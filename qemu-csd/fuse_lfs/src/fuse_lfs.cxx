@@ -37,9 +37,6 @@ namespace qemucsd::fuse_lfs {
     const std::string FuseLFS::FUSE_LFS_NAME_PREFIX = "[FUSE LFS] ";
     const std::string FuseLFS::FUSE_SEQUENTIAL_PARAM = "-s";
 
-    // Need string manipulations for lookup call
-    const std::string FuseLFS::PATH_ROOT = "/";
-
     path_inode_map_t FuseLFS::path_inode_map = path_inode_map_t();
 
     const struct fuse_lowlevel_ops FuseLFS::operations = {
