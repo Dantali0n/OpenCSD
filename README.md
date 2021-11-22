@@ -52,12 +52,27 @@ provisional
       - [ ] _fsync_ must actually flush to disc.
       - [ ] In memory caching is only allowed if filesystem can recover to a
             stable state upon crash or power loss.
+    - [ ] Filesystem considerations to achieve functionality
+      - [ ] Upon initialization all directory / filename and inode relations are
+            restored from disc and stored in memory. These datastructures
+            utilize maps as the lookup is `log(n)`.
+      - [ ] Periodically all changes are flushed to disc (every 5 seconds).
+      - [ ] Use bitmaps to determine occupied sectors.
+      - [ ] Snapshots are memory backed and remain as long as the file is open.
+        - [ ] GC needs to check both open snapshot sectors and occupied sector
+              bitmap.
+      - [ ] GC uses two modes
+        - [ ] (foreground) blocking if there is no more drive space to perform
+              the append.
+        - [ ] (background) periodic to clear entirely unoccupied zones.
+        - [ ] Reserve last two zones from total space for GC operations.
 - Week 6 -> FUSE LFS filesystem
 - Week 7 -> FUSE LFS filesystem
 - Week 8 -> FUSE LFS filesystem
   - [ ] Run filesystem benchmarks with strace
     - [ ] RocksDB DBBench
     - [ ] Filebench
+
 ### Logbook
 
 Serves as a place to quickly store digital information until it can be refined
