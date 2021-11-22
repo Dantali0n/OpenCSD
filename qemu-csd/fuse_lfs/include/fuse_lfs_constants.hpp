@@ -40,8 +40,10 @@ extern "C" {
 
 namespace qemucsd::fuse_lfs {
 
+    #define fuse_lfs_min(x, y) ((x) < (y) ? (x) : (y))
+
     /**
-     * Non dependent constants that should be accesible by all header files in
+     * Non dependent constants that should be accessible by all header files in
      * fuse_lfs
      */
 

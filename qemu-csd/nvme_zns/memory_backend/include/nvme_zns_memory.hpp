@@ -34,7 +34,7 @@
 
 namespace qemucsd::nvme_zns {
 
-    class NvmeZnsMemoryBackend : NvmeZnsBackend {
+    class NvmeZnsMemoryBackend : public NvmeZnsBackend {
     protected:
         std::vector<uint64_t> write_pointers;
 

@@ -36,7 +36,7 @@ using qemucsd::spdk_init::ns_entry;
 
 namespace qemucsd::nvme_zns {
 
-    class NvmeZnsMemorySpdk : NvmeZnsBackend {
+    class NvmeZnsMemorySpdk : public NvmeZnsBackend {
     protected:
         // Write pointers for each zone have to be maintained in memory as it is
         // extremely costly to query this at runtime from SPDK

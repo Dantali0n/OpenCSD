@@ -33,7 +33,17 @@ namespace qemucsd::fuse_lfs {
      * This header contains data structures to be stored in memory by fuse_lfs
      */
 
+    struct static_position {
+        uint64_t zone;
+        uint64_t sector;
+        uint64_t offset;
+        uint64_t size;
+    };
 
+    struct dir_buf {
+        char* p;
+        size_t size;
+    };
 
 }
 

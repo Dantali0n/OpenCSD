@@ -28,7 +28,9 @@
 #define FUSE_USE_VERSION	36
 
 extern "C" {
-    #include "fuse3/fuse_lowlevel.h"
+    #include <assert.h>
+    #include <fuse3/fuse_lowlevel.h>
+    #include <string.h>
 }
 
 #include <map>
@@ -61,7 +63,8 @@ namespace qemucsd::fuse_lfs {
     protected:
         static struct fuse_conn_info* connection;
 
-        static struct nvme_zns::nvme_zns_info* nvme_info;
+        static struct nvme_zns::nvme_zns_info nvme_info;
+        static nvme_zns::NvmeZnsBackend* nvme;
 
         // Map filenames and their respective depth to inodes
         static std::map<std::pair<uint32_t, std::string>, int> path_inode_map;
@@ -83,12 +86,23 @@ namespace qemucsd::fuse_lfs {
         static void output(std::ostream &out, Head &&head, Tail&&... tail);
 
         static void path_to_inode(const char* path, int& fd);
+
+        static int ino_stat(fuse_ino_t ino, struct stat *stbuf);
+
+        static int reply_buf_limited(fuse_req_t req, const char *buf,
+                                     size_t bufsize, off_t off, size_t maxsize);
+        static void dir_buf_add(fuse_req_t req, struct dir_buf* buf,
+                                const char *name, fuse_ino_t ino);
+
+        static int verify_superblock();
+
+        static int write_superblock();
     public:
         FuseLFS() = delete;
         ~FuseLFS() = delete;
 
-        static int initialize(int argc, char* argv[],
-                              struct nvme_zns::nvme_zns_info* nvme_info);
+        static int initialize(
+            int argc, char* argv[], nvme_zns::NvmeZnsBackend* nvme);
 
         static void init(void *userdata, struct fuse_conn_info *conn);
         static void lookup(fuse_req_t req, fuse_ino_t parent, const char *name);

@@ -106,10 +106,8 @@ int main(int argc, char* argv[]) {
             fuse_argv = stripped_args.at(0).second.data();
         }
 
-        struct qemucsd::nvme_zns::nvme_zns_info nvme_info;
-        nvme_memory.get_nvme_zns_info(&nvme_info);
         return qemucsd::fuse_lfs::FuseLFS::initialize(
-            fuse_argc, fuse_argv, &nvme_info);
+            fuse_argc, fuse_argv, &nvme_memory);
     }
     catch(...) {
         #ifdef QEMUCSD_DEBUG
