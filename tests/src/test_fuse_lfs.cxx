@@ -39,8 +39,13 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfs)
 
     class TestFuseLFS : public FuseLFS {
     public:
+        using FuseLFS::nvme_info;
+
         using FuseLFS::path_inode_map;
         using FuseLFS::path_to_inode;
+
+        using FuseLFS::lba_to_position;
+        using FuseLFS::position_to_lba;
     };
 
     /**
@@ -138,6 +143,47 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfs)
         TestFuseLFS::path_to_inode(0, "/test/test/test/test/test", inode);
 
         BOOST_CHECK(inode == 6);
+    }
+
+    BOOST_AUTO_TEST_CASE(Test_FuseLFS_lba_to_position) {
+        struct qemucsd::fuse_lfs::data_position max_pos =
+            {4, 8, 0, 0};
+
+        TestFuseLFS::nvme_info.num_zones = max_pos.zone;
+        TestFuseLFS::nvme_info.zone_size = max_pos.sector;
+
+        struct qemucsd::fuse_lfs::data_position result;
+        for(uint64_t i = 0; i < max_pos.zone; i++) {
+            for(uint64_t j = 0; j < max_pos.sector; j++) {
+                TestFuseLFS::lba_to_position(i * max_pos.sector + j, result);
+                BOOST_CHECK(result.zone == i);
+                BOOST_CHECK(result.sector == j);
+            }
+        }
+    }
+
+    BOOST_AUTO_TEST_CASE(Test_FuseLFS_position_to_lba) {
+        struct qemucsd::fuse_lfs::data_position max_pos =
+                {4, 8, 0, 0};
+
+        TestFuseLFS::nvme_info.num_zones = max_pos.zone;
+        TestFuseLFS::nvme_info.zone_size = max_pos.sector;
+
+        uint64_t result = 0;
+        struct qemucsd::fuse_lfs::data_position pos =
+            {0, 0, 0, 0};
+        for(uint64_t i = 0; i < max_pos.zone; i++) {
+            pos.zone = i;
+            for (uint64_t j = 0; j < max_pos.sector; j++) {
+                uint64_t t_res = result;
+                pos.sector = j;
+                TestFuseLFS::position_to_lba(pos, result);
+
+                if(i != 0 && j != 0)
+                    BOOST_CHECK_MESSAGE(result == t_res + 1,
+                    "res " << result << " t_res " << t_res + 1);
+            }
+        }
     }
 
 BOOST_AUTO_TEST_SUITE_END()
