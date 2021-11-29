@@ -41,6 +41,7 @@ namespace qemucsd::fuse_lfs {
 
     const struct fuse_lowlevel_ops FuseLFS::operations = {
         .init       = FuseLFS::init,
+        .destroy    = FuseLFS::destroy,
         .lookup     = FuseLFS::lookup,
         .getattr    = FuseLFS::getattr,
         .unlink     = FuseLFS::unlink,
@@ -125,18 +126,35 @@ namespace qemucsd::fuse_lfs {
             goto err_out1;
         }
 
-        // TODO(Dantali0n): Only write super block when a certain command line
+        // TODO(Dantali0n): Only create filesystem when a certain command line
         //                  argument is supplied. See fuse hello_ll for example.
-        if(write_superblock() != 0) {
-            output(std::cerr, "Failed to write super block, check",
-                   "NvmeZns backend");
+        output(std::cout, "Creating filesystem..");
+        if(mkfs() != 0) {
             ret = 1;
             goto err_out1;
         }
 
+        output(std::cout, "Checking super block..");
         if(verify_superblock() != 0) {
             output(std::cerr, "Failed to verify super block, are you ",
-                   "sure partition does not contain another filesystem?");
+                   "sure the partition does not contain another filesystem?");
+            ret = 1;
+            goto err_out1;
+        }
+
+        // TODO(Dantali0n): Filesystem cleanup / recovery from dirty state
+        output(std::cout, "Checking dirty block..");
+        if(verify_dirtyblock() != 0) {
+            output(std::cerr, "Filesystem dirty, no recovery methods yet",
+                   " unable to continue :(");
+            ret = 1;
+            goto err_out1;
+        }
+
+        output(std::cout, "Writing dirty block..");
+        if(write_dirtyblock() != 0) {
+            output(std::cerr, "Unable to write dirty block to drive, "
+                   "check that drive is writeable");
             ret = 1;
             goto err_out1;
         }
@@ -300,6 +318,46 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
+     * Create the filesystem and bring it into the initial state
+     * @return 0 upon success, < 0 upon failure
+     */
+    int FuseLFS::mkfs() {
+        output(std::cout, "writing super block..");
+
+        if(write_superblock() != 0) {
+            output(std::cerr, "Failed to write super block, check",
+                   "NvmeZns backend");
+            return -1;
+        }
+
+        // Write initial checkpoint block
+        uint64_t randz_lba = 0;
+        position_to_lba(RANDZ_POS, randz_lba);
+
+        uint64_t res_sector;
+        struct checkpoint_block cblock = {randz_lba};
+        if(nvme->append(CBLOCK_POS.zone, res_sector, CBLOCK_POS.offset,
+                        &cblock, sizeof(cblock)) != 0) {
+            output(std::cerr, "Failed to write checkpoint block, check",
+                   "NvmeZns backend");
+            return -1;
+        }
+
+        if(res_sector != CBLOCK_POS.sector) {
+            output(std::cerr, "Initial checkpoint block written to wrong"
+                   "location, check append operations");
+            return -1;
+        }
+
+        cblock_pos.zone = CBLOCK_POS.zone;
+        cblock_pos.sector = CBLOCK_POS.sector;
+        cblock_pos.offset = CBLOCK_POS.offset;
+        cblock_pos.size = CBLOCK_POS.size;
+
+        return 0;
+    }
+
+    /**
      * Read the super block for the filesystem and verify the parameters to
      * prevent overwritten a drive configured for other filesystems.
      * @return 0 upon success, < 0 upon failure
@@ -344,8 +402,153 @@ namespace qemucsd::fuse_lfs {
         return 0;
     }
 
+    /**
+     * Checks if the filesystem was left dirty from last time
+     * @return 0 when clean, < 0 if dirty
+     */
+    int FuseLFS::verify_dirtyblock() {
+        struct dirty_block dblock = {0};
+
+        // If we can't read the dirty block assume it is unwritten thus clean
+        if(nvme->read(DBLOCK_POS.zone, DBLOCK_POS.sector, DBLOCK_POS.offset,
+                      &dblock, sizeof(dblock)) != 0)
+            return 0;
+
+        // -1 if dirty or 0 otherwise
+        return dblock.is_dirty == 1 ? -1 : 0;
+    }
+
+    /**
+     * Write the dirty block to the drive and verify it was appended to the
+     * correct location.
+     * @return 0 upon success, < 0 upon failure
+     */
+    int FuseLFS::write_dirtyblock() {
+        uint64_t sector;
+
+        struct dirty_block dblock = {0};
+        dblock.is_dirty = 1;
+
+        if(nvme->append(DBLOCK_POS.zone, sector, DBLOCK_POS.offset, &dblock,
+                     sizeof(dblock)) != 0)
+            return -1;
+
+        if(sector != DBLOCK_POS.sector)
+            return -1;
+
+        return 0;
+    }
+
+    /**
+     * Reset the zone containing the dirty block
+     * @return 0 upon success, < 0 upon failure
+     */
+    int FuseLFS::remove_dirtyblock() {
+        if(nvme->reset(DBLOCK_POS.zone) != 0)
+            return -1;
+
+        return 0;
+    }
+
+    // Current checkpoint position on drive
+    struct data_position FuseLFS::cblock_pos = {
+        0, 0, 0, 0
+    };
+
+    /**
+     * Write the new start of the random zone to the new checkpoint block
+     * @return 0 upon success, < 0 upon failure
+     */
+    int FuseLFS::update_checkpointblock(uint64_t randz_lba) {
+        struct data_position tmp_cblock_pos = cblock_pos;
+
+        // cblock_pos not set yet, somehow update is called before mkfs() or
+        // get_checkpointblock()
+        if(dpos_valid(cblock_pos) != 0)
+            return -1;
+
+        // If the current checkpoint block lives on the last sector in the zone
+        // Move to the next zone.
+        if(cblock_pos.sector == nvme_info.zone_size - 1) {
+            tmp_cblock_pos.zone = cblock_pos.zone + 1;
+            tmp_cblock_pos.sector = 0;
+        }
+        // Otherwise just advance the sector by 1
+        else {
+            tmp_cblock_pos.sector += 1;
+        }
+
+        uint64_t res_sector;
+        struct checkpoint_block cblock = {randz_lba};
+        if(nvme->append(tmp_cblock_pos.zone, res_sector, tmp_cblock_pos.offset,
+                        &cblock, tmp_cblock_pos.size) != 0)
+            return -1;
+
+        if(tmp_cblock_pos.sector != res_sector)
+            return -1;
+    }
+
+    /**
+     * Determine the location of the most up to date checkpoint block and return
+     * its data. Must set cblock_pos member variable to speed up future lookups.
+     */
+    int FuseLFS::get_checkpointblock(struct checkpoint_block &cblock) {
+        struct checkpoint_block tmp_cblock = {0};
+        uint64_t checkpoint_zone = CBLOCK_POS.zone;
+        // Random zone could never start at absolute index limit of drive.
+        tmp_cblock.randz_lba = UINT64_MAX;
+
+        // Checkpoints on first zone
+        if(nvme->read(CBLOCK_POS.zone, CBLOCK_POS.sector, CBLOCK_POS.offset,
+                      &tmp_cblock, sizeof(cblock)) == 0)
+            checkpoint_zone = CBLOCK_POS.zone;
+        // Checkpoints on second zone
+        else if(nvme->read(CBLOCK_POS.zone + 1, CBLOCK_POS.sector,
+                           CBLOCK_POS.offset, &tmp_cblock, sizeof(cblock)) == 0)
+            checkpoint_zone = CBLOCK_POS.zone + 1;
+        else
+            return -1;
+
+        // Read until no more checkpoint
+        for(uint64_t i = 0; i < nvme_info.zone_size; i++) {
+            // Read each subsequent block until it fails once
+            if(nvme->read(checkpoint_zone, i, CBLOCK_POS.offset,
+                          &tmp_cblock, sizeof(cblock)) != 0)
+                break;
+
+            // If we could read the last sector of the first zone we should
+            // continue reading the first sector of the second zone.
+            if(i == nvme_info.zone_size - 1 && checkpoint_zone ==
+               CBLOCK_POS.zone)
+            {
+                // The return status of this is irrelevant it will either
+                // update the checkpoint block or silently fail.
+                nvme->read(CBLOCK_POS.zone + 1, CBLOCK_POS.sector,
+                           CBLOCK_POS.offset, &tmp_cblock, sizeof(cblock));
+            }
+        }
+
+        // Could not find any checkpoint block on drive
+        if(tmp_cblock.randz_lba == UINT64_MAX)
+            return -1;
+
+        // Update the checkpoint block data
+        tmp_cblock = cblock;
+
+        return 0;
+    }
+
     void FuseLFS::init(void *userdata, struct fuse_conn_info *conn) {
         connection = conn;
+    }
+
+    void FuseLFS::destroy(void *userdata) {
+        output(std::cout, "Tearing down filesystem");
+
+        if(remove_dirtyblock() != 0) {
+            output(std::cerr, "Failed to remove dirty block from drive"
+                   " this will cause issues on subsequent mounts!");
+        }
     }
 
     /**

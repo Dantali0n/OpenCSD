@@ -31,6 +31,22 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * This header contains data structures to be stored on disc by fuse_lfs.
+     * Below is documentation on drive layout
+     */
+
+    /**
+     * DRIVE LAYOUT:
+     *
+     *        0             1           2         3       4  ... X
+     * | SUPER BLOCK | DIRTY BLOCK | CHECKPOINT BLOCK | RANDOM ZONE | ...
+     *
+     *        N  ... N + 2    Y ... Z   G ... G + 4
+     * ... | RANDOM BUFFER | LOG ZONE | LOG BUFFER |
+     */
+
+    /**
+     * STATIC WRITE ZONE, the following data structures are written to the
+     * static location write zone on drive.
      */
 
     /**
@@ -42,14 +58,46 @@ namespace qemucsd::fuse_lfs {
         uint64_t zones;         // Verifies given partition matches expectations
         uint64_t sectors;       // Verifies given partition matches expectations
         uint64_t sector_size;   // Verifies given partition matches expectations
-        uint8_t  padding[480];  // Pad out the rest
+        uint8_t  padding[SECTOR_SIZE-32];  // Pad out the rest
     };
     static_assert(sizeof(super_block) == SECTOR_SIZE);
 
     /**
-     * RANDOM WRITE ZONE, the following data structures are written to the
-     * random write zone on disc.
+     * Written once when filesystem opened, removed from device once closed.
+     * Always stored at zone 1, sector 0.
      */
+     struct dirty_block {
+         uint8_t is_dirty; // Always set to 1 when written to drive.
+         uint8_t  padding[SECTOR_SIZE-1];  // Pad out the rest.
+     };
+    static_assert(sizeof(dirty_block) == SECTOR_SIZE);
+
+     /**
+      * Written linearly from zone 2, sector 0 till, not including zone 4.
+      * Once zone 3, sector 0 is written than zone 2 must be reset. If zone 3 is
+      * full write to zone 2 sector 0 and afterwards reset zone 3.
+      *
+      * The last checkpoint that can be read starting from zone 2 sector 0
+      * is valid. Reading should not continue after holes in the rare case zone
+      * 3 is not reset yet after writing zone 2 sector 0 again.
+      */
+     struct checkpoint_block {
+         uint64_t randz_lba;
+         uint8_t  padding[SECTOR_SIZE-8];  // Pad out the rest
+     };
+    static_assert(sizeof(checkpoint_block) == SECTOR_SIZE);
+
+
+    /**
+     * RANDOM WRITE ZONE, the following data structures are written to the
+     * random write zone on drive.
+     */
+
+    typedef enum random_zone_block_types {
+        RANDZ_NON_BLK = 0,
+        RANDZ_NAT_BLK = 1,
+        RANDZ_SIT_BLK = 2
+    } randz_blk_types;
 
     /**
      * A nat_block, ids are unique but not on disc. The highest lba occurrence
@@ -57,10 +105,35 @@ namespace qemucsd::fuse_lfs {
      */
     struct nat_block {
         uint64_t id;
-        uint64_t size;
+        uint64_t type;
         std::pair<uint64_t, uint64_t> inode_lba[31];
     };
     static_assert(sizeof(nat_block) == SECTOR_SIZE);
+
+    /**
+     * LOG WRITE ZONE, the following datastructures will be linearly written to
+     * the drive.
+     */
+
+    struct inode_block {
+        uint8_t padding[SECTOR_SIZE];  // Pad out the rest
+    };
+    static_assert(sizeof(inode_block) == SECTOR_SIZE);
+
+    struct inode_entry {
+        uint64_t parent;   // Parent inode
+        uint64_t inode;    // This inode
+        uint64_t size;     // Size of the inode
+        uint8_t  type;     // Inode type
+        uint64_t data_lba; // LBA of data block
+    };
+
+    struct data_block {
+        uint64_t data_lbas[63]; // LBAs of data blocks linearly for size
+        uint64_t next_block;    // LBA for next data block or zero if none
+    };
+    static_assert(sizeof(data_block) == SECTOR_SIZE);
+
 }
 
 #endif // QEMU_CSD_FUSE_LFS_DISC_HPP

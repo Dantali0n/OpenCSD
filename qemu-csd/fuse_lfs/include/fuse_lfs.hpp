@@ -87,9 +87,29 @@ namespace qemucsd::fuse_lfs {
         static void dir_buf_add(fuse_req_t req, struct dir_buf* buf,
                                 const char *name, fuse_ino_t ino);
 
+        static int mkfs();
+
+        // TODO(Dantali0n): Move superblock methods to separate interface
+
         static int verify_superblock();
 
         static int write_superblock();
+
+        // TODO(Dantali0n): Move dirtyblock methods to separate interface
+
+        static int verify_dirtyblock();
+
+        static int write_dirtyblock();
+
+        static int remove_dirtyblock();
+
+        // TODO(Dantali0n): Move checkpointblock methods to separate interface
+
+        static struct data_position cblock_pos;
+
+        static int update_checkpointblock(uint64_t randz_lba);
+
+        static int get_checkpointblock(struct checkpoint_block &cblock);
     public:
         FuseLFS() = delete;
         ~FuseLFS() = delete;
@@ -98,6 +118,7 @@ namespace qemucsd::fuse_lfs {
             int argc, char* argv[], nvme_zns::NvmeZnsBackend* nvme);
 
         static void init(void *userdata, struct fuse_conn_info *conn);
+        static void destroy(void *userdata);
         static void lookup(fuse_req_t req, fuse_ino_t parent, const char *name);
         static void getattr(fuse_req_t req, fuse_ino_t ino,
                            struct fuse_file_info *fi);

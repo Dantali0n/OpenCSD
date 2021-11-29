@@ -61,6 +61,8 @@ namespace qemucsd::fuse_lfs {
         uint64_t size;
     };
 
+    int dpos_valid(struct data_position dpos);
+
     /**
      * Position of super block on device
      */
@@ -69,12 +71,26 @@ namespace qemucsd::fuse_lfs {
     };
 
     /**
-     * Position of first nat block on device
+     * Position of dirty block on device
      */
-    static constexpr struct data_position NBLOCK_POS = {
+    static constexpr struct data_position DBLOCK_POS = {
         1, 0, 0, sizeof(SECTOR_SIZE)
     };
 
+
+    /**
+     * Position of (potential) first checkpoint block on device
+     */
+    static constexpr struct data_position CBLOCK_POS = {
+        2, 0, 0, sizeof(SECTOR_SIZE)
+    };
+
+    /**
+     * Position of start of the RANDOM ZONE
+     */
+     static constexpr struct data_position RANDZ_POS = {
+        4, 0, 0, sizeof(SECTOR_SIZE)
+     };
 }
 
 #endif // QEMU_CSD_FUSE_LFS_CONSTANTS_HPP
