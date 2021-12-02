@@ -39,6 +39,8 @@ namespace qemucsd::fuse_lfs {
 
     path_inode_map_t FuseLFS::path_inode_map = path_inode_map_t();
 
+    inode_lba_map_t FuseLFS::inode_lba_map = inode_lba_map_t();
+
     const struct fuse_lowlevel_ops FuseLFS::operations = {
         .init       = FuseLFS::init,
         .destroy    = FuseLFS::destroy,
@@ -229,7 +231,7 @@ namespace qemucsd::fuse_lfs {
      * undefined if the inode does not actually exist.
      */
     void FuseLFS::inode_to_lba(fuse_ino_t ino, uint64_t &lba) {
-
+        lba = inode_lba_map.find(ino)->second;
     }
 
     /**

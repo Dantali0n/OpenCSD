@@ -58,6 +58,9 @@ namespace qemucsd::fuse_lfs {
         // Map filenames and their respective parent to inodes
         static path_inode_map_t path_inode_map;
 
+        // Map inodes to the lba they are stored at
+        static inode_lba_map_t inode_lba_map;
+
         static const std::string FUSE_LFS_NAME_PREFIX;
         static const std::string FUSE_SEQUENTIAL_PARAM;
 

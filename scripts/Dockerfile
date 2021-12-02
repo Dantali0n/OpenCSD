@@ -1,4 +1,4 @@
-FROM archlinux:base-devel-20211114.0.39041
+FROM archlinux:base-devel
 
 # Configure mirrors including multilib
 #  - echo "Server = https://mirrors.daan.vodka/archlinux/$repo/os/$arch" | sudo tee /etc/pacman.d/mirrormulti

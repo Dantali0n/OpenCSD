@@ -65,8 +65,19 @@ provisional
         - [ ] (foreground) blocking if there is no more drive space to perform
               the append.
         - [ ] (background) periodic to clear entirely unoccupied zones.
-        - [ ] Reserve last two zones from total space for GC operations.
+        - [X] Reserve last two zones from total space for GC operations.
 - Week 6 -> FUSE LFS filesystem
+  - [ ] Get a working LFS filesystem using FUSE
+    - [X] Filesystem constraints / limitations
+      - [X] No power atomicity
+    - [X] Test path to inode function using unit tests.
+    - [ ] Test checkpoint functionality
+    - [ ] Write a nat block to the drive
+      - [ ] Function to append nat block
+    - [ ] Write an inode block to the drive
+      - [ ] Inode append function
+    - [ ] Decide location of size and filename fields on disc
+      - [ ] inode vs file / data block
 - Week 7 -> FUSE LFS filesystem
 - Week 8 -> FUSE LFS filesystem
   - [ ] Run filesystem benchmarks with strace
