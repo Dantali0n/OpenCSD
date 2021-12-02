@@ -7,7 +7,8 @@ RUN echo "[multilib]" | sudo tee -a /etc/pacman.conf; \
 
 # Install required dependencies through pacman
 RUN pacman -Syy && \
-    sudo pacman -Sy --noconfirm base-devel cmake clang gcc llvm yasm ninja \
+    sudo pacman -Syu --noconfirm && \
+    sudo pacman -Sy --noconfirm cmake clang gcc llvm yasm ninja \
     cunit pixman python-pip git libaio numactl lib32-glibc gcovr valgrind \
     doxygen texlive-bin texlive-science texlive-publishers texlive-latexextra \
     texlive-humanities
