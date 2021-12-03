@@ -42,37 +42,6 @@ add_library(
 )
 set_target_properties(qemucsd_nvme_zns_backend PROPERTIES LINKER_LANGUAGE CXX)
 
-project(${PRJ_PRX}_nvme_zns)
-
-set(QEMUCSD_NVME_ZNS_LIBRARIES
-)
-
-set(QEMUCSD_NVME_ZNS_SRC
-    include/nvme_zns.tpp
-)
-
-set(QEMUCSD_NVME_ZNS_HEADERS
-    include/nvme_zns.hpp
-    include/nvme_zns_info.hpp
-)
-
-add_library(
-    qemucsd_nvme_zns STATIC
-    ${QEMUCSD_NVME_ZNS_SRC}
-    ${QEMUCSD_NVME_ZNS_HEADERS}
-)
-set_target_properties(qemucsd_nvme_zns PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(
-    qemucsd_nvme_zns
-    qemucsd_nvme_zns_backend
-    ${QEMUCSD_NVME_ZNS_LIBRARIES}
-)
-
-#add_dependencies(qemucsd_nvme_zns)
-
-# Add qemucsd_measurements to the modules
-add_qemucsd_module(qemucsd_nvme_zns)
-
 add_subdirectory(memory_backend)
 
 add_subdirectory(spdk_backend)

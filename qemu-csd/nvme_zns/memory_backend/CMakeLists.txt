@@ -44,6 +44,7 @@ add_library(
 )
 target_link_libraries(
     qemucsd_nvme_zns_memory
+    qemucsd_nvme_zns_backend
     ${QEMUCSD_NVME_ZNS_MEMORY_LIBRARIES}
 )
 

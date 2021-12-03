@@ -42,7 +42,6 @@ void segfault_handler(int signal, siginfo_t *si, void *arg) {
 #include "arguments.hpp"
 #include "fuse_lfs.hpp"
 #include "spdk_init.hpp"
-#include "nvme_zns.hpp"
 #include "nvme_zns_memory.hpp"
 
 using qemucsd::nvme_zns::NvmeZnsMemoryBackend;
@@ -66,7 +65,6 @@ int main(int argc, char* argv[]) {
     qemucsd::arguments::options opts;
 
     NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
-    qemucsd::nvme_zns::NvmeZns<NvmeZnsMemoryBackend> nvme_zns(&nvme_memory);
 //    struct qemucsd::spdk_init::ns_entry entry = {0};
 
     // Setup segfault handler to print backward stacktraces

@@ -32,6 +32,7 @@
 
 #include "fuse_lfs.hpp"
 
+
 BOOST_AUTO_TEST_SUITE(Test_FuseLfs)
 
     using qemucsd::fuse_lfs::path_node_t;
@@ -201,18 +202,6 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfs)
         TestFuseLFS::inode_to_lba(1, lba);
 
         BOOST_CHECK(lba == 2);
-    }
-
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_super_block) {
-
-    }
-
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_dirty_block) {
-
-    }
-
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_checkpoint_block) {
-
     }
 
 BOOST_AUTO_TEST_SUITE_END()

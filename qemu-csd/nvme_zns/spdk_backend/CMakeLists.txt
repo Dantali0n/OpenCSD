@@ -45,6 +45,7 @@ add_library(
 )
 target_link_libraries(
     qemucsd_nvme_zns_spdk
+    qemucsd_nvme_zns_backend
     ${QEMUCSD_NVME_ZNS_SPDK_LIBRARIES}
 )
 

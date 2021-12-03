@@ -310,13 +310,24 @@ namespace qemucsd::fuse_lfs {
 
     template<typename T>
     void FuseLFS::output(std::ostream &out, T &&t) {
-        out  << t << "\n";
+        out << FUSE_LFS_NAME_PREFIX << t << "\n";
     }
 
     template<typename Head, typename... Tail>
     void FuseLFS::output(std::ostream &out, Head &&head, Tail&&... tail) {
         out << FUSE_LFS_NAME_PREFIX << head;
-        output(out, std::forward<Tail>(tail)...);
+        output_i(out, std::forward<Tail>(tail)...);
+    }
+
+    template<typename D>
+    void FuseLFS::output_i(std::ostream &out, D &&t) {
+        out << t << "\n";
+    }
+
+    template<typename Head2, typename... Tail2>
+    void FuseLFS::output_i(std::ostream &out, Head2 &&head, Tail2&&... tail) {
+        out << head;
+        output_i(out, std::forward<Tail2>(tail)...);
     }
 
     /**
@@ -470,9 +481,14 @@ namespace qemucsd::fuse_lfs {
             return -1;
 
         // If the current checkpoint block lives on the last sector in the zone
-        // Move to the next zone.
+        // Move to the next zone (with rollover back to initial zone).
         if(cblock_pos.sector == nvme_info.zone_size - 1) {
-            tmp_cblock_pos.zone = cblock_pos.zone + 1;
+
+            // Tick Tock between initial zone and subsequent zone
+            if(CBLOCK_POS.zone == cblock_pos.zone)
+                tmp_cblock_pos.zone = cblock_pos.zone + 1;
+            else tmp_cblock_pos.zone = CBLOCK_POS.zone;
+
             tmp_cblock_pos.sector = 0;
         }
         // Otherwise just advance the sector by 1
@@ -488,6 +504,15 @@ namespace qemucsd::fuse_lfs {
 
         if(tmp_cblock_pos.sector != res_sector)
             return -1;
+
+        // If zone changed, reset old zone
+        if(tmp_cblock_pos.zone != cblock_pos.zone)
+            if(nvme->reset(cblock_pos.zone) != 0)
+                return -1;
+
+        cblock_pos = tmp_cblock_pos;
+
+        return 0;
     }
 
     /**
@@ -525,8 +550,10 @@ namespace qemucsd::fuse_lfs {
             {
                 // The return status of this is irrelevant it will either
                 // update the checkpoint block or silently fail.
-                nvme->read(CBLOCK_POS.zone + 1, CBLOCK_POS.sector,
-                           CBLOCK_POS.offset, &tmp_cblock, sizeof(cblock));
+                if(nvme->read(CBLOCK_POS.zone + 1, CBLOCK_POS.sector,
+                           CBLOCK_POS.offset, &tmp_cblock, sizeof(cblock)) == 0)
+                    output(std::cerr, "Restored checkpoint block from "
+                           "power loss");
             }
         }
 
@@ -535,7 +562,7 @@ namespace qemucsd::fuse_lfs {
             return -1;
 
         // Update the checkpoint block data
-        tmp_cblock = cblock;
+        cblock = tmp_cblock;
 
         return 0;
     }

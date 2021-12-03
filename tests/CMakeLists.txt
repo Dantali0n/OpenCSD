@@ -46,9 +46,9 @@ add_custom_target(
 	testarguments
 	testcpp17
 	testfuse-lfs
+	testfuse-lfs-drive
 	testnvme-csd
 	testnvme-zns-memory
-	testnvme-zns
 	testspdk-init
 )
 
@@ -140,6 +140,32 @@ target_link_libraries(
 
 qemucsd_target_postprocess(testfuse-lfs)
 
+# -------------------- #
+# fuse_lfs_drive tests #
+# -------------------- #
+
+set(TEST_FUSE_LFS_SOURCE
+	src/test_fuse_lfs_drive.cxx
+	src/tests.cxx
+)
+
+set(TEST_FUSE_LFS_HEADERS
+	include/tests.hpp
+)
+
+message("${PRJ_PRX}: test fuse_lfs_drive cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(testfuse-lfs-drive ${TEST_FUSE_LFS_SOURCE} ${TEST_FUSE_LFS_HEADERS} ${${PRJ_PRX}_SOURCES})
+#add_dependencies(testarguments)
+
+target_link_libraries(
+	testfuse-lfs-drive
+	qemucsd_fuse_lfs
+	qemucsd_nvme_zns_memory
+	${${PRJ_PRX}_LIBRARIES_PACK}
+)
+
+qemucsd_target_postprocess(testfuse-lfs-drive)
+
 # -------------- #
 # nvme_csd tests #
 # -------------- #
@@ -165,32 +191,6 @@ target_link_libraries(
 
 qemucsd_target_postprocess(testnvme-csd)
 
-# -------------- #
-# nvme_zns tests #
-# -------------- #
-
-set(TEST_NVME_ZNS_SOURCE
-	src/test_nvme_zns.cxx
-	src/tests.cxx
-)
-
-set(TEST_NVME_ZNS_HEADERS
-	include/tests.hpp
-)
-
-message("${PRJ_PRX}: test nvme_zns cxx flags:${CMAKE_CXX_FLAGS}")
-add_executable(testnvme-zns ${TEST_NVME_ZNS_SOURCE} ${TEST_NVME_ZNS_HEADERS} ${${PRJ_PRX}_SOURCES})
-#add_dependencies(testarguments)
-
-target_link_libraries(
-	testnvme-zns
-	qemucsd_nvme_zns
-	qemucsd_nvme_zns_memory
-	${${PRJ_PRX}_LIBRARIES_PACK}
-)
-
-qemucsd_target_postprocess(testnvme-zns)
-
 # --------------------- #
 # nvme_zns_memory tests #
 # --------------------- #
@@ -210,7 +210,6 @@ add_executable(testnvme-zns-memory ${TEST_NVME_ZNS_MEMORY_SOURCE} ${TEST_NVME_ZN
 
 target_link_libraries(
 	testnvme-zns-memory
-	qemucsd_nvme_zns
 	qemucsd_nvme_zns_memory
 	${${PRJ_PRX}_LIBRARIES_PACK}
 )
@@ -249,9 +248,9 @@ qemucsd_target_postprocess(testspdk-init)
 add_test(TestArguments testarguments)
 add_test(TestCPP17 testcpp17)
 add_test(TestFuseLfs testfuse-lfs)
+add_test(TestFuseLfsDrive testfuse-lfs-drive)
 add_test(TestNvmeCsd testnvme-csd)
-add_test(TestNvmeZns testnvme-zns)
 add_test(TestNvmeZnsBackendMemory testnvme-zns-memory)
 add_test(TestSpdkInit testspdk-init)
 
-add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS testarguments testcpp17 testfuse-lfs testnvme-csd testnvme-zns-memory testnvme-zns testspdk-init)
+add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS testarguments testcpp17 testfuse-lfs testfuse-lfs-drive testnvme-csd testnvme-zns-memory testspdk-init)

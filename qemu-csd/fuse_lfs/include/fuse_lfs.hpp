@@ -41,7 +41,7 @@ extern "C" {
 #include "fuse_lfs_constants.hpp"
 #include "fuse_lfs_disc.hpp"
 #include "fuse_lfs_memory.hpp"
-#include "nvme_zns.hpp"
+#include "nvme_zns_backend.hpp"
 
 namespace qemucsd::fuse_lfs {
 
@@ -68,6 +68,12 @@ namespace qemucsd::fuse_lfs {
 
         template<typename T>
         static void output(std::ostream &out, T &&t);
+
+        template<typename D>
+        static void output_i(std::ostream &out, D &&t);
+
+        template<typename Head2, typename... Tail2>
+        static void output_i(std::ostream &out, Head2 &&head, Tail2&&... tail);
 
         template<typename Head, typename... Tail>
         static void output(std::ostream &out, Head &&head, Tail&&... tail);

@@ -36,7 +36,7 @@ extern "C" {
 #include <sstream>
 #include <string>
 
-#include "nvme_zns.hpp"
+#include "nvme_zns_info.hpp"
 
 namespace qemucsd::fuse_lfs {
 
@@ -67,14 +67,14 @@ namespace qemucsd::fuse_lfs {
      * Position of super block on device
      */
     static constexpr struct data_position SBLOCK_POS = {
-        0, 0, 0, sizeof(SECTOR_SIZE)
+        0, 0, 0, SECTOR_SIZE
     };
 
     /**
      * Position of dirty block on device
      */
     static constexpr struct data_position DBLOCK_POS = {
-        1, 0, 0, sizeof(SECTOR_SIZE)
+        1, 0, 0, SECTOR_SIZE
     };
 
 
@@ -82,14 +82,14 @@ namespace qemucsd::fuse_lfs {
      * Position of (potential) first checkpoint block on device
      */
     static constexpr struct data_position CBLOCK_POS = {
-        2, 0, 0, sizeof(SECTOR_SIZE)
+        2, 0, 0, SECTOR_SIZE
     };
 
     /**
      * Position of start of the RANDOM ZONE
      */
      static constexpr struct data_position RANDZ_POS = {
-        4, 0, 0, sizeof(SECTOR_SIZE)
+        4, 0, 0, SECTOR_SIZE
      };
 }
 
