@@ -37,6 +37,9 @@ namespace qemucsd::fuse_lfs {
     const std::string FuseLFS::FUSE_LFS_NAME_PREFIX = "[FUSE LFS] ";
     const std::string FuseLFS::FUSE_SEQUENTIAL_PARAM = "-s";
 
+    output::Output FuseLFS::output =
+        output::Output(FuseLFS::FUSE_LFS_NAME_PREFIX);
+
     path_inode_map_t FuseLFS::path_inode_map = path_inode_map_t();
 
     inode_lba_map_t FuseLFS::inode_lba_map = inode_lba_map_t();
@@ -306,28 +309,6 @@ namespace qemucsd::fuse_lfs {
         stbuf.st_ino = ino;
         fuse_add_direntry(req, buf->p + oldsize, buf->size - oldsize, name, &stbuf,
         buf->size);
-    }
-
-    template<typename T>
-    void FuseLFS::output(std::ostream &out, T &&t) {
-        out << FUSE_LFS_NAME_PREFIX << t << "\n";
-    }
-
-    template<typename Head, typename... Tail>
-    void FuseLFS::output(std::ostream &out, Head &&head, Tail&&... tail) {
-        out << FUSE_LFS_NAME_PREFIX << head;
-        output_i(out, std::forward<Tail>(tail)...);
-    }
-
-    template<typename D>
-    void FuseLFS::output_i(std::ostream &out, D &&t) {
-        out << t << "\n";
-    }
-
-    template<typename Head2, typename... Tail2>
-    void FuseLFS::output_i(std::ostream &out, Head2 &&head, Tail2&&... tail) {
-        out << head;
-        output_i(out, std::forward<Tail2>(tail)...);
     }
 
     /**

@@ -20,40 +20,35 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-project(${PRJ_PRX}_fuse_lfs)
+project(${PRJ_PRX}_output)
 
-
-set(QEMUCSD_FUSE_LFS_LIBRARIES
-    qemucsd_output
-    qemucsd_spdk_init
-    fuse3
+set(QEMUCSD_OUTPUT_LIBRARIES
 )
 
-set(QEMUCSD_FUSE_LFS_SRC
-    src/fuse_lfs.cxx
-    src/fuse_lfs_constants.cxx
+set(QEMUCSD_OUTPUT_SRC
+    src/output.cxx
 )
 
-set(QEMUCSD_FUSE_LFS_HEADERS
-    include/fuse_lfs.hpp
+set(QEMUCSD_OUTPUT_HEADERS
+    include/output.hpp
 )
 
-# Add qemucsd_measurements to the includes
+# Add qemucsd_output to the includes
 add_qemucsd_include(${CMAKE_CURRENT_SOURCE_DIR}/include)
 qemucsd_include_directories()
 
 add_library(
-    qemucsd_fuse_lfs STATIC
-    ${QEMUCSD_FUSE_LFS_SRC}
-    ${QEMUCSD_FUSE_LFS_HEADERS}
+    qemucsd_output STATIC
+    ${QEMUCSD_OUTPUT_SRC}
+    ${QEMUCSD_OUTPUT_HEADERS}
 )
 set_target_properties(${PRJ_LIB} PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(
-    qemucsd_fuse_lfs
-    ${QEMUCSD_FUSE_LFS_LIBRARIES}
+    qemucsd_output
+    ${QEMUCSD_OUTPUT_LIBRARIES}
 )
 
-add_dependencies(qemucsd_fuse_lfs libfuse-build)
+#add_dependencies(qemucsd_output)
 
-# Add qemucsd_measurements to the modules
-add_qemucsd_module(qemucsd_fuse_lfs)
+# Add qemucsd_arguments to the modules
+add_qemucsd_module(qemucsd_output)

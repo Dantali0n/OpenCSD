@@ -49,6 +49,8 @@ namespace qemucsd::spdk_init {
         uint64_t lba_size;
 		// Size of a zone in number of LBAs
 		uint64_t zone_size;
+        // Capacity of a zone in number of LBAs
+        uint64_t zone_capacity;
         // Size of entire device in number of zones
         uint64_t device_size;
 

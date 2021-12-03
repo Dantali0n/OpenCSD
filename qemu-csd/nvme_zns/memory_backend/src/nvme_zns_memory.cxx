@@ -28,7 +28,7 @@ namespace qemucsd::nvme_zns {
 
     NvmeZnsMemoryBackend::NvmeZnsMemoryBackend(
         uint64_t num_zones, uint64_t zone_size, uint64_t sector_size) :
-        NvmeZnsBackend(num_zones, zone_size, sector_size, 0)
+        NvmeZnsBackend(num_zones, zone_size, zone_size, sector_size, 0)
     {
         info.num_zones = num_zones;
         info.zone_size = zone_size;

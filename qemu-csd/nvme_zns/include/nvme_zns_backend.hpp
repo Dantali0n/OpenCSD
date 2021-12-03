@@ -55,7 +55,7 @@ namespace qemucsd::nvme_zns {
          * _device_byte_size_ and _zone_byte_size_
          */
         NvmeZnsBackend(uint64_t num_zones,  uint64_t zone_size,
-            uint64_t sector_size, uint64_t max_open);
+            uint64_t zone_capacity, uint64_t sector_size, uint64_t max_open);
 
         /**
          * Provide nvme_zns_info to caller, can be implemented by calling

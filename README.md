@@ -255,15 +255,16 @@ section, followed by the steps in [Usage Examples](#usage-examples).
 
 ### Modules
 
-| Module       | Task                                                    |
-|--------------|---------------------------------------------------------|
-| arguments    | Parse commandline arguments to relevant components      |
-| bpf_helpers  | Headers to define functions available from within BPF   |
-| bpf_programs | BPF programs ready to run on a CSD using bpf_helpers    |
-| fuse_lfs     | Log Structured Filesystem in FUSE                       |
-| nvme_csd     | Emulated additional NVMe commands to enable BPF CSDs    |
-| nvme_zns     | Interface to handle zoned I/O using abstracted backends |
-| spdk_init    | Provides SPDK initialization and handles for nvme_csd   |
+| Module       | Task                                                     |
+|--------------|----------------------------------------------------------|
+| arguments    | Parse commandline arguments to relevant components       |
+| bpf_helpers  | Headers to define functions available from within BPF    |
+| bpf_programs | BPF programs ready to run on a CSD using bpf_helpers     |
+| fuse_lfs     | Log Structured Filesystem in FUSE                        |
+| nvme_csd     | Emulated additional NVMe commands to enable BPF CSDs     |
+| nvme_zns     | Interface to handle zoned I/O using abstracted backends  |
+| output       | Neatly control messages to stdout and stderr with levels |
+| spdk_init    | Provides SPDK initialization and handles for nvme_csd    |
 
 ### Dependencies
 
@@ -574,101 +575,3 @@ including:
   * [ZNS SSD QEMU patch v2](https://patchwork.kernel.org/project/qemu-devel/cover/20200617213415.22417-1-dmitry.fomichev@wdc.com/)
 
 ### Snippets
-
-* SPDK -> now supports ZNS zone append
-* uNVME
-* OCSSD
-* RMDA
-* libbpf (standalone)
-* libbpf-tools (BCC)
-* Linux Kernel:
-  * p2pdma 
-  * ioctl
-
-Configuration and parameters for QEMU ZNS SSDs:
-```shell
-Usage:
-      -device nvme-subsys,id=subsys0
-      -device nvme,serial=foo,id=nvme0,subsys=subsys0
-      -device nvme,serial=bar,id=nvme1,subsys=subsys0
-      -device nvme,serial=baz,id=nvme2,subsys=subsys0
-      -device nvme-ns,id=ns1,drive=<drv>,nsid=1,subsys=subsys0  # Shared
-      -device nvme-ns,id=ns2,drive=<drv>,nsid=2,bus=nvme2
-
-nvme options:
-  addr=<int32>           - Slot and optional function number, example: 06.0 or 06 (default: -1)
-  aer_max_queued=<uint32> -  (default: 64)
-  aerl=<uint8>           -  (default: 3)
-  cmb_size_mb=<uint32>   -  (default: 0)
-  discard_granularity=<size> -  (default: 4294967295)
-  drive=<str>            - Node name or ID of a block device to use as a backend
-  failover_pair_id=<str>
-  logical_block_size=<size> - A power of two between 512 B and 2 MiB (default: 0)
-  max_ioqpairs=<uint32>  -  (default: 64)
-  mdts=<uint8>           -  (default: 7)
-  min_io_size=<size>     -  (default: 0)
-  msix_qsize=<uint16>    -  (default: 65)
-  multifunction=<bool>   - on/off (default: false)
-  num_queues=<uint32>    -  (default: 0)
-  opt_io_size=<size>     -  (default: 0)
-  physical_block_size=<size> - A power of two between 512 B and 2 MiB (default: 0)
-  pmrdev=<link<memory-backend>>
-  rombar=<uint32>        -  (default: 1)
-  romfile=<str>
-  serial=<str>
-  share-rw=<bool>        -  (default: false)
-  smart_critical_warning=<uint8>
-  subsys=<link<nvme-subsys>>
-  use-intel-id=<bool>    -  (default: false)
-  write-cache=<OnOffAuto> - on/off/auto (default: "auto")
-  x-pcie-extcap-init=<bool> - on/off (default: true)
-  x-pcie-lnksta-dllla=<bool> - on/off (default: true)
-  zoned.append_size_limit=<size> -  (default: 131072)
-
-nvme-ns options:
-  bootindex=<int32>
-  discard_granularity=<size> -  (default: 4294967295)
-  drive=<str>            - Node name or ID of a block device to use as a backend
-  logical_block_size=<size> - A power of two between 512 B and 2 MiB (default: 0)
-  min_io_size=<size>     -  (default: 0)
-  nsid=<uint32>          -  (default: 0)
-  opt_io_size=<size>     -  (default: 0)
-  physical_block_size=<size> - A power of two between 512 B and 2 MiB (default: 0)
-  share-rw=<bool>        -  (default: false)
-  subsys=<link<nvme-subsys>>
-  uuid=<str>             - UUID (aka GUID) or "auto" for random value (default) (default: "auto")
-  write-cache=<OnOffAuto> - on/off/auto (default: "auto")
-  zoned.cross_read=<bool> -  (default: false)
-  zoned.descr_ext_size=<uint32> -  (default: 0)
-  zoned.max_active=<uint32> -  (default: 0)
-  zoned.max_open=<uint32> -  (default: 0)
-  zoned.zone_capacity=<size> -  (default: 0)
-  zoned.zone_size=<size> -  (default: 134217728)
-  zoned=<bool>           -  (default: false)
-```
-
-Create required images and launch QEMU with ZNS SSD:
-```shell
-qemu-img create -f raw znsssd.img 16777216
-qemu-system-x86_64 -name qemucsd -m 4G -cpu Haswell -smp 2 -hda ./arch-qemucsd.qcow2 \
--net user,hostfwd=tcp::7777-:22,hostfwd=tcp::2222-:2000 -net nic \
--drive file=./znsssd.img,id=mynvme,format=raw,if=none \
--device nvme,serial=baz,id=nvme2,zoned.append_size_limit=131072 \
--device nvme-ns,id=ns2,drive=mynvme,nsid=2,logical_block_size=4096,\
-physical_block_size=4096,zoned=true,zoned.zone_size=131072,zoned.zone_capacity=131072,\
-zoned.max_open=0,zoned.max_active=0,bus=nvme2
-```
-
-Week 1 friday demo scripts:
-```shell
-cat /sys/block/nvme0n1/queue/zoned
-cat /sys/block/nvme0n1/queue/chunk_sectors
-cat /sys/block/nvme0n1/queue/nr_zones
-sudo blkzone report /dev/nvme0n1
-sudo nvme zns id-ns /dev/nvme0n1
-sudo nvme zns report-zones /dev/nvme0n1
-sudo nvme zns open-zone /dev/nvme0n1 -s 0xe40
-sudo nvme zns finish-zone /dev/nvme0n1 -s 0xe40
-sudo nvme zns report-zones /dev/nvme0n1
-sudo nvme zns reset-zone /dev/nvme0n1 -s 0xe40
-```

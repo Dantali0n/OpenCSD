@@ -29,8 +29,8 @@ using qemucsd::spdk_init::ns_entry;
 namespace qemucsd::nvme_zns {
 
     NvmeZnsMemorySpdk::NvmeZnsMemorySpdk(struct ns_entry* entry) :
-        NvmeZnsBackend(entry->device_size, entry->zone_size, entry->lba_size,
-                       entry->max_open)
+        NvmeZnsBackend(entry->device_size, entry->zone_size,
+                       entry->zone_capacity, entry->lba_size, entry->max_open)
     {
         if(entry->qpair == nullptr || entry->ns == nullptr ||
            entry->ctrlr == nullptr)

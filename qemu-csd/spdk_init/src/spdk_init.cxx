@@ -111,6 +111,21 @@ namespace qemucsd::spdk_init {
 			// Check that namespace supports ZNS command set
 			if(spdk_nvme_ns_get_csi(ns) != SPDK_NVME_CSI_ZNS) continue;
 
+            const struct spdk_nvme_zns_ns_data* ns_data =
+                spdk_nvme_zns_ns_get_data(ns);
+
+            // Can't support variable zone capacity as we use a single variable
+            // to differentiate between size and capacity difference.
+            if(ns_data->zoc.variable_zone_capacity) {
+
+            }
+
+            // Device must be capable of reading across zone boundaries.
+            if(ns_data->ozcs.read_across_zone_boundaries == 0) {
+
+            }
+
+
 			// Namespace is activate and supports ZNS
 			printf("Found ZNS supporting namespace: %u on device: %s\n",
 				   spdk_nvme_ns_get_id(ns), trid->traddr);
@@ -124,8 +139,6 @@ namespace qemucsd::spdk_init {
 				entry->ctrlr, NULL, 0);
 
 			// Determine size of DMA IO buffer
-			const struct spdk_nvme_ns_data *ref_ns_data =
-				spdk_nvme_ns_get_data(entry->ns);
             entry->lba_size = spdk_nvme_ns_get_sector_size(entry->ns);
 			entry->buffer_size = entry->lba_size;
 

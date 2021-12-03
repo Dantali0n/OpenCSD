@@ -22,29 +22,27 @@
  * SOFTWARE.
  */
 
-#ifndef QEMU_CSD_NVME_ZNS_INFO_HPP
-#define QEMU_CSD_NVME_ZNS_INFO_HPP
+#include <utility>
 
-namespace qemucsd::nvme_zns {
+#include "output.hpp"
+
+namespace qemucsd::output {
+
+    Output::Output(std::string prefix) :
+        Output(std::move(prefix), DEFAULT_LEVEL)
+    {
+
+    }
+
+    Output::Output(std::string prefix, output_levels level) {
+        this->prefix = std::move(prefix);
+        this->current_level = level;
+    }
 
     /**
-     * Basic structure that should be made available to users of NvmeZns
-     * instances.
+     * See output.tpp for rest of implementations. Special .tpp include required
+     * to ensure template functions can always become instantiated when linking
+     * against this module.
      */
-    struct nvme_zns_info {
-        // Number of zones
-        uint64_t num_zones;
-        // Number of maximum open zones
-        uint32_t max_open;
-
-        // In bytes
-        uint64_t sector_size;
-        // In number of sectors
-        uint64_t zone_size;
-        // In number of sectors
-        uint64_t zone_capacity;
-    };
 
 }
-
-#endif // QEMU_CSD_NVME_ZNS_INFO_HPP

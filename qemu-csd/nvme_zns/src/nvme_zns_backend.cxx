@@ -29,19 +29,20 @@ namespace qemucsd::nvme_zns {
     NvmeZnsBackend::NvmeZnsBackend(struct nvme_zns_info *info) {
         this->info = *info;
 
-        zone_byte_size = info->sector_size * info->zone_size;
+        zone_byte_size = info->sector_size * info->zone_capacity;
     }
 
     NvmeZnsBackend::NvmeZnsBackend(uint64_t num_zones, uint64_t zone_size,
-                                   uint64_t sector_size, uint64_t max_open)
+        uint64_t zone_capacity, uint64_t sector_size, uint64_t max_open)
     {
         info.num_zones = num_zones;
         info.zone_size = zone_size;
+        info.zone_capacity = zone_capacity;
         info.sector_size = sector_size;
 
         info.max_open = max_open;
 
-        zone_byte_size = sector_size * zone_size;
+        zone_byte_size = sector_size * zone_capacity;
         device_byte_size = zone_byte_size * num_zones;
     }
 
@@ -50,7 +51,7 @@ namespace qemucsd::nvme_zns {
     {
         // Ranges are zero indexed so equal is already out of range
         if(zone >= info.num_zones ||
-           sector >= info.zone_size ||
+           sector >= info.zone_capacity ||
            offset >= info.sector_size) {
             return -1;
         }

@@ -25,6 +25,9 @@
 # limitation either potentially solved using CMake globals or with loosely
 # coupled interfaces.
 
+# Generate output to stdout and stderr using log levels
+add_subdirectory(output)
+
 # Commandline argument parsing and stripping
 add_subdirectory(arguments)
 

@@ -38,6 +38,7 @@ extern "C" {
 #include <sstream>
 #include <string>
 
+#include "output.hpp"
 #include "fuse_lfs_constants.hpp"
 #include "fuse_lfs_disc.hpp"
 #include "fuse_lfs_memory.hpp"
@@ -50,6 +51,8 @@ namespace qemucsd::fuse_lfs {
      */
     class FuseLFS {
     protected:
+        static output::Output output;
+
         static struct fuse_conn_info* connection;
 
         static struct nvme_zns::nvme_zns_info nvme_info;
@@ -65,18 +68,6 @@ namespace qemucsd::fuse_lfs {
         static const std::string FUSE_SEQUENTIAL_PARAM;
 
         static const struct fuse_lowlevel_ops operations;
-
-        template<typename T>
-        static void output(std::ostream &out, T &&t);
-
-        template<typename D>
-        static void output_i(std::ostream &out, D &&t);
-
-        template<typename Head2, typename... Tail2>
-        static void output_i(std::ostream &out, Head2 &&head, Tail2&&... tail);
-
-        template<typename Head, typename... Tail>
-        static void output(std::ostream &out, Head &&head, Tail&&... tail);
 
         static void path_to_inode(
             fuse_ino_t parent, const char* path, fuse_ino_t &ino);
