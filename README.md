@@ -78,6 +78,10 @@ provisional
       - [ ] Inode append function
     - [ ] Decide location of size and filename fields on disc
       - [ ] inode vs file / data block
+  - [ ] Account for zone capacity vs zone size differences
+    - [ ] Ensure lba_to_position and position_to_lba solve these gaps.
+    - [ ] Configurable zone cap / zone size gap in NvmeZnsMemoryBackend
+    - [ ] Correctly determine zone cap / zone size gap in NvmeZnsSpdkBackend
 - Week 7 -> FUSE LFS filesystem
 - Week 8 -> FUSE LFS filesystem
   - [ ] Run filesystem benchmarks with strace
