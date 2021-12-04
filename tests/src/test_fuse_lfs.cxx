@@ -38,8 +38,39 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfs)
     using qemucsd::fuse_lfs::path_node_t;
     using qemucsd::fuse_lfs::FuseLFS;
 
+    class DummyBackend : public qemucsd::nvme_zns::NvmeZnsBackend {
+    public:
+
+        explicit DummyBackend(qemucsd::nvme_zns::nvme_zns_info* info) :
+            qemucsd::nvme_zns::NvmeZnsBackend(info)
+        {
+
+        }
+
+        void get_nvme_zns_info(struct qemucsd::nvme_zns::nvme_zns_info* info) {
+
+        }
+
+        int read(uint64_t zone, uint64_t sector, uint64_t offset, void *buffer,
+                 uint64_t size)
+        {
+            return 0;
+        }
+
+        int append(uint64_t zone, uint64_t &sector, uint64_t offset,
+                   void *buffer, uint64_t size)
+        {
+            return 0;
+        }
+
+        int reset(uint64_t zone) {
+            return 0;
+        }
+    };
+
     class TestFuseLFS : public FuseLFS {
     public:
+        using FuseLFS::nvme;
         using FuseLFS::nvme_info;
 
         using FuseLFS::path_inode_map;
@@ -168,10 +199,12 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfs)
 
     BOOST_AUTO_TEST_CASE(Test_FuseLFS_position_to_lba) {
         struct qemucsd::fuse_lfs::data_position max_pos =
-                {4, 8, 0, 0};
+            {4, 8, 0, 0};
 
         TestFuseLFS::nvme_info.num_zones = max_pos.zone;
         TestFuseLFS::nvme_info.zone_size = max_pos.sector;
+        auto backend = DummyBackend(&TestFuseLFS::nvme_info);
+        TestFuseLFS::nvme = &backend;
 
         uint64_t result = 0;
         struct qemucsd::fuse_lfs::data_position pos =

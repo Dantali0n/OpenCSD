@@ -58,6 +58,14 @@ namespace qemucsd::nvme_zns {
             uint64_t zone_capacity, uint64_t sector_size, uint64_t max_open);
 
         /**
+         * Convert zone and requested sector to a Logical Block Address (LBA).
+         * Takes into account gaps created by zone capacity and zone size
+         * differences.
+         * @return 0 upon success, < 0 upon failure
+         */
+        int position_to_lba(uint64_t zone, uint64_t sector, uint64_t &lba);
+
+        /**
          * Provide nvme_zns_info to caller, can be implemented by calling
          * NvmeZnsBackend base implementation in almost all cases.
          */

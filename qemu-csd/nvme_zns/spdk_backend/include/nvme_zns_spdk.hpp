@@ -46,8 +46,8 @@ namespace qemucsd::nvme_zns {
         struct nvme_zns_info info;
         struct ns_entry* entry;
 
-        int compute_sector(uint64_t zone, uint64_t sector, uint64_t offset,
-            uint64_t size, uint64_t& result_sector);
+//        int compute_sector(uint64_t zone, uint64_t sector, uint64_t offset,
+//            uint64_t size, uint64_t& result_sector);
     public:
         NvmeZnsMemorySpdk(struct ns_entry* entry);
 

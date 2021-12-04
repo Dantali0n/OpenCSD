@@ -255,8 +255,7 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::position_to_lba(
         struct data_position position, uint64_t &lba)
     {
-        lba = position.zone * nvme_info.zone_size;
-        lba += position.sector;
+        nvme->position_to_lba(position.zone, position.sector, lba);
     }
 
     /**

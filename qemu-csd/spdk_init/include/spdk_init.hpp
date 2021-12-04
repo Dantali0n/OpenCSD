@@ -28,12 +28,15 @@
 #include <chrono>
 
 #include "arguments.hpp"
+#include "output.hpp"
 
 #include <spdk/env.h>
 #include <spdk/nvme.h>
 #include <spdk/nvme_zns.h>
 
 namespace qemucsd::spdk_init {
+
+    static output::Output output = output::Output("[SPDK_INIT] ");
 
 	// Datastructure to retain basic SPDK NVMe state
 	struct ns_entry {

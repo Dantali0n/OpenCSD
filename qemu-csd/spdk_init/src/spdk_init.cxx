@@ -41,16 +41,14 @@ namespace qemucsd::spdk_init {
 
 		rc = spdk_env_init(&options->spdk);
 		if(rc < 0) {
-			std::cerr << "Unable to initialize SPDK env: " << strerror(rc) <<
-		  		std::endl;
+            output.error("Unable to initialize SPDK env: ", strerror(rc), "\n");
 			return -1;
 		}
 
 		rc = spdk_nvme_probe(NULL, entry, probe_cb_attach_all,
 	   		attach_cb_ns_entry,NULL);
 		if(rc < 0) {
-			std::cerr << "spdk_nvme_probe() failed: " << strerror(rc) <<
-		  		std::endl;
+            output.error("spdk_nvme_probe() failed: ", strerror(rc), "\n");
 			return -1;
 		}
 
@@ -58,8 +56,8 @@ namespace qemucsd::spdk_init {
 		if(options->dev_init_mode == arguments::DEV_INIT_RESET) {
             rc = reset_zones(entry);
             if(rc < 0) {
-                std::cerr << "spdk_nvme_zns_reset_zone() failed: " <<
-                          strerror(rc) << std::endl;
+                output.error("spdk_nvme_zns_reset_zone() failed: ",
+                    strerror(rc), "\n");
                 return -1;
             }
         }
@@ -117,18 +115,21 @@ namespace qemucsd::spdk_init {
             // Can't support variable zone capacity as we use a single variable
             // to differentiate between size and capacity difference.
             if(ns_data->zoc.variable_zone_capacity) {
-
+                output.warning(
+                    "Can't use ZNS namespace ", spdk_nvme_ns_get_id(ns),
+                    " ,incompatible feature 'variable zone capacity'");
             }
 
             // Device must be capable of reading across zone boundaries.
             if(ns_data->ozcs.read_across_zone_boundaries == 0) {
-
+                output.warning(
+                    "Can't use ZNS namespace ", spdk_nvme_ns_get_id(ns),
+                    " as it does not support reading beyond zone boundaries");
             }
 
-
 			// Namespace is activate and supports ZNS
-			printf("Found ZNS supporting namespace: %u on device: %s\n",
-				   spdk_nvme_ns_get_id(ns), trid->traddr);
+            output.info("Found ZNS supporting namespace: ",
+                        spdk_nvme_ns_get_id(ns), " on device: ", trid->traddr);
 
 			// Assign variables to global state
 			entry->ctrlr = ctrlr;
@@ -172,9 +173,9 @@ namespace qemucsd::spdk_init {
 		if(spdk_nvme_cpl_is_error(completion)) {
 			spdk_nvme_qpair_print_completion(
 					entry->qpair, (struct spdk_nvme_cpl *) completion);
-			fprintf(stderr, "I/O error status: %s\n",
-					spdk_nvme_cpl_get_status_string(&completion->status));
-			fprintf(stderr, "I/O failed, aborting run\n");
+            output.error("I/O error status: ",
+                spdk_nvme_cpl_get_status_string(&completion->status));
+            output.error( "I/O failed, aborting run");
 			spdk_nvme_detach(entry->ctrlr);
 		}
 	}
@@ -197,8 +198,8 @@ namespace qemucsd::spdk_init {
 
         // Check that the file exists
         if(file_length < 0) {
-            std::cerr << "File " << *opts->input_file << " does not exist in" <<
-                      "current directory" << std::endl;
+            output.error("File ", *opts->input_file, " does not exist in",
+                         "current directory");
             exit(1);
         }
         uint64_t zone_size = entry->lba_size * entry->zone_size;

@@ -24,7 +24,7 @@ project(${PRJ_PRX}_spdk_init)
 
 
 set(QEMUCSD_SPDK_INIT_LIBRARIES
-    #    boost_program_options
+    qemucsd_output
 )
 
 set(QEMUCSD_SPDK_INIT_SRC
