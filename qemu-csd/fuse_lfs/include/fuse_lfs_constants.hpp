@@ -91,6 +91,26 @@ namespace qemucsd::fuse_lfs {
      static constexpr struct data_position RANDZ_POS = {
         4, 0, 0, SECTOR_SIZE
      };
+
+    /**
+     * Position of start of the RANDOM BUFFER
+     * TODO(Dantali0n): Compute this using some function, LOG_POS -2;
+     */
+    static constexpr struct data_position RAND_BUFF_POS = {
+        10, 0, 0, SECTOR_SIZE
+    };
+
+    /**
+     * Position of start of the LOG ZONE
+     * TODO(Dantali0n): Compute this using some function
+     */
+    static constexpr struct data_position LOG_POS = {
+        12,0, 0, SECTOR_SIZE
+    };
+
+    /**
+     * No need to store LOG_BUFF_POS as it is num_zones - 2;
+     */
 }
 
 #endif // QEMU_CSD_FUSE_LFS_CONSTANTS_HPP

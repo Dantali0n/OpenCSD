@@ -69,6 +69,9 @@ namespace qemucsd::fuse_lfs {
         struct fuse_session *session;
         struct fuse_cmdline_opts opts = {0};
         struct fuse_loop_config loop_config = {0};
+
+        path_node_t root = std::make_pair(0, "");
+
         int ret = -1;
 
         // Check sequential performance mode
@@ -163,6 +166,9 @@ namespace qemucsd::fuse_lfs {
             ret = 1;
             goto err_out1;
         }
+
+        output(std::cout, "Creating root inode..");
+        path_inode_map.insert(std::make_pair(root, 1));
 
         session = fuse_session_new(
             &args, &operations, sizeof(operations), nullptr);
@@ -642,9 +648,6 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::read(fuse_req_t req, fuse_ino_t ino, size_t size,
                        off_t offset, struct fuse_file_info *fi)
     {
-        // Only test file exists
-        assert(ino == 2);
-
         const fuse_ctx* context = fuse_req_ctx(req);
 
         // Non CSD path

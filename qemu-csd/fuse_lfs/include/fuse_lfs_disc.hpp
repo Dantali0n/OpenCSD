@@ -100,13 +100,13 @@ namespace qemucsd::fuse_lfs {
     } randz_blk_types;
 
     /**
-     * A nat_block, ids are unique but not on disc. The highest lba occurrence
-     * of a particular id identifies the valid nat_block.
+     * The highest lba occurrence of a particular inode identifies the valid
+     * data. The start LBA is determined from the checkpoint block randz_lba.
      */
     struct nat_block {
-        uint64_t id;
-        uint64_t type;
+        uint64_t type; // Set this to RANDZ_NAT_BLK
         std::pair<uint64_t, uint64_t> inode_lba[31];
+        uint8_t padding[8];
     };
     static_assert(sizeof(nat_block) == SECTOR_SIZE);
 

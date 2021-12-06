@@ -110,6 +110,12 @@ namespace qemucsd::fuse_lfs {
         static int update_checkpointblock(uint64_t randz_lba);
 
         static int get_checkpointblock(struct checkpoint_block &cblock);
+
+        // TODO(Dantali0n): Move random block methods to separate interface
+
+        static int update_random_blocks();
+
+        static int update_nat_blocks();
     public:
         FuseLFS() = delete;
         ~FuseLFS() = delete;

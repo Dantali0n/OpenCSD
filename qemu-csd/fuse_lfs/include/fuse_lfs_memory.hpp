@@ -25,6 +25,8 @@
 #ifndef QEMU_CSD_FUSE_LFS_MEMORY_HPP
 #define QEMU_CSD_FUSE_LFS_MEMORY_HPP
 
+#include <vector>
+
 #include "fuse_lfs_constants.hpp"
 
 namespace qemucsd::fuse_lfs {
@@ -50,6 +52,9 @@ namespace qemucsd::fuse_lfs {
 
     // Map corresponding inodes to the lba storing the inode_block
     typedef std::map<fuse_ino_t, uint64_t> inode_lba_map_t;
+
+    // List of vectors that have been updated since flush and must be written
+    typedef std::vector<fuse_ino_t> nat_update_list_t;
 }
 
 #endif //QEMU_CSD_FUSE_LFS_MEMORY_HPP
