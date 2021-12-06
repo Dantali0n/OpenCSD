@@ -51,6 +51,10 @@ namespace qemucsd::nvme_zns {
     public:
         NvmeZnsMemorySpdk(struct ns_entry* entry);
 
+        // Destructors must always be virtual so they are still called in
+        // super classes.
+        virtual ~NvmeZnsMemorySpdk();
+
         void get_nvme_zns_info(struct nvme_zns_info* info) override;
 
         int read(uint64_t zone, uint64_t sector, uint64_t offset, void *buffer,

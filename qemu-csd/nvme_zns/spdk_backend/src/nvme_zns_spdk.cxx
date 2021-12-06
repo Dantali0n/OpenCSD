@@ -42,9 +42,36 @@ namespace qemucsd::nvme_zns {
         this->entry = entry;
 
         write_pointers.resize(info.num_zones);
-        for(auto& write_pointer : write_pointers) {
-            write_pointer = 0;
+
+        /**
+         * Update the write pointers to their current location.
+         * Its inexcusable how difficult and ugly this is in SPDK.
+         * TODO(Dantali0n): Test that this actually works
+         */
+        uint32_t report_bufsize =
+            spdk_nvme_ns_get_max_io_xfer_size(entry->ns);
+        auto *report_buf = (spdk_nvme_zns_zone_report *)
+            malloc(report_bufsize);
+        uint64_t zones = 0;
+        while(zones < info.num_zones) {
+            uint64_t lba = zones * info.zone_size;
+
+            spdk_nvme_zns_report_zones(
+                entry->ns, entry->qpair, report_buf, report_bufsize, lba,
+                SPDK_NVME_ZRA_LIST_ALL, true, spdk_init::error_print, &entry);
+            spdk_init::spin_complete(entry);
+
+            for(uint64_t i = 0; i < report_buf->nr_zones; i++) {
+                write_pointers.at(zones + i) = report_buf->descs[i].wp;
+            }
+
+            zones += report_buf->nr_zones;
         }
+    }
+
+    NvmeZnsMemorySpdk::~NvmeZnsMemorySpdk() {
+        if(entry->ctrlr != nullptr) spdk_nvme_detach(entry->ctrlr);
+        if(entry->buffer != nullptr) spdk_free(entry->buffer);
     }
 
     void NvmeZnsMemorySpdk::get_nvme_zns_info(struct nvme_zns_info* info) {
