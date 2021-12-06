@@ -100,6 +100,16 @@ namespace qemucsd::fuse_lfs {
     } randz_blk_types;
 
     /**
+     * The point of this datastructure is to be able to safely cast and
+     * determine type before doing anything else.
+     */
+    struct none_block {
+        uint64_t type; // Set this to RANDZ_NON_BLK
+        uint8_t padding[SECTOR_SIZE-8];
+    };
+    static_assert(sizeof(none_block) == SECTOR_SIZE);
+
+    /**
      * The highest lba occurrence of a particular inode identifies the valid
      * data. The start LBA is determined from the checkpoint block randz_lba.
      */
@@ -115,17 +125,31 @@ namespace qemucsd::fuse_lfs {
      * the drive.
      */
 
+    enum inode_type {
+        INO_T_NONE = 0,
+        INO_T_FILE = 1,
+        INO_T_DIR = 2,
+    };
+
+    /**
+     * inode block on drive layout, remaining space is zero filled no partial
+     * entries written across sector boundaries. names must be null terminated.
+     *
+     *     25 bytes     x bytes           25 bytes     y bytes
+     * | inode_entry | file/dir name | inode entry | file/dir name | ...
+     */
+
     struct inode_block {
-        uint8_t padding[SECTOR_SIZE];  // Pad out the rest
+        uint8_t data[SECTOR_SIZE];
     };
     static_assert(sizeof(inode_block) == SECTOR_SIZE);
 
     struct inode_entry {
-        uint64_t parent;   // Parent inode
+        uint64_t parent;   // Parent inode, can be 1 for root. only root has 0
         uint64_t inode;    // This inode
-        uint64_t size;     // Size of the inode
-        uint8_t  type;     // Inode type
-        uint64_t data_lba; // LBA of data block
+        uint8_t  type;     // Inode type see enum inode_type
+        uint64_t data_lba; // LBA of first data block
+        // Followed by a null terminated file/dir name
     };
 
     struct data_block {

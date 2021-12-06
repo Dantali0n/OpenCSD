@@ -49,6 +49,8 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
         using FuseLFS::nvme;
 
+        using FuseLFS::cblock_pos;
+
         using FuseLFS::mkfs;
 
         using FuseLFS::verify_superblock;
@@ -59,6 +61,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
         using FuseLFS::update_checkpointblock;
         using FuseLFS::get_checkpointblock;
+        using FuseLFS::get_checkpointblock_locate;
     };
 
     BOOST_AUTO_TEST_CASE(Test_FuseLFS_mkfs) {
@@ -148,14 +151,23 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         uint64_t randz_base = TestFuseLFS::nvme_info.zone_size *
                               qemucsd::fuse_lfs::RANDZ_POS.zone;
 
-        for(uint64_t i = 0; i < TestFuseLFS::nvme_info.zone_size; i++) {
+        // mkfs takes first block so zone_size -1
+        for(uint64_t i = 0; i < TestFuseLFS::nvme_info.zone_size - 1; i++) {
             BOOST_CHECK(TestFuseLFS::update_checkpointblock(randz_base + i) == 0);
-            BOOST_CHECK(TestFuseLFS::get_checkpointblock(cblock) == 0);
+            BOOST_CHECK(TestFuseLFS::get_checkpointblock_locate(cblock) == 0);
             BOOST_CHECK_MESSAGE(cblock.randz_lba == randz_base + i,
             "Incorrect randz_lba at checkpoint block update " << i);
         }
 
+        uint64_t res_sector;
+        cblock.randz_lba = 1337;
+        BOOST_CHECK(TestFuseLFS::nvme->append(TestFuseLFS::cblock_pos.zone + 1,
+                    res_sector, TestFuseLFS::cblock_pos.offset,
+                    &cblock, TestFuseLFS::cblock_pos.size) == 0);
+        BOOST_CHECK(res_sector == 0);
 
+        BOOST_CHECK(TestFuseLFS::get_checkpointblock_locate(cblock) == 0);
+        BOOST_CHECK(cblock.randz_lba == 1337);
     }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -44,6 +44,16 @@ namespace qemucsd::fuse_lfs {
 
     inode_lba_map_t FuseLFS::inode_lba_map = inode_lba_map_t();
 
+    // Current checkpoint position on drive
+    struct data_position FuseLFS::cblock_pos = {
+        0, 0, 0, 0
+    };
+
+    // Current start of random zone on drive
+    struct data_position FuseLFS::random_pos = {
+        0, 0, 0, 0
+    };
+
     const struct fuse_lowlevel_ops FuseLFS::operations = {
         .init       = FuseLFS::init,
         .destroy    = FuseLFS::destroy,
@@ -70,6 +80,7 @@ namespace qemucsd::fuse_lfs {
         struct fuse_cmdline_opts opts = {0};
         struct fuse_loop_config loop_config = {0};
 
+        struct checkpoint_block cblock = {0};
         path_node_t root = std::make_pair(0, "");
 
         int ret = -1;
@@ -166,6 +177,10 @@ namespace qemucsd::fuse_lfs {
             ret = 1;
             goto err_out1;
         }
+
+        /** Set the random_ptr to the correct position */
+        get_checkpointblock(cblock);
+        lba_to_position(cblock.randz_lba, random_pos);
 
         output(std::cout, "Creating root inode..");
         path_inode_map.insert(std::make_pair(root, 1));
@@ -449,11 +464,6 @@ namespace qemucsd::fuse_lfs {
         return 0;
     }
 
-    // Current checkpoint position on drive
-    struct data_position FuseLFS::cblock_pos = {
-        0, 0, 0, 0
-    };
-
     /**
      * Write the new start of the random zone to the new checkpoint block
      * @return 0 upon success, < 0 upon failure
@@ -502,10 +512,30 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
-     * Determine the location of the most up to date checkpoint block and return
-     * its data. Must set cblock_pos member variable to speed up future lookups.
+     * Fetch the known location of the current checkpoint block or call
+     * get_checkpointblock_locate.
      */
     int FuseLFS::get_checkpointblock(struct checkpoint_block &cblock) {
+        if(dpos_valid(cblock_pos) != 0)
+            return get_checkpointblock_locate(cblock);
+
+        struct checkpoint_block tmp_cblock = {0};
+        if(nvme->read(cblock_pos.zone, cblock_pos.sector, cblock_pos.offset,
+                   &tmp_cblock, sizeof(cblock)) != 0)
+            return -1;
+
+        cblock = tmp_cblock;
+
+        return 0;
+    }
+
+    /**
+     * Determine the location of the most up to date checkpoint block by
+     * scanning the checkpoint zones and return its data. Must set cblock_pos
+     * member variable to speed up future lookups.
+     */
+    int FuseLFS::get_checkpointblock_locate(struct checkpoint_block &cblock) {
+        struct data_position tmp_cblock_pos = {0};
         struct checkpoint_block tmp_cblock = {0};
         uint64_t checkpoint_zone = CBLOCK_POS.zone;
         // Random zone could never start at absolute index limit of drive.
@@ -529,17 +559,21 @@ namespace qemucsd::fuse_lfs {
                           &tmp_cblock, sizeof(cblock)) != 0)
                 break;
 
+            tmp_cblock_pos = {checkpoint_zone, i, 0, CBLOCK_POS.size};
+
             // If we could read the last sector of the first zone we should
             // continue reading the first sector of the second zone.
             if(i == nvme_info.zone_size - 1 && checkpoint_zone ==
                CBLOCK_POS.zone)
             {
-                // The return status of this is irrelevant it will either
-                // update the checkpoint block or silently fail.
                 if(nvme->read(CBLOCK_POS.zone + 1, CBLOCK_POS.sector,
                            CBLOCK_POS.offset, &tmp_cblock, sizeof(cblock)) == 0)
+                {
                     output(std::cerr, "Restored checkpoint block from "
                            "power loss");
+                    tmp_cblock_pos = {CBLOCK_POS.zone + 1, CBLOCK_POS.sector,
+                                      0, CBLOCK_POS.size};
+                }
             }
         }
 
@@ -547,10 +581,76 @@ namespace qemucsd::fuse_lfs {
         if(tmp_cblock.randz_lba == UINT64_MAX)
             return -1;
 
+        // Update the located block position
+        cblock_pos = tmp_cblock_pos;
+
         // Update the checkpoint block data
         cblock = tmp_cblock;
 
         return 0;
+    }
+
+    /**
+     * Buffer the two zones into the random buffer
+     * @return 0 upon success, < 0 upon failure
+     */
+    int FuseLFS::buffer_random_blocks(const uint64_t zones[2]) {
+        // Refuse to copy zones from outside the random zone
+        if(zones[0] >= RAND_BUFF_POS.zone || zones[0] < RANDZ_POS.zone)
+            return -1;
+        if(zones[1] >= RAND_BUFF_POS.zone || zones[1] < RANDZ_POS.zone)
+            return -1;
+
+        uint64_t res_sector;
+        uint64_t sector_size = nvme_info.sector_size;
+        auto data = (uint8_t*) malloc(sector_size);
+
+        for(uint64_t j = 0; j < 2; j++) {
+            uint64_t zone = zones[j];
+            for (uint64_t i = 0; i < nvme_info.zone_capacity; i++) {
+                if (nvme->read(zone, i, 0, data, sector_size) != 0)
+                    goto buff_rand_blk_err;
+                if (nvme->append(RAND_BUFF_POS.zone + j, res_sector, 0,
+                                 data, sector_size) != 0)
+                    goto buff_rand_blk_err;
+                if(res_sector != i)
+                    goto buff_rand_blk_err;
+            }
+        }
+
+        return 0;
+
+        buff_rand_blk_err:
+        free(data);
+        return -1;
+    }
+
+    /**
+     * Erase the random buffer from the drive
+     * @return 0 upon success, < 0 upon failure
+     */
+    int FuseLFS::erase_random_buffer() {
+        if(nvme->reset(RAND_BUFF_POS.zone) != 0)
+            return -1;
+        if(nvme->reset(RAND_BUFF_POS.zone + 1) != 0)
+            return -1;
+        return 0;
+    }
+
+    /**
+     * Call when the random zone is completely full. Copies the first two zones
+     * starting from current randz_lba and migrates these into the random
+     * buffer. Resets the zones that where copied. Advances randz_lba using a
+     * new checkpoint block. Identifies most up to date unique content in buffer
+     * and adds these to temporal datastructures. Adds remaining data until
+     * temporal datastructures are size of the two zones. Flushes temporal data
+     * to drive. Repeats until all unique random zone data is linearly flushed
+     * to the drive (occupies the minimal required amount of space).
+     * @return 0 upon success, < 0 upon failure
+     */
+    int FuseLFS::rewrite_random_blocks() {
+
+
     }
 
     void FuseLFS::init(void *userdata, struct fuse_conn_info *conn) {

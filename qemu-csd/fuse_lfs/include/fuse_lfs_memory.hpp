@@ -45,6 +45,7 @@ namespace qemucsd::fuse_lfs {
     };
 
     // Section of path at with a certain parent.
+    // TODO(Dantali0n): Investigate if memory consumption will be beyond control
     typedef std::pair<fuse_ino_t, std::string> path_node_t;
 
     // Map path sections to their corresponding inode
@@ -52,6 +53,10 @@ namespace qemucsd::fuse_lfs {
 
     // Map corresponding inodes to the lba storing the inode_block
     typedef std::map<fuse_ino_t, uint64_t> inode_lba_map_t;
+
+    /**
+     * In memory datastructures for synchronizing between memory and drive.
+     */
 
     // List of vectors that have been updated since flush and must be written
     typedef std::vector<fuse_ino_t> nat_update_list_t;
