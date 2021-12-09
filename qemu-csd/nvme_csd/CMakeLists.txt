@@ -66,3 +66,5 @@ add_dependencies(qemucsd_nvme_csd ubpf-build spdk-build dpdk-build isa-l-build)
 
 # Add qemucsd_nvm_csd to the modules
 add_qemucsd_module(qemucsd_nvme_csd)
+
+qemucsd_target_postprocess(qemucsd_nvme_csd)

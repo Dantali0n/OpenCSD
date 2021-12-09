@@ -99,23 +99,29 @@ namespace qemucsd::fuse_lfs {
         RANDZ_SIT_BLK = 2
     } randz_blk_types;
 
+    struct rand_block_base {
+        uint64_t type;
+    };
+
     /**
      * The point of this datastructure is to be able to safely cast and
      * determine type before doing anything else.
      */
-    struct none_block {
-        uint64_t type; // Set this to RANDZ_NON_BLK
+    struct none_block : rand_block_base {
+        // Set type to to RANDZ_NON_BLK
         uint8_t padding[SECTOR_SIZE-8];
     };
     static_assert(sizeof(none_block) == SECTOR_SIZE);
+
+    static constexpr uint32_t NAT_BLK_INO_LBA_NUM = 31;
 
     /**
      * The highest lba occurrence of a particular inode identifies the valid
      * data. The start LBA is determined from the checkpoint block randz_lba.
      */
-    struct nat_block {
-        uint64_t type; // Set this to RANDZ_NAT_BLK
-        std::pair<uint64_t, uint64_t> inode_lba[31];
+    struct nat_block : rand_block_base {
+        // Set type to to RANDZ_NAT_BLK
+        std::pair<uint64_t, uint64_t> inode_lba[NAT_BLK_INO_LBA_NUM];
         uint8_t padding[8];
     };
     static_assert(sizeof(nat_block) == SECTOR_SIZE);

@@ -52,3 +52,6 @@ target_link_libraries(
 
 # Add qemucsd_arguments to the modules
 add_qemucsd_module(qemucsd_output)
+
+# Enable backward or other definitions for Debug builds
+qemucsd_target_postprocess(qemucsd_output)

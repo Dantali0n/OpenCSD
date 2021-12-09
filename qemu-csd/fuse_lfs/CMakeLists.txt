@@ -58,3 +58,6 @@ add_dependencies(qemucsd_fuse_lfs libfuse-build)
 
 # Add qemucsd_measurements to the modules
 add_qemucsd_module(qemucsd_fuse_lfs)
+
+# Enable backward or other definitions for Debug builds
+qemucsd_target_postprocess(qemucsd_fuse_lfs)

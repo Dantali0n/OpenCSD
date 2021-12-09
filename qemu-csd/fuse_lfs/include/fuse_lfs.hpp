@@ -114,7 +114,14 @@ namespace qemucsd::fuse_lfs {
 
         // TODO(Dantali0n): Move random block methods to separate interface
 
+        static nat_update_set_t nat_update_set;
+
         static struct data_position random_pos;
+        static struct data_position random_ptr;
+
+        static int determine_random_ptr();
+
+        static int append_random_block(struct rand_block_base &block);
 
         static int update_random_blocks();
 

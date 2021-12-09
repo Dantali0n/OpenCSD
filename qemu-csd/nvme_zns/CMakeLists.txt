@@ -42,6 +42,9 @@ add_library(
 )
 set_target_properties(qemucsd_nvme_zns_backend PROPERTIES LINKER_LANGUAGE CXX)
 
+# Enable backward or other definitions for Debug builds
+qemucsd_target_postprocess(qemucsd_nvme_zns_backend)
+
 add_subdirectory(memory_backend)
 
 add_subdirectory(spdk_backend)

@@ -44,6 +44,8 @@ namespace qemucsd::fuse_lfs {
 
     inode_lba_map_t FuseLFS::inode_lba_map = inode_lba_map_t();
 
+    nat_update_set_t FuseLFS::nat_update_set = nat_update_set_t();
+
     // Current checkpoint position on drive
     struct data_position FuseLFS::cblock_pos = {
         0, 0, 0, 0
@@ -51,6 +53,11 @@ namespace qemucsd::fuse_lfs {
 
     // Current start of random zone on drive
     struct data_position FuseLFS::random_pos = {
+        0, 0, 0, 0
+    };
+
+    // Current write pointer into the random zone
+    struct data_position FuseLFS::random_ptr = {
         0, 0, 0, 0
     };
 
@@ -178,9 +185,12 @@ namespace qemucsd::fuse_lfs {
             goto err_out1;
         }
 
-        /** Set the random_ptr to the correct position */
+        /** Set the random_pos to the correct position */
         get_checkpointblock(cblock);
         lba_to_position(cblock.randz_lba, random_pos);
+
+        /** Determine random_ptr now that random_pos is known */
+        determine_random_ptr();
 
         output(std::cout, "Creating root inode..");
         path_inode_map.insert(std::make_pair(root, 1));
@@ -591,14 +601,109 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
+     * Find and set random_ptr starting from random_pos.
+     * @return 0 upon success, < 0 upon failure
+     */
+    int FuseLFS::determine_random_ptr() {
+        struct data_position end_pos;
+        struct data_position current_pos = random_pos;
+
+        #ifdef QEMUCSD_DEBUG
+        // Should always be valid after initialization
+        if(dpos_valid(random_pos) != 0)
+            return -1;
+        #endif
+
+//        if(current_pos.zone == RANDZ_POS.zone)
+//            end_pos.zone == RAND_BUFF_POS.zone -1;
+//        if(current_pos.zone == RAND_BUFF_POS.zone)
+
+//        while(current_pos != )
+//        nvme->read()
+    }
+
+    int FuseLFS::append_random_block(struct rand_block_base &block) {
+        struct data_position tmp_random_ptr = random_ptr;
+
+        #ifdef QEMUCSD_DEBUG
+        // Should always be valid after initialization, set by
+        // determine_random_ptr
+        if(dpos_valid(random_ptr) != 0)
+            return -1;
+
+        // random_pos should always be set to RANDZ_POS once RANDZ_BUFF_POS is
+        // reached.
+        if(random_pos.zone == RANDZ_BUFF_POS.zone)
+            return -1;
+        #endif
+
+        // Don't flush none blocks to drive
+        if(block.type == RANDZ_NON_BLK)
+            return -1;
+
+        uint64_t res_sector;
+        if(nvme->append(tmp_random_ptr.zone, res_sector, tmp_random_ptr.offset,
+                        &block,sizeof(none_block)) != 0)
+            return -1;
+
+        // Check that the append was written to the right location
+        if(res_sector != tmp_random_ptr.sector)
+            return -1;
+
+        // Advance the sector
+        tmp_random_ptr.sector += 1;
+
+        // Current zone full, find next zone
+        if(res_sector + 1 == nvme_info.zone_capacity) {
+            tmp_random_ptr.zone += 1;
+            tmp_random_ptr.sector = 0;
+
+            // If reached RAND_BUFF_POS overflow to RANDZ_POS
+            if (tmp_random_ptr.zone == RANDZ_BUFF_POS.zone)
+                tmp_random_ptr.zone = RANDZ_POS.zone;
+
+            // Out of random zone space, this will degrade performance
+            if (tmp_random_ptr.zone == random_pos.zone)
+                if(rewrite_random_blocks() != 0)
+                    return -1;
+        }
+
+        random_ptr = tmp_random_ptr;
+
+        return 0;
+    }
+
+    /**
+     * Perform a flush to disc of all changes that happened to random blocks
+     * @return 0 upon success, < 0 upon failure
+     */
+    int FuseLFS::update_random_blocks() {
+        // Create an instance of each random zone block type
+        struct nat_block nt_blk = {0};
+
+        uint16_t i = 0;
+        for(auto &nt : nat_update_set) {
+            nat_update_set.erase(nt);
+
+            for(uint32_t i = 0; i < NAT_BLK_INO_LBA_NUM; i++) {
+                nt_blk.inode_lba[i].first = nt;
+                nt_blk.inode_lba[i].second = inode_lba_map.at(nt);
+            }
+
+
+        }
+
+    }
+
+    /**
      * Buffer the two zones into the random buffer
      * @return 0 upon success, < 0 upon failure
      */
     int FuseLFS::buffer_random_blocks(const uint64_t zones[2]) {
         // Refuse to copy zones from outside the random zone
-        if(zones[0] >= RAND_BUFF_POS.zone || zones[0] < RANDZ_POS.zone)
+        if(zones[0] >= RANDZ_BUFF_POS.zone || zones[0] < RANDZ_POS.zone)
             return -1;
-        if(zones[1] >= RAND_BUFF_POS.zone || zones[1] < RANDZ_POS.zone)
+        if(zones[1] >= RANDZ_BUFF_POS.zone || zones[1] < RANDZ_POS.zone)
             return -1;
 
         uint64_t res_sector;
@@ -610,7 +715,7 @@ namespace qemucsd::fuse_lfs {
             for (uint64_t i = 0; i < nvme_info.zone_capacity; i++) {
                 if (nvme->read(zone, i, 0, data, sector_size) != 0)
                     goto buff_rand_blk_err;
-                if (nvme->append(RAND_BUFF_POS.zone + j, res_sector, 0,
+                if (nvme->append(RANDZ_BUFF_POS.zone + j, res_sector, 0,
                                  data, sector_size) != 0)
                     goto buff_rand_blk_err;
                 if(res_sector != i)
@@ -630,9 +735,9 @@ namespace qemucsd::fuse_lfs {
      * @return 0 upon success, < 0 upon failure
      */
     int FuseLFS::erase_random_buffer() {
-        if(nvme->reset(RAND_BUFF_POS.zone) != 0)
+        if(nvme->reset(RANDZ_BUFF_POS.zone) != 0)
             return -1;
-        if(nvme->reset(RAND_BUFF_POS.zone + 1) != 0)
+        if(nvme->reset(RANDZ_BUFF_POS.zone + 1) != 0)
             return -1;
         return 0;
     }

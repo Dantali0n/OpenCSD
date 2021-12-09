@@ -52,3 +52,6 @@ target_link_libraries(
 
 # Add qemucsd_measurements to the modules
 add_qemucsd_module(qemucsd_nvme_zns_memory)
+
+# Enable backward or other definitions for Debug builds
+qemucsd_target_postprocess(qemucsd_nvme_zns_memory)

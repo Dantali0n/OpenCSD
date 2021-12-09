@@ -54,3 +54,6 @@ target_link_libraries(
 
 # Add qemucsd_measurements to the modules
 add_qemucsd_module(qemucsd_measurements)
+
+qemucsd_target_postprocess(qemucsd_measurements)
+

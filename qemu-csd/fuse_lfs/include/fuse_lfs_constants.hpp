@@ -96,7 +96,7 @@ namespace qemucsd::fuse_lfs {
      * Position of start of the RANDOM BUFFER
      * TODO(Dantali0n): Compute this using some function, LOG_POS -2;
      */
-    static constexpr struct data_position RAND_BUFF_POS = {
+    static constexpr struct data_position RANDZ_BUFF_POS = {
         10, 0, 0, SECTOR_SIZE
     };
 

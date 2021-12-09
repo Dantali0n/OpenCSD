@@ -25,7 +25,7 @@
 #ifndef QEMU_CSD_FUSE_LFS_MEMORY_HPP
 #define QEMU_CSD_FUSE_LFS_MEMORY_HPP
 
-#include <vector>
+#include <set>
 
 #include "fuse_lfs_constants.hpp"
 
@@ -58,8 +58,8 @@ namespace qemucsd::fuse_lfs {
      * In memory datastructures for synchronizing between memory and drive.
      */
 
-    // List of vectors that have been updated since flush and must be written
-    typedef std::vector<fuse_ino_t> nat_update_list_t;
+    // A set of inodes that have been updated since flush and must be written
+    typedef std::set<fuse_ino_t> nat_update_set_t;
 }
 
 #endif //QEMU_CSD_FUSE_LFS_MEMORY_HPP

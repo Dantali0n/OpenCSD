@@ -70,3 +70,5 @@ add_dependencies(qemucsd_arguments boost-build spdk-build dpdk-build isa-l-build
 
 # Add qemucsd_arguments to the modules
 add_qemucsd_module(qemucsd_arguments)
+
+qemucsd_target_postprocess(qemucsd_arguments)

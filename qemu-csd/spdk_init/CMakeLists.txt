@@ -65,3 +65,6 @@ add_dependencies(qemucsd_spdk_init qemucsd_arguments spdk-build dpdk-build isa-l
 
 # Add qemucsd_spdk_init to the modules
 add_qemucsd_module(qemucsd_spdk_init)
+
+# Enable backward or other definitions for Debug builds
+qemucsd_target_postprocess(qemucsd_spdk_init)
