@@ -61,6 +61,7 @@ namespace qemucsd::fuse_lfs {
         uint8_t  padding[SECTOR_SIZE-32];  // Pad out the rest
     };
     static_assert(sizeof(super_block) == SECTOR_SIZE);
+    static_assert(std::is_trivially_copyable<super_block>::value);
 
     /**
      * Written once when filesystem opened, removed from device once closed.
@@ -71,6 +72,7 @@ namespace qemucsd::fuse_lfs {
          uint8_t  padding[SECTOR_SIZE-1];  // Pad out the rest.
      };
     static_assert(sizeof(dirty_block) == SECTOR_SIZE);
+    static_assert(std::is_trivially_copyable<dirty_block>::value);
 
      /**
       * Written linearly from zone 2, sector 0 till, not including zone 4.
@@ -86,6 +88,7 @@ namespace qemucsd::fuse_lfs {
          uint8_t  padding[SECTOR_SIZE-8];  // Pad out the rest
      };
     static_assert(sizeof(checkpoint_block) == SECTOR_SIZE);
+    static_assert(std::is_trivially_copyable<checkpoint_block>::value);
 
 
     /**
@@ -112,6 +115,7 @@ namespace qemucsd::fuse_lfs {
         uint8_t padding[SECTOR_SIZE-8];
     };
     static_assert(sizeof(none_block) == SECTOR_SIZE);
+    static_assert(std::is_trivially_copyable<none_block>::value);
 
     static constexpr uint32_t NAT_BLK_INO_LBA_NUM = 31;
 
@@ -121,10 +125,13 @@ namespace qemucsd::fuse_lfs {
      */
     struct nat_block : rand_block_base {
         // Set type to to RANDZ_NAT_BLK
-        std::pair<uint64_t, uint64_t> inode_lba[NAT_BLK_INO_LBA_NUM];
+        //std::pair<uint64_t, uint64_t> inode_lba[NAT_BLK_INO_LBA_NUM];
+        uint64_t inode[NAT_BLK_INO_LBA_NUM];
+        uint64_t lba[NAT_BLK_INO_LBA_NUM];
         uint8_t padding[8];
     };
     static_assert(sizeof(nat_block) == SECTOR_SIZE);
+    static_assert(std::is_trivially_copyable<nat_block>::value);
 
     /**
      * LOG WRITE ZONE, the following datastructures will be linearly written to
@@ -149,6 +156,7 @@ namespace qemucsd::fuse_lfs {
         uint8_t data[SECTOR_SIZE];
     };
     static_assert(sizeof(inode_block) == SECTOR_SIZE);
+    static_assert(std::is_trivially_copyable<inode_block>::value);
 
     struct inode_entry {
         uint64_t parent;   // Parent inode, can be 1 for root. only root has 0
@@ -163,6 +171,7 @@ namespace qemucsd::fuse_lfs {
         uint64_t next_block;    // LBA for next data block or zero if none
     };
     static_assert(sizeof(data_block) == SECTOR_SIZE);
+    static_assert(std::is_trivially_copyable<data_block>::value);
 
 }
 

@@ -40,6 +40,19 @@ extern "C" {
 
 namespace qemucsd::fuse_lfs {
 
+    /**
+     * Random zone rewrite strict mode, only flushes found inodes if the lba
+     * matches the current lba in the memory map.
+     *
+     * If strict mode is disabled aggressive mode is used. This flushes inodes
+     * (with the current lba) as soon as the inode is encountered.
+     *
+     * While strict mode has substantially less data to write while rewriting
+     * the random zone after each copy to the random buffer, the memory map it
+     * has to access remains larger for a longer period of time.
+     */
+//    #define FUSE_RANDOM_RW_STRICT
+
     #define fuse_lfs_min(x, y) ((x) < (y) ? (x) : (y))
 
     /**
@@ -54,12 +67,27 @@ namespace qemucsd::fuse_lfs {
      * Non dependent structs that should only be used for constant data
      */
 
+    /** Position of data on drive, only to be used in memory */
     struct data_position {
         uint64_t zone;
         uint64_t sector;
         uint64_t offset;
         uint64_t size;
+
+        int operator==(data_position const& cmp) const {
+            if(this->zone != cmp.zone) return 0;
+            if(this->sector != cmp.sector) return 0;
+            if(this->offset != cmp.offset) return 0;
+            if(this->size != cmp.size) return 0;
+            return 1;
+        }
+
+        int operator!=(data_position const& cmp) const {
+            return !(*this == cmp);
+        }
     };
+    static_assert(sizeof(data_position) == sizeof(uint64_t) * 4);
+    static_assert(std::is_trivially_copyable<data_position>::value);
 
     int dpos_valid(struct data_position dpos);
 

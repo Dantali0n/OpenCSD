@@ -80,6 +80,8 @@ namespace qemucsd::fuse_lfs {
         static void position_to_lba(
             struct data_position position, uint64_t &lba);
 
+        static void advance_position(struct data_position &position);
+
         static int ino_stat(fuse_ino_t ino, struct stat *stbuf);
 
         static int reply_buf_limited(fuse_req_t req, const char *buf,
