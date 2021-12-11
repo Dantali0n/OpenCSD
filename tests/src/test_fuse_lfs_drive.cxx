@@ -70,6 +70,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
         using FuseLFS::determine_random_ptr;
         using FuseLFS::append_random_block;
+        using FuseLFS::rewrite_random_blocks;
     };
 
     BOOST_AUTO_TEST_CASE(Test_FuseLFS_mkfs) {
@@ -213,10 +214,15 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
         uint32_t RANDOM_ZONE_ZONES = qemucsd::fuse_lfs::RANDZ_BUFF_POS.zone - qemucsd::fuse_lfs::RANDZ_POS.zone;
         uint64_t RANDOM_ZONE_SECTORS = RANDOM_ZONE_ZONES * TestFuseLFS::nvme_info.zone_capacity;
-        for(uint64_t i = 0; i < RANDOM_ZONE_SECTORS; i++) {
+
+        // Append all but last sector
+        for(uint64_t i = 0; i < RANDOM_ZONE_SECTORS - 1; i++) {
             BOOST_CHECK(TestFuseLFS::append_random_block(nt_blk) == 0);
         }
 
+        // Last append must indicate to caller that random zone is full
+        BOOST_CHECK(TestFuseLFS::append_random_block(nt_blk) ==
+                    qemucsd::fuse_lfs::FLFS_RET_RANDZ_FULL);
     }
 
     BOOST_AUTO_TEST_CASE(Test_FuseLFS_append_random_blocks_illegal_pos) {
@@ -300,9 +306,13 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
         uint32_t RANDOM_ZONE_ZONES = qemucsd::fuse_lfs::RANDZ_BUFF_POS.zone - qemucsd::fuse_lfs::RANDZ_POS.zone;
         uint64_t RANDOM_ZONE_SECTORS = RANDOM_ZONE_ZONES * TestFuseLFS::nvme_info.zone_capacity;
-        for(uint64_t i = 0; i < RANDOM_ZONE_SECTORS; i++) {
+        for(uint64_t i = 0; i < RANDOM_ZONE_SECTORS - 1; i++) {
             BOOST_CHECK(TestFuseLFS::append_random_block(nt_blk) == 0);
         }
+        BOOST_CHECK(TestFuseLFS::append_random_block(nt_blk) ==
+                    qemucsd::fuse_lfs::FLFS_RET_RANDZ_FULL);
+
+        BOOST_CHECK(TestFuseLFS::rewrite_random_blocks() == 0);
 
         // This test fails until rewrite_random_blocks actually works
         auto temp_pos = TestFuseLFS::random_ptr;

@@ -123,9 +123,15 @@ namespace qemucsd::fuse_lfs {
 
         static int determine_random_ptr();
 
+        static int fill_nat_block(nat_update_set_t *nat_set,
+                                  struct nat_block &nt_blk);
+
         static int append_random_block(struct rand_block_base &block);
 
-        static int update_random_blocks();
+        static int compute_nat_blocks(nat_update_set_t *nat_set,
+                                      uint64_t &num_blocks);
+
+        static int update_nat_blocks(nat_update_set_t *nat_set);
 
         static int buffer_random_blocks(const uint64_t zones[2]);
         static int erase_random_buffer();

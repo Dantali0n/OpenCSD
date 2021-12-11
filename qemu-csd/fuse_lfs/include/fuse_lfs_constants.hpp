@@ -51,9 +51,15 @@ namespace qemucsd::fuse_lfs {
      * the random zone after each copy to the random buffer, the memory map it
      * has to access remains larger for a longer period of time.
      */
-//    #define FUSE_RANDOM_RW_STRICT
+//    #define FLFS_RANDOM_RW_STRICT
 
-    #define fuse_lfs_min(x, y) ((x) < (y) ? (x) : (y))
+    #define flfs_min(x, y) ((x) < (y) ? (x) : (y))
+
+    enum FLFS_RETURN_CODES {
+        FLFS_RET_ERR = -1,
+        FLFS_RET_NONE = 0,
+        FLFS_RET_RANDZ_FULL = 1,
+    };
 
     /**
      * Non dependent constants that should be accessible by all header files in

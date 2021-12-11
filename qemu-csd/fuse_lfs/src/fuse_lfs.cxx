@@ -102,7 +102,7 @@ namespace qemucsd::fuse_lfs {
         }
         if(safe == false) {
             output(std::cerr, "requires -s sequential mode\n");
-            return -1;
+            return FLFS_RET_ERR;
         }
 
         if (fuse_parse_cmdline(&args, &opts) != 0)
@@ -155,13 +155,13 @@ namespace qemucsd::fuse_lfs {
         // TODO(Dantali0n): Only create filesystem when a certain command line
         //                  argument is supplied. See fuse hello_ll for example.
         output(std::cout, "Creating filesystem..");
-        if(mkfs() != 0) {
+        if(mkfs() != FLFS_RET_NONE) {
             ret = 1;
             goto err_out1;
         }
 
         output(std::cout, "Checking super block..");
-        if(verify_superblock() != 0) {
+        if(verify_superblock() != FLFS_RET_NONE) {
             output(std::cerr, "Failed to verify super block, are you ",
                    "sure the partition does not contain another filesystem?");
             ret = 1;
@@ -170,7 +170,7 @@ namespace qemucsd::fuse_lfs {
 
         // TODO(Dantali0n): Filesystem cleanup / recovery from dirty state
         output(std::cout, "Checking dirty block..");
-        if(verify_dirtyblock() != 0) {
+        if(verify_dirtyblock() != FLFS_RET_NONE) {
             output(std::cerr, "Filesystem dirty, no recovery methods yet",
                    " unable to continue :(");
             ret = 1;
@@ -178,7 +178,7 @@ namespace qemucsd::fuse_lfs {
         }
 
         output(std::cout, "Writing dirty block..");
-        if(write_dirtyblock() != 0) {
+        if(write_dirtyblock() != FLFS_RET_NONE) {
             output(std::cerr, "Unable to write dirty block to drive, "
                    "check that drive is writeable");
             ret = 1;
@@ -200,10 +200,11 @@ namespace qemucsd::fuse_lfs {
         if (session == nullptr)
             goto err_out1;
 
-        if (fuse_set_signal_handlers(session) != 0)
+        if (fuse_set_signal_handlers(session) != FLFS_RET_NONE)
             goto err_out2;
 
-        if (fuse_session_mount(session, opts.mountpoint) != 0)
+        if (fuse_session_mount(session, opts.mountpoint) !=
+                FLFS_RET_NONE)
             goto err_out3;
 
         fuse_daemonize(opts.foreground);
@@ -319,9 +320,9 @@ namespace qemucsd::fuse_lfs {
                 break;
 
             default:
-                return -1;
+                return FLFS_RET_ERR;
         }
-        return 0;
+        return FLFS_RET_NONE;
     }
 
     /**
@@ -333,7 +334,7 @@ namespace qemucsd::fuse_lfs {
     {
         if (off < bufsize)
             return fuse_reply_buf(req, buf + off,
-                                  fuse_lfs_min(bufsize - off, maxsize));
+                                  flfs_min(bufsize - off, maxsize));
         else
             return fuse_reply_buf(req, NULL, 0);
     }
@@ -358,10 +359,10 @@ namespace qemucsd::fuse_lfs {
     int FuseLFS::mkfs() {
         output(std::cout, "writing super block..");
 
-        if(write_superblock() != 0) {
+        if(write_superblock() != FLFS_RET_NONE) {
             output(std::cerr, "Failed to write super block, check",
                    "NvmeZns backend");
-            return -1;
+            return FLFS_RET_ERR;
         }
 
         // Write initial checkpoint block
@@ -374,13 +375,13 @@ namespace qemucsd::fuse_lfs {
                         &cblock, sizeof(cblock)) != 0) {
             output(std::cerr, "Failed to write checkpoint block, check",
                    "NvmeZns backend");
-            return -1;
+            return FLFS_RET_ERR;
         }
 
         if(res_sector != CBLOCK_POS.sector) {
             output(std::cerr, "Initial checkpoint block written to wrong"
                    "location, check append operations");
-            return -1;
+            return FLFS_RET_ERR;
         }
 
         cblock_pos.zone = CBLOCK_POS.zone;
@@ -388,7 +389,7 @@ namespace qemucsd::fuse_lfs {
         cblock_pos.offset = CBLOCK_POS.offset;
         cblock_pos.size = CBLOCK_POS.size;
 
-        return 0;
+        return FLFS_RET_NONE;
     }
 
     /**
@@ -400,17 +401,17 @@ namespace qemucsd::fuse_lfs {
         struct super_block sblock;
         if(nvme->read(SBLOCK_POS.zone, SBLOCK_POS.sector, SBLOCK_POS.offset,
                       &sblock, sizeof(super_block)) != 0)
-            return -1;
+            return FLFS_RET_ERR;
         if(sblock.magic_cookie != MAGIC_COOKIE)
-            return -1;
+            return FLFS_RET_ERR;
         if(sblock.zones != nvme_info.num_zones)
-            return -1;
+            return FLFS_RET_ERR;
         if(sblock.sectors != nvme_info.zone_size)
-            return -1;
+            return FLFS_RET_ERR;
         if(sblock.sector_size != nvme_info.sector_size)
-            return -1;
+            return FLFS_RET_ERR;
 
-        return 0;
+        return FLFS_RET_NONE;
     }
 
     /**
@@ -428,12 +429,12 @@ namespace qemucsd::fuse_lfs {
         uint64_t sector;
         if(nvme->append(SBLOCK_POS.zone, sector, SBLOCK_POS.offset, &sblock,
                         sizeof(super_block)) != 0)
-            return -1;
+            return FLFS_RET_ERR;
 
         if(sector != SBLOCK_POS.sector)
-            return -1;
+            return FLFS_RET_ERR;
 
-        return 0;
+        return FLFS_RET_NONE;
     }
 
     /**
@@ -446,7 +447,7 @@ namespace qemucsd::fuse_lfs {
         // If we can't read the dirty block assume it is unwritten thus clean
         if(nvme->read(DBLOCK_POS.zone, DBLOCK_POS.sector, DBLOCK_POS.offset,
                       &dblock, sizeof(dblock)) != 0)
-            return 0;
+            return FLFS_RET_NONE;
 
         // -1 if dirty or 0 otherwise
         return dblock.is_dirty == 1 ? -1 : 0;
@@ -465,12 +466,12 @@ namespace qemucsd::fuse_lfs {
 
         if(nvme->append(DBLOCK_POS.zone, sector, DBLOCK_POS.offset, &dblock,
                      sizeof(dblock)) != 0)
-            return -1;
+            return FLFS_RET_ERR;
 
         if(sector != DBLOCK_POS.sector)
-            return -1;
+            return FLFS_RET_ERR;
 
-        return 0;
+        return FLFS_RET_NONE;
     }
 
     /**
@@ -479,9 +480,9 @@ namespace qemucsd::fuse_lfs {
      */
     int FuseLFS::remove_dirtyblock() {
         if(nvme->reset(DBLOCK_POS.zone) != 0)
-            return -1;
+            return FLFS_RET_ERR;
 
-        return 0;
+        return FLFS_RET_NONE;
     }
 
     /**
@@ -493,8 +494,8 @@ namespace qemucsd::fuse_lfs {
 
         // cblock_pos not set yet, somehow update is called before mkfs() or
         // get_checkpointblock()
-        if(dpos_valid(cblock_pos) != 0)
-            return -1;
+        if(dpos_valid(cblock_pos) != FLFS_RET_NONE)
+            return FLFS_RET_ERR;
 
         // If the current checkpoint block lives on the last sector in the zone
         // Move to the next zone (with rollover back to initial zone).
@@ -516,19 +517,19 @@ namespace qemucsd::fuse_lfs {
         struct checkpoint_block cblock = {randz_lba};
         if(nvme->append(tmp_cblock_pos.zone, res_sector, tmp_cblock_pos.offset,
                         &cblock, tmp_cblock_pos.size) != 0)
-            return -1;
+            return FLFS_RET_ERR;
 
         if(tmp_cblock_pos.sector != res_sector)
-            return -1;
+            return FLFS_RET_ERR;
 
         // If zone changed, reset old zone
         if(tmp_cblock_pos.zone != cblock_pos.zone)
             if(nvme->reset(cblock_pos.zone) != 0)
-                return -1;
+                return FLFS_RET_ERR;
 
         cblock_pos = tmp_cblock_pos;
 
-        return 0;
+        return FLFS_RET_NONE;
     }
 
     /**
@@ -536,17 +537,17 @@ namespace qemucsd::fuse_lfs {
      * get_checkpointblock_locate.
      */
     int FuseLFS::get_checkpointblock(struct checkpoint_block &cblock) {
-        if(dpos_valid(cblock_pos) != 0)
+        if(dpos_valid(cblock_pos) != FLFS_RET_NONE)
             return get_checkpointblock_locate(cblock);
 
         struct checkpoint_block tmp_cblock = {0};
         if(nvme->read(cblock_pos.zone, cblock_pos.sector, cblock_pos.offset,
                    &tmp_cblock, sizeof(cblock)) != 0)
-            return -1;
+            return FLFS_RET_ERR;
 
         cblock = tmp_cblock;
 
-        return 0;
+        return FLFS_RET_NONE;
     }
 
     /**
@@ -570,7 +571,7 @@ namespace qemucsd::fuse_lfs {
                            CBLOCK_POS.offset, &tmp_cblock, sizeof(cblock)) == 0)
             checkpoint_zone = CBLOCK_POS.zone + 1;
         else
-            return -1;
+            return FLFS_RET_ERR;
 
         // Read until no more checkpoint
         for(uint64_t i = 0; i < nvme_info.zone_size; i++) {
@@ -599,7 +600,7 @@ namespace qemucsd::fuse_lfs {
 
         // Could not find any checkpoint block on drive
         if(tmp_cblock.randz_lba == UINT64_MAX)
-            return -1;
+            return FLFS_RET_ERR;
 
         // Update the located block position
         cblock_pos = tmp_cblock_pos;
@@ -607,7 +608,7 @@ namespace qemucsd::fuse_lfs {
         // Update the checkpoint block data
         cblock = tmp_cblock;
 
-        return 0;
+        return FLFS_RET_NONE;
     }
 
     /**
@@ -623,8 +624,8 @@ namespace qemucsd::fuse_lfs {
 
         #ifdef QEMUCSD_DEBUG
         // Should always be valid after initialization
-        if(dpos_valid(random_pos) != 0)
-            return -1;
+        if(dpos_valid(random_pos) FLFS_RET_NONE0)
+            return FLFS_RET_ERR;
         #endif
 
         if(current_pos.zone == RANDZ_POS.zone) {
@@ -660,14 +661,44 @@ namespace qemucsd::fuse_lfs {
 
         random_ptr = current_pos;
 
-        return 0;
+        return FLFS_RET_NONE;
+    }
+
+    /**
+     * Fill a nat_block until it is full removing any appendices from nat_set or
+     * when nat_set is empty.
+     * @return 0 upon success, < 0 upon failure
+     */
+    int FuseLFS::fill_nat_block(
+        nat_update_set_t *nat_set, struct nat_block &nt_blk)
+    {
+        uint16_t i = 0;
+        for(auto &nt : *nat_set) {
+            nat_set->erase(nt);
+
+            nt_blk.inode[i] = nt;
+            nt_blk.lba[i] = inode_lba_map.at(nt);
+
+            i++;
+
+            // Block has reached limit
+            if(i == NAT_BLK_INO_LBA_NUM) {
+                return FLFS_RET_NONE;
+            }
+        }
+
+        return FLFS_RET_NONE;
     }
 
     /**
      * Take whatever random zone block was given and append it to the random
      * zone. The location depends on random_ptr which is advanced after a
-     * successful append.
-     * @return
+     * successful append. random_pos is taken into account to identify if we
+     * are out of random zone space.
+     *
+     * WARNING: will call rewrite_random_blocks if there is no more space!
+     *
+     * @return 0 upon success, < 0 upon failure
      */
     int FuseLFS::append_random_block(struct rand_block_base &block) {
         struct data_position tmp_random_ptr = random_ptr;
@@ -675,27 +706,27 @@ namespace qemucsd::fuse_lfs {
         #ifdef QEMUCSD_DEBUG
         // Should always be valid after initialization, set by
         // determine_random_ptr
-        if(dpos_valid(random_ptr) != 0)
-            return -1;
+        if(dpos_valid(random_ptr) != FLFS_RET_NONE)
+            return FLFS_RET_ERR;
 
         // random_pos should always be set to RANDZ_POS once RANDZ_BUFF_POS is
         // reached.
         if(random_pos.zone == RANDZ_BUFF_POS.zone)
-            return -1;
+            return FLFS_RET_ERR;
         #endif
 
         // Don't flush none blocks to drive
         if(block.type == RANDZ_NON_BLK)
-            return -1;
+            return FLFS_RET_ERR;
 
         uint64_t res_sector;
         if(nvme->append(tmp_random_ptr.zone, res_sector, tmp_random_ptr.offset,
                         &block,sizeof(none_block)) != 0)
-            return -1;
+            return FLFS_RET_ERR;
 
         // Check that the append was written to the right location
         if(res_sector != tmp_random_ptr.sector)
-            return -1;
+            return FLFS_RET_ERR;
 
         // Advance the sector
         tmp_random_ptr.sector += 1;
@@ -709,47 +740,66 @@ namespace qemucsd::fuse_lfs {
             if (tmp_random_ptr.zone == RANDZ_BUFF_POS.zone)
                 tmp_random_ptr.zone = RANDZ_POS.zone;
 
-            // Out of random zone space, this will degrade performance
+            // Out of random zone space!
             if (tmp_random_ptr.zone == random_pos.zone)
-                if(rewrite_random_blocks() != 0)
-                    return -1;
+                return FLFS_RET_RANDZ_FULL;
+                //if(rewrite_random_blocks() != FLFS_RET_NONE)
         }
 
         random_ptr = tmp_random_ptr;
 
-        return 0;
+        return FLFS_RET_NONE;
     }
 
     /**
-     * Perform a flush to drive of all changes that happened to random blocks
+     * Determine the number of nat blocks required to flush the nat_set to
+     * the drive. The result is placed in num_blocks.
      * @return 0 upon success, < 0 upon failure
      */
-    int FuseLFS::update_random_blocks() {
-        // Create an instance of each random zone block type
-        struct nat_block nt_blk = {0};
+    int FuseLFS::compute_nat_blocks(
+        nat_update_set_t *nat_set, uint64_t &num_blocks)
+    {
+        uint32_t tmp_blocks = 0;
 
-        uint16_t i = 0;
-        for(auto &nt : nat_update_set) {
-            nat_update_set.erase(nt);
-
-            nt_blk.inode[i] = nt;
-            nt_blk.lba[i] = inode_lba_map.at(nt);
-
+        uint32_t i = 0;
+        for(auto &item : *nat_set) {
             i++;
-
-            // Block has reached limit flush to drive
             if(i == NAT_BLK_INO_LBA_NUM) {
+                tmp_blocks += 1;
                 i = 0;
-                if(append_random_block(nt_blk) != 0) return -1;
-                memset(&nt_blk, 0, sizeof(nat_block));
             }
         }
 
-        // Flush partial block if any
-        if(i != 0)
-            if(append_random_block(nt_blk) != 0) return -1;
+        num_blocks = tmp_blocks;
 
-        return 0;
+        return FLFS_RET_NONE;
+    }
+
+    /**
+     * Perform a flush to drive of all changes that happened to nat blocks
+     * @return 0 upon success, < 0 upon failure
+     */
+    int FuseLFS::update_nat_blocks(
+        nat_update_set_t *nat_set = &nat_update_set)
+    {
+        int ret = 0;
+
+        // Create an instance of each random zone block type
+        struct nat_block nt_blk = {0};
+
+        while(nat_set->empty() == false) {
+            nt_blk.type = RANDZ_NAT_BLK;
+            fill_nat_block(nat_set, nt_blk);
+            if(nt_blk.inode[0] == 0) break;
+
+            // Error code of append random block might signal lack of space
+            ret = append_random_block(nt_blk);
+            if(ret != FLFS_RET_NONE) return ret;
+
+            memset(&nt_blk, 0, sizeof(nat_block));
+        }
+
+        return FLFS_RET_NONE;
     }
 
     /**
@@ -759,9 +809,9 @@ namespace qemucsd::fuse_lfs {
     int FuseLFS::buffer_random_blocks(const uint64_t zones[2]) {
         // Refuse to copy zones from outside the random zone
         if(zones[0] >= RANDZ_BUFF_POS.zone || zones[0] < RANDZ_POS.zone)
-            return -1;
+            return FLFS_RET_ERR;
         if(zones[1] >= RANDZ_BUFF_POS.zone || zones[1] < RANDZ_POS.zone)
-            return -1;
+            return FLFS_RET_ERR;
 
         uint64_t res_sector;
         uint64_t sector_size = nvme_info.sector_size;
@@ -780,11 +830,11 @@ namespace qemucsd::fuse_lfs {
             }
         }
 
-        return 0;
+        return FLFS_RET_NONE;
 
         buff_rand_blk_err:
         free(data);
-        return -1;
+        return FLFS_RET_ERR;
     }
 
     /**
@@ -793,10 +843,10 @@ namespace qemucsd::fuse_lfs {
      */
     int FuseLFS::erase_random_buffer() {
         if(nvme->reset(RANDZ_BUFF_POS.zone) != 0)
-            return -1;
+            return FLFS_RET_ERR;
         if(nvme->reset(RANDZ_BUFF_POS.zone + 1) != 0)
-            return -1;
-        return 0;
+            return FLFS_RET_ERR;
+        return FLFS_RET_NONE;
     }
 
     /**
@@ -812,20 +862,24 @@ namespace qemucsd::fuse_lfs {
      * @return 0 upon success, < 0 upon failure
      */
     int FuseLFS::rewrite_random_blocks() {
+        // Number of supported zones in rand buff currently hardcoded
+        // Can be computed using LOG_POS.zone = RANDZ_BUFF_POS.zone
+        static constexpr uint8_t n_rand_buf_zones = 2;
+
         #ifdef QEMUCSD_DEBUG
         // Should always be valid after initialization, set by
         // determine_random_ptr
-        if(dpos_valid(random_ptr) != 0)
-            return -1;
+        if(dpos_valid(random_ptr) != FLFS_RET_NONE)
+            return FLFS_RET_ERR;
 
         // random_pos should always be set to RANDZ_POS once RANDZ_BUFF_POS is
         // reached.
         if(random_pos.zone == RANDZ_BUFF_POS.zone)
-            return -1;
+            return FLFS_RET_ERR;
         #endif
 
         /** 1. Copy from random_pos into the random buffer */
-        uint64_t zones[2] = {0};
+        uint64_t zones[n_rand_buf_zones] = {0};
         zones[0] = random_pos.zone;
         zones[1] = random_pos.zone + 1;
 
@@ -834,12 +888,12 @@ namespace qemucsd::fuse_lfs {
         if(zones[1] == RANDZ_BUFF_POS.zone)
             zones[1] = RANDZ_POS.zone;
 
-        if(buffer_random_blocks(zones) != 0)
-            return -1;
+        if(buffer_random_blocks(zones) != FLFS_RET_NONE)
+            return FLFS_RET_ERR;
 
         /** 2. resets the copied zones */
-        if(nvme->reset(zones[0]) != 0) return -1;
-        if(nvme->reset(zones[1]) != 0) return -1;
+        if(nvme->reset(zones[0]) != 0) return FLFS_RET_ERR;
+        if(nvme->reset(zones[1]) != 0) return FLFS_RET_ERR;
 
         /** 3. advance the random_pos (randz_lba) and put this in a
          * checkpoint block */
@@ -851,7 +905,8 @@ namespace qemucsd::fuse_lfs {
 
         uint64_t new_randz_lba;
         position_to_lba(random_pos, new_randz_lba);
-        if(update_checkpointblock(new_randz_lba) != 0) return -1;
+        if(update_checkpointblock(new_randz_lba) != FLFS_RET_NONE)
+            return FLFS_RET_ERR;
 
         /** 4. Set random_ptr to start of newly writable region */
 
@@ -868,11 +923,14 @@ namespace qemucsd::fuse_lfs {
         // Subset of inodes to current flush to drive
         nat_update_set_t nat_set = nat_update_set_t();
 
+        // Total spendable blocks freed from moving data into random buffer
+        uint64_t available_blocks = n_rand_buf_zones* nvme_info.zone_capacity;
+
         // Read all the data in the buffered zones
-        for(uint32_t i = 0; i < 2; i++) {
+        for(uint32_t i = 0; i < n_rand_buf_zones; i++) {
             for(uint32_t j = 0; j < nvme_info.zone_capacity; j++) {
                 if(nvme->read(RANDZ_BUFF_POS.zone + i, j, 0, &nt_blk,
-                              sizeof(none_block)) != 0) return -1;
+                              sizeof(none_block)) != 0) return FLFS_RET_ERR;
 
                 // Process NAT block
                 if(nt_blk.type == RANDZ_NAT_BLK) {
@@ -883,7 +941,7 @@ namespace qemucsd::fuse_lfs {
                         // and removes it from our map of pending updates.
                         auto it = inode_lba_copy.find(nat_blk->inode[z]);
 
-                        #ifdef FUSE_RANDOM_RW_STRICT
+                        #ifdef FLFS_RANDOM_RW_STRICT
                         if(it != inode_lba_copy.end() && it->second == nat_blk->lba[z]) {
                         #else
                         if(it != inode_lba_copy.end()) {
@@ -894,10 +952,34 @@ namespace qemucsd::fuse_lfs {
                         }
                     }
                 }
+                // Process SIT block
+                // TODO(Dantali0n): SIT blocks
             }
         }
 
-        return 0;
+        uint64_t nat_blocks;
+        if(compute_nat_blocks(&nat_set, nat_blocks) != FLFS_RET_NONE)
+            return FLFS_RET_ERR;
+
+        available_blocks -= nat_blocks;
+
+        uint64_t sit_blocks;
+        // TODO(Dantali0n): SIT blocks
+
+        // Worst case, Zones must be entirely rewritten no extra free space
+        // claimed. This will cause append_random_block to return
+        // FLFS_RET_RANDZ_FULL which is propagated by update_nat_blocks.
+        if(available_blocks == 0) {
+            if(update_nat_blocks(&nat_set) < FLFS_RET_NONE)
+                return FLFS_RET_ERR;
+        }
+        else {
+            if(update_nat_blocks(&nat_set) != FLFS_RET_NONE)
+                return FLFS_RET_ERR;
+        }
+
+
+        return FLFS_RET_NONE;
     }
 
     void FuseLFS::init(void *userdata, struct fuse_conn_info *conn) {
@@ -907,7 +989,7 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::destroy(void *userdata) {
         output(std::cout, "Tearing down filesystem");
 
-        if(remove_dirtyblock() != 0) {
+        if(remove_dirtyblock() != FLFS_RET_NONE) {
             output(std::cerr, "Failed to remove dirty block from drive"
                    " this will cause issues on subsequent mounts!");
         }

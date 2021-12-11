@@ -32,10 +32,10 @@ namespace qemucsd::fuse_lfs {
      * @return 0 upon valid, < 0 if invalid
      */
     int dpos_valid(struct data_position dpos) {
-        if(dpos.size < SECTOR_SIZE) return -1;
-        if(dpos.size % SECTOR_SIZE != 0) return -1;
-        if(dpos.offset >= SECTOR_SIZE) return -1;
+        if(dpos.size < SECTOR_SIZE) return FLFS_RET_ERR;
+        if(dpos.size % SECTOR_SIZE != 0) return FLFS_RET_ERR;
+        if(dpos.offset >= SECTOR_SIZE) return FLFS_RET_ERR;
 
-        return 0;
+        return FLFS_RET_NONE;
     }
 }
