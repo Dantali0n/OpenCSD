@@ -50,6 +50,7 @@ namespace qemucsd::nvme_zns {
                                         uint64_t &lba)
     {
         lba = (zone * info.zone_size) + sector;
+        return 0;
     }
 
     int NvmeZnsBackend::in_range(
