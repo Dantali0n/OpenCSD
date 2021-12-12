@@ -29,13 +29,10 @@ namespace qemucsd::fuse_lfs {
     /**
      * Verify that data_position is valid, useful for zero initialized member
      * variables.
+     * TODO(Dantali0n): Have the entire source use the struct method instead
      * @return 0 upon valid, < 0 if invalid
      */
     int dpos_valid(struct data_position dpos) {
-        if(dpos.size < SECTOR_SIZE) return FLFS_RET_ERR;
-        if(dpos.size % SECTOR_SIZE != 0) return FLFS_RET_ERR;
-        if(dpos.offset >= SECTOR_SIZE) return FLFS_RET_ERR;
-
-        return FLFS_RET_NONE;
+        return dpos.valid() ? FLFS_RET_NONE : FLFS_RET_ERR;
     }
 }

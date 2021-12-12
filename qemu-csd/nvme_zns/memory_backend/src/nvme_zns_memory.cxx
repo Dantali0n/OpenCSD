@@ -28,24 +28,21 @@ namespace qemucsd::nvme_zns {
 
     NvmeZnsMemoryBackend::NvmeZnsMemoryBackend(
         uint64_t num_zones, uint64_t zone_size, uint64_t sector_size) :
-        NvmeZnsBackend(num_zones, zone_size, zone_size, sector_size, 0)
+        // TODO(Dantali0n): Remove halving of zone capacity
+        NvmeZnsBackend(num_zones, zone_size, zone_size / 2, sector_size, 0)
     {
-        info.num_zones = num_zones;
-        info.zone_size = zone_size;
-        info.sector_size = sector_size;
-
         info.max_open = 0;
 
         uint64_t size = num_zones * zone_size * sector_size * sizeof(*data);
         data = (unsigned char*) malloc(size);
 
         if(!data) {
-            std::cerr << "nvm_zns_memory_backend memory allocation for " <<
-                "size: " << size << " failed." << std::endl;
+            output(std::cerr, "nvm_zns_memory_backend memory allocation for ",
+                "size: ", size, " failed.");
             exit(1);
         }
 
-        zone_byte_size = info.zone_size * info.sector_size;
+        zone_byte_size = info.zone_capacity * info.sector_size;
         memory_limit = (uintptr_t) (void*)data + size;
 
         write_pointers.resize(num_zones);
@@ -90,6 +87,9 @@ namespace qemucsd::nvme_zns {
         // Refuse to read unwritten sectors
         if(write_pointers.at(zone) <= sector) return -1;
 
+//        output(std::cout, "read: [", zone, "][", sector, "][", offset, "][",
+//                     size, "]");
+
         memcpy(buffer, data + address, size);
 
         return 0;
@@ -117,6 +117,9 @@ namespace qemucsd::nvme_zns {
         // Only modify external variable after guaranteeing success
         sector = write_pointers.at(zone);
 
+//        output(std::cout, "append: [", zone, "][", sector, "][", offset, "][",
+//                     size, "]");
+
         // All is well, update the write pointer
         write_pointers.at(zone) = temp_write_pointer;
 
@@ -135,6 +138,8 @@ namespace qemucsd::nvme_zns {
         uintptr_t address = zone * info.zone_size * info.sector_size;
         if(memory_limit < (uintptr_t) data + address + zone_byte_size)
             return -1;
+
+        output(std::cout, "reset: [", zone, "]");
 
         write_pointers.at(zone) = 0;
 

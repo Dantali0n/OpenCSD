@@ -30,9 +30,12 @@
 #include <iostream>
 #include <vector>
 
+#include "output.hpp"
 #include "nvme_zns_backend.hpp"
 
 namespace qemucsd::nvme_zns {
+
+    static output::Output output = output::Output("[NVME_ZNS_MEMORY] ");
 
     class NvmeZnsMemoryBackend : public NvmeZnsBackend {
     protected:

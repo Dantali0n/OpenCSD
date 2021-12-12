@@ -499,7 +499,7 @@ namespace qemucsd::fuse_lfs {
 
         // If the current checkpoint block lives on the last sector in the zone
         // Move to the next zone (with rollover back to initial zone).
-        if(cblock_pos.sector == nvme_info.zone_size - 1) {
+        if(cblock_pos.sector == nvme_info.zone_capacity - 1) {
 
             // Tick Tock between initial zone and subsequent zone
             if(CBLOCK_POS.zone == cblock_pos.zone)
@@ -574,7 +574,7 @@ namespace qemucsd::fuse_lfs {
             return FLFS_RET_ERR;
 
         // Read until no more checkpoint
-        for(uint64_t i = 0; i < nvme_info.zone_size; i++) {
+        for(uint64_t i = 0; i < nvme_info.zone_capacity; i++) {
             // Read each subsequent block until it fails once
             if(nvme->read(checkpoint_zone, i, CBLOCK_POS.offset,
                           &tmp_cblock, sizeof(cblock)) != 0)
@@ -584,7 +584,7 @@ namespace qemucsd::fuse_lfs {
 
             // If we could read the last sector of the first zone we should
             // continue reading the first sector of the second zone.
-            if(i == nvme_info.zone_size - 1 && checkpoint_zone ==
+            if(i == nvme_info.zone_capacity - 1 && checkpoint_zone ==
                CBLOCK_POS.zone)
             {
                 if(nvme->read(CBLOCK_POS.zone + 1, CBLOCK_POS.sector,
@@ -808,7 +808,9 @@ namespace qemucsd::fuse_lfs {
      * Buffer the two zones into the random buffer
      * @return 0 upon success, < 0 upon failure
      */
-    int FuseLFS::buffer_random_blocks(const uint64_t zones[2]) {
+    int FuseLFS::buffer_random_blocks(
+        const uint64_t zones[2], struct data_position limit)
+    {
         // Refuse to copy zones from outside the random zone
         if(zones[0] >= RANDZ_BUFF_POS.zone || zones[0] < RANDZ_POS.zone)
             return FLFS_RET_ERR;
@@ -822,6 +824,8 @@ namespace qemucsd::fuse_lfs {
         for(uint64_t j = 0; j < 2; j++) {
             uint64_t zone = zones[j];
             for (uint64_t i = 0; i < nvme_info.zone_capacity; i++) {
+                if(limit.meets_limit(zone, i))
+                    goto buff_rand_blk_none;
                 if (nvme->read(zone, i, 0, data, sector_size) != 0)
                     goto buff_rand_blk_err;
                 if (nvme->append(RANDZ_BUFF_POS.zone + j, res_sector, 0,
@@ -832,6 +836,7 @@ namespace qemucsd::fuse_lfs {
             }
         }
 
+        buff_rand_blk_none:
         free(data);
         return FLFS_RET_NONE;
 
@@ -856,14 +861,15 @@ namespace qemucsd::fuse_lfs {
      * Call when the random zone is completely full. 1. Copies the first two
      * zones starting from current randz_lba and migrates these into the random
      * buffer. 2. Resets the zones that where copied. 3. Advances randz_lba
-     * using a new checkpoint block. 3.1 On the first loop it advances
-     * random_ptr to the newly freed location from the copied zones. 3.2 exit
-     * condition if the random_pos has reached the initial random_ptr position.
+     * using a new checkpoint block. 3.1 If random_ptr was invalid (random zone
+     * full) change the random_ptr to the new writeable region.
      * 4. Identifies most up to date unique content in buffer and adds these to
-     * temporal datastructures. 5. Adds remaining data until temporal
-     * datastructures are size of the two zones. Flushes temporal data to drive.
-     * 6. Repeats until all unique random zone data is linearly flushed to the
-     * drive (occupies the minimal required amount of space).
+     * temporal datastructures. 5. Flush temporal data to drive. 6. Erase the
+     * random buffers 7. Repeats until all unique random zone data is linearly
+     * flushed to the drive (occupies the minimal required amount of space).
+     *
+     * TODO(Dantali0n): Rewrite this entirely, its a huge disgusting heap of
+     *                  trash...
      * @return 0 upon success, < 0 upon failure
      */
     int FuseLFS::rewrite_random_blocks() {
@@ -878,8 +884,11 @@ namespace qemucsd::fuse_lfs {
             return FLFS_RET_ERR;
         #endif
 
-        // Limit of data, buffering random blocks should not continue beyond
-        // this position.
+        if(random_ptr == random_pos)
+            return FLFS_RET_NONE;
+
+        // Limit of data, buffering random blocks should not continue at this
+        // position.
         struct data_position data_lim_pos = random_ptr;
 
         // Final rand_pos, rewrite is done upon reaching it.
@@ -905,16 +914,18 @@ namespace qemucsd::fuse_lfs {
             return FLFS_RET_ERR;
         #endif
 
+        uint64_t zones[n_rand_buf_zones] = {0};
+
         // Create a copy of all inodes and remove every encountered one.
         // copy of map will be performant with log(n) lookup time
         // (rb bin tree).
         inode_lba_map_t inode_lba_copy = inode_lba_map;
 
         // Rewrite parts of the random zone until random_pos meets end_rand_pos
+        /** 7. Repeat until all data has been linearly rewritten */
         while(random_pos != end_rand_pos) {
 
             /** 1. Copy from random_pos into the random buffer */
-            uint64_t zones[n_rand_buf_zones] = {0};
             zones[0] = random_pos.zone;
             zones[1] = random_pos.zone + 1;
 
@@ -923,7 +934,7 @@ namespace qemucsd::fuse_lfs {
             if(zones[1] == RANDZ_BUFF_POS.zone)
                 zones[1] = RANDZ_POS.zone;
 
-            if(buffer_random_blocks(zones) != FLFS_RET_NONE)
+            if(buffer_random_blocks(zones, data_lim_pos) != FLFS_RET_NONE)
                 return FLFS_RET_ERR;
 
             /** 2. resets the copied zones */
@@ -949,7 +960,7 @@ namespace qemucsd::fuse_lfs {
             }
 
             /** 3.1. If random zone was full (random_ptr invalid) set random_ptr
-             * to start of newly writeable region*/
+             * to start of newly writeable region */
 
             if(dpos_valid(random_ptr) != FLFS_RET_NONE) {
                 random_ptr.zone = zones[0];
@@ -971,6 +982,12 @@ namespace qemucsd::fuse_lfs {
             // Read all the data in the buffered zones
             for(uint32_t i = 0; i < n_rand_buf_zones; i++) {
                 for(uint32_t j = 0; j < nvme_info.zone_capacity; j++) {
+
+                    // If we reach the limit skip the remaining part of the
+                    // buffer
+                    if(data_lim_pos.meets_limit(zones[i], j))
+                        goto skip_remaining_buffer;
+
                     if(nvme->read(RANDZ_BUFF_POS.zone + i, j, 0, &nt_blk,
                                   sizeof(none_block)) != 0)
                         return FLFS_RET_ERR;
@@ -1000,6 +1017,10 @@ namespace qemucsd::fuse_lfs {
                 }
             }
 
+            /** 5. Flush temporal data to the drive */
+
+            skip_remaining_buffer:
+
             uint64_t nat_blocks;
             compute_nat_blocks(&nat_set, nat_blocks);
             available_blocks -= nat_blocks;
@@ -1021,13 +1042,26 @@ namespace qemucsd::fuse_lfs {
                     return FLFS_RET_ERR;
             }
 
+            /** 6. Erase the random buffer */
+
             // Random buffer can now safely be erased
             if(erase_random_buffer() != FLFS_RET_NONE)
                 return FLFS_RET_ERR;
         }
 
+        // random_pos has advanced beyond the write pointer, mark random_pos
+        // as new random_ptr
+        if(random_ptr.zone < random_pos.zone)
+            random_ptr = random_pos;
+
+        // In case the end position was RANDZ_BUFF_POS ensure random_pos
+        // overflow to RANDZ_POS as RANDZ_BUFF_POS is not a valid position for
+        // random_pos
         if(random_pos == RANDZ_BUFF_POS)
             random_pos = RANDZ_POS;
+
+        if(random_ptr == RANDZ_BUFF_POS)
+            random_ptr = RANDZ_POS;
 
         return FLFS_RET_NONE;
     }

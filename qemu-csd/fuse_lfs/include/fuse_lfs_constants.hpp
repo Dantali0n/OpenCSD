@@ -98,12 +98,27 @@ namespace qemucsd::fuse_lfs {
             return !(*this == cmp);
         }
 
+        /**
+         * If the data_position is valid
+         * @return 1 if true, 0 if false
+         */
         [[nodiscard]] int valid() const {
-            if(this->size < SECTOR_SIZE) return FLFS_RET_ERR;
-            if(this->size % SECTOR_SIZE != 0) return FLFS_RET_ERR;
-            if(this->offset >= SECTOR_SIZE) return FLFS_RET_ERR;
+            if(this->size < SECTOR_SIZE) return 0;
+            if(this->size % SECTOR_SIZE != 0) return 0;
+            if(this->offset >= SECTOR_SIZE) return 0;
 //            if(_valid) return FLFS_RET_NONE;
-            return FLFS_RET_ERR;
+            return 1;
+        }
+
+        /**
+         * Checks if the position is exactly at the limit with the specified
+         * zone and sector.
+         * @return 1 if true, 0 if false
+         */
+        [[nodiscard]] int meets_limit(uint64_t zone, uint64_t sector) const {
+            if(!valid()) return 0;
+            if(this->zone != zone || this->sector != sector) return 0;
+            return 1;
         }
 
 //        void validate() {

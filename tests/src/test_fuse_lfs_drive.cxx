@@ -73,6 +73,20 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         using FuseLFS::rewrite_random_blocks;
     };
 
+    void setup_rewrite_random_blocks(
+        qemucsd::nvme_zns::NvmeZnsMemoryBackend *nvme_memory)
+    {
+        TestFuseLFS::nvme = nvme_memory;
+        nvme_memory->get_nvme_zns_info(&TestFuseLFS::nvme_info);
+
+        BOOST_CHECK(TestFuseLFS::mkfs() == 0);
+
+        TestFuseLFS::random_pos = qemucsd::fuse_lfs::RANDZ_POS;
+
+        BOOST_CHECK(TestFuseLFS::determine_random_ptr() == 0);
+        BOOST_CHECK(TestFuseLFS::random_ptr == TestFuseLFS::random_pos);
+    }
+
     BOOST_AUTO_TEST_CASE(Test_FuseLFS_mkfs) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
 
@@ -138,8 +152,12 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
         uint64_t randz_base = TestFuseLFS::nvme_info.zone_size *
                 qemucsd::fuse_lfs::RANDZ_POS.zone;
-        uint64_t checkpoint_blocks_x4 = TestFuseLFS::nvme_info.zone_size * 8;
-        for(uint64_t i = 0; i < checkpoint_blocks_x4; i++) {
+
+        uint64_t checkpoint_blocks_x4 = TestFuseLFS::nvme_info.zone_capacity * 8;
+
+        uint32_t czones = qemucsd::fuse_lfs::RANDZ_POS.zone -
+            qemucsd::fuse_lfs::CBLOCK_POS.zone;
+        for(uint64_t i = 0; i < checkpoint_blocks_x4; i ++) {
             BOOST_CHECK(TestFuseLFS::update_checkpointblock(randz_base + i) == 0);
             BOOST_CHECK(TestFuseLFS::get_checkpointblock(cblock) == 0);
             BOOST_CHECK_MESSAGE(cblock.randz_lba == randz_base + i,
@@ -160,8 +178,8 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         uint64_t randz_base = TestFuseLFS::nvme_info.zone_size *
                               qemucsd::fuse_lfs::RANDZ_POS.zone;
 
-        // mkfs takes first block so zone_size -1
-        for(uint64_t i = 0; i < TestFuseLFS::nvme_info.zone_size - 1; i++) {
+        // mkfs takes first block so zone_capacity -1
+        for(uint64_t i = 0; i < TestFuseLFS::nvme_info.zone_capacity - 1; i++) {
             BOOST_CHECK(TestFuseLFS::update_checkpointblock(randz_base + i) == 0);
             BOOST_CHECK(TestFuseLFS::get_checkpointblock_locate(cblock) == 0);
             BOOST_CHECK_MESSAGE(cblock.randz_lba == randz_base + i,
@@ -248,30 +266,12 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
     BOOST_AUTO_TEST_CASE(Test_FuseLFS_determine_random_ptr_base) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
-
-        TestFuseLFS::nvme = &nvme_memory;
-        nvme_memory.get_nvme_zns_info(&TestFuseLFS::nvme_info);
-
-        BOOST_CHECK(TestFuseLFS::mkfs() == 0);
-
-        TestFuseLFS::random_pos = qemucsd::fuse_lfs::RANDZ_POS;
-
-        BOOST_CHECK(TestFuseLFS::determine_random_ptr() == 0);
-        BOOST_CHECK(TestFuseLFS::random_ptr == TestFuseLFS::random_pos);
+        setup_rewrite_random_blocks(&nvme_memory);
     }
 
     BOOST_AUTO_TEST_CASE(Test_FuseLFS_determine_random_ptr_restore_half) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
-
-        TestFuseLFS::nvme = &nvme_memory;
-        nvme_memory.get_nvme_zns_info(&TestFuseLFS::nvme_info);
-
-        BOOST_CHECK(TestFuseLFS::mkfs() == 0);
-
-        TestFuseLFS::random_pos = qemucsd::fuse_lfs::RANDZ_POS;
-
-        BOOST_CHECK(TestFuseLFS::determine_random_ptr() == 0);
-        BOOST_CHECK(TestFuseLFS::random_ptr == TestFuseLFS::random_pos);
+        setup_rewrite_random_blocks(&nvme_memory);
 
         struct qemucsd::fuse_lfs::nat_block nt_blk = {0};
         nt_blk.type = qemucsd::fuse_lfs::RANDZ_NAT_BLK;
@@ -290,16 +290,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
     BOOST_AUTO_TEST_CASE(Test_FuseLFS_determine_random_ptr_restore_full) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
-
-        TestFuseLFS::nvme = &nvme_memory;
-        nvme_memory.get_nvme_zns_info(&TestFuseLFS::nvme_info);
-
-        BOOST_CHECK(TestFuseLFS::mkfs() == 0);
-
-        TestFuseLFS::random_pos = qemucsd::fuse_lfs::RANDZ_POS;
-
-        BOOST_CHECK(TestFuseLFS::determine_random_ptr() == 0);
-        BOOST_CHECK(TestFuseLFS::random_ptr == TestFuseLFS::random_pos);
+        setup_rewrite_random_blocks(&nvme_memory);
 
         struct qemucsd::fuse_lfs::nat_block nt_blk = {0};
         nt_blk.type = qemucsd::fuse_lfs::RANDZ_NAT_BLK;
@@ -319,34 +310,65 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         BOOST_CHECK(temp_ptr == TestFuseLFS::random_ptr);
     }
 
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_rewrite_random_zone_half) {
+    BOOST_AUTO_TEST_CASE(Test_FuseLFS_rewrite_random_zone_two) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
+        setup_rewrite_random_blocks(&nvme_memory);
 
-        TestFuseLFS::nvme = &nvme_memory;
-        nvme_memory.get_nvme_zns_info(&TestFuseLFS::nvme_info);
+        // These nat blocks are empty so upon rewriting the occupy 0 space
+        struct qemucsd::fuse_lfs::nat_block nt_blk = {0};
+        nt_blk.type = qemucsd::fuse_lfs::RANDZ_NAT_BLK;
+        uint64_t RANDOM_ZONE_SECTORS_TWO = TestFuseLFS::nvme_info.zone_capacity * 2;
+        for(uint64_t i = 0; i < RANDOM_ZONE_SECTORS_TWO; i++) {
+            BOOST_CHECK(TestFuseLFS::append_random_block(nt_blk) == 0);
+        }
 
-        BOOST_CHECK(TestFuseLFS::mkfs() == 0);
+        // Random_ptr should not change if zone is multiple of two and random
+        // zone is not full
+        auto temp_ptr = TestFuseLFS::random_ptr;
 
-        TestFuseLFS::random_pos = qemucsd::fuse_lfs::RANDZ_POS;
+        // Freeing up space should move the random_pos.
+        auto temp_pos = TestFuseLFS::random_pos;
 
-        BOOST_CHECK(TestFuseLFS::determine_random_ptr() == 0);
-        BOOST_CHECK(TestFuseLFS::random_ptr == TestFuseLFS::random_pos);
+        BOOST_CHECK(TestFuseLFS::rewrite_random_blocks() == 0);
+        BOOST_CHECK(temp_ptr == TestFuseLFS::random_ptr);
+        BOOST_CHECK(temp_pos != TestFuseLFS::random_pos);
+
+        // random_pos should never finalize at RANDZ_BUFF_POS
+        BOOST_CHECK(TestFuseLFS::random_pos.zone < qemucsd::fuse_lfs::RANDZ_BUFF_POS.zone);
+    }
+
+    BOOST_AUTO_TEST_CASE(Test_FuseLFS_determine_random_ptr_restore_three) {
+        qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
+        setup_rewrite_random_blocks(&nvme_memory);
 
         struct qemucsd::fuse_lfs::nat_block nt_blk = {0};
         nt_blk.type = qemucsd::fuse_lfs::RANDZ_NAT_BLK;
 
-        uint32_t RANDOM_ZONE_ZONES = qemucsd::fuse_lfs::RANDZ_BUFF_POS.zone - qemucsd::fuse_lfs::RANDZ_POS.zone;
-        uint64_t RANDOM_ZONE_SECTORS = RANDOM_ZONE_ZONES * TestFuseLFS::nvme_info.zone_capacity;
-        uint64_t RANDOM_ZONE_SECTORS_HALF = RANDOM_ZONE_SECTORS / 2;
-        for(uint64_t i = 0; i < RANDOM_ZONE_SECTORS_HALF; i++) {
+        uint64_t RANDOM_ZONE_SECTORS_THREE = TestFuseLFS::nvme_info.zone_capacity * 3;
+        for(uint64_t i = 0; i < RANDOM_ZONE_SECTORS_THREE; i++) {
             BOOST_CHECK(TestFuseLFS::append_random_block(nt_blk) == 0);
         }
 
-        // Rewriting random blocks if the random zone had not been full
-        // should not change the random_ptr as It's still valid.
         auto temp_ptr = TestFuseLFS::random_ptr;
+        auto temp_pos = TestFuseLFS::random_pos;
         BOOST_CHECK(TestFuseLFS::rewrite_random_blocks() == 0);
+        BOOST_CHECK(TestFuseLFS::random_ptr == TestFuseLFS::random_pos);
+
+        temp_ptr = TestFuseLFS::random_ptr;
+        BOOST_CHECK(TestFuseLFS::determine_random_ptr() == 0);
         BOOST_CHECK(temp_ptr == TestFuseLFS::random_ptr);
+    }
+
+    BOOST_AUTO_TEST_CASE(Test_FuseLFS_determine_random_ptr_restore_none) {
+        qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
+        setup_rewrite_random_blocks(&nvme_memory);
+
+        auto temp_ptr = TestFuseLFS::random_ptr;
+        auto temp_pos = TestFuseLFS::random_pos;
+        BOOST_CHECK(TestFuseLFS::rewrite_random_blocks() == 0);
+
+        BOOST_CHECK(TestFuseLFS::random_ptr == temp_ptr);
+        BOOST_CHECK(TestFuseLFS::random_pos == temp_pos);
     }
 
 BOOST_AUTO_TEST_SUITE_END()
