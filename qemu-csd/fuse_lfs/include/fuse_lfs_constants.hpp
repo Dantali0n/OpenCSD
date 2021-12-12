@@ -79,18 +79,40 @@ namespace qemucsd::fuse_lfs {
         uint64_t sector;
         uint64_t offset;
         uint64_t size;
+//        uint8_t _valid;
 
         int operator==(data_position const& cmp) const {
+//            // Invalid position can never equal anything
+//            if(this->_valid == false) return 0;
+//            if(cmp._valid == false) return 0;
+
             if(this->zone != cmp.zone) return 0;
             if(this->sector != cmp.sector) return 0;
             if(this->offset != cmp.offset) return 0;
             if(this->size != cmp.size) return 0;
+
             return 1;
         }
 
         int operator!=(data_position const& cmp) const {
             return !(*this == cmp);
         }
+
+        [[nodiscard]] int valid() const {
+            if(this->size < SECTOR_SIZE) return FLFS_RET_ERR;
+            if(this->size % SECTOR_SIZE != 0) return FLFS_RET_ERR;
+            if(this->offset >= SECTOR_SIZE) return FLFS_RET_ERR;
+//            if(_valid) return FLFS_RET_NONE;
+            return FLFS_RET_ERR;
+        }
+
+//        void validate() {
+//            this->_valid = 1;
+//        }
+//
+//        void invalidate() {
+//            this->_valid = 0;
+//        }
     };
     static_assert(sizeof(data_position) == sizeof(uint64_t) * 4);
     static_assert(std::is_trivially_copyable<data_position>::value);
@@ -133,6 +155,8 @@ namespace qemucsd::fuse_lfs {
     static constexpr struct data_position RANDZ_BUFF_POS = {
         10, 0, 0, SECTOR_SIZE
     };
+    // random zone needs to have multiple of 2 zones.
+    static_assert((RANDZ_BUFF_POS.zone - RANDZ_POS.zone) % 2 == 0);
 
     /**
      * Position of start of the LOG ZONE
@@ -141,6 +165,8 @@ namespace qemucsd::fuse_lfs {
     static constexpr struct data_position LOG_POS = {
         12,0, 0, SECTOR_SIZE
     };
+    // random buffer must be exactly two zones large
+    static_assert((LOG_POS.zone - RANDZ_BUFF_POS.zone) == 2);
 
     /**
      * No need to store LOG_BUFF_POS as it is num_zones - 2;

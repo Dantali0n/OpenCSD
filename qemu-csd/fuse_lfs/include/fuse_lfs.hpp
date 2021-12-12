@@ -118,7 +118,19 @@ namespace qemucsd::fuse_lfs {
 
         static nat_update_set_t nat_update_set;
 
+        // random_pos indicates the beginning of the random zone.
+        // The reading should continue if RANDZ_BUFF_POS is reached
+        // wrapping back around to RANDZ_POS with the exception if random_pos
+        // is equal to RANDZ_POS. All locations within the random zone are valid
+        // for random_pos with the exception of RANDZ_BUFF_POS. random_pos must
+        // be aligned to zone boundaries. Thus the last valid location for
+        // random_pos is RANDZ_BUFF_POS.zone - 1;
         static struct data_position random_pos;
+
+        // random_ptr is the write pointer into the random zone and indicates
+        // the next writeable sector. The location overflows from RANDZ_BUFF_POS
+        // back to RANDZ_POS. If random_ptr is invalid the random zone is full.
+        //
         static struct data_position random_ptr;
 
         static int determine_random_ptr();
@@ -128,7 +140,7 @@ namespace qemucsd::fuse_lfs {
 
         static int append_random_block(struct rand_block_base &block);
 
-        static int compute_nat_blocks(nat_update_set_t *nat_set,
+        static void compute_nat_blocks(nat_update_set_t *nat_set,
                                       uint64_t &num_blocks);
 
         static int update_nat_blocks(nat_update_set_t *nat_set);

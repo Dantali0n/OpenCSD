@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-#ifndef QEMU_CSD_FUSE_LFS_DICS_HPP
+#ifndef QEMU_CSD_FUSE_LFS_DISC_HPP
 #define QEMU_CSD_FUSE_LFS_DISC_HPP
 
 #include "fuse_lfs_constants.hpp"

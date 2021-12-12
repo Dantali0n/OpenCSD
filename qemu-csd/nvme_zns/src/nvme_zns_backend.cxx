@@ -46,11 +46,10 @@ namespace qemucsd::nvme_zns {
         device_byte_size = zone_byte_size * num_zones;
     }
 
-    int NvmeZnsBackend::position_to_lba(uint64_t zone, uint64_t sector,
+    void NvmeZnsBackend::position_to_lba(uint64_t zone, uint64_t sector,
                                         uint64_t &lba)
     {
         lba = (zone * info.zone_size) + sector;
-        return 0;
     }
 
     int NvmeZnsBackend::in_range(

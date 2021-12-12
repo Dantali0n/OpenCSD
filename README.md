@@ -217,6 +217,11 @@ programming and interactive steps of individual components is shown below.
 
 ![](documentation/resources/images/prototype-landscape.png)
 
+### Fuse LFS design limitations and potential improvements
+
+- data_position struct and its validity and comparisons being controlled by
+  their size property is clunky and counterintuitive.
+
 ## Getting Started
 
 To get started using OpenCSD perform the steps described in the [Setup](#setup)

@@ -624,7 +624,7 @@ namespace qemucsd::fuse_lfs {
 
         #ifdef QEMUCSD_DEBUG
         // Should always be valid after initialization
-        if(dpos_valid(random_pos) FLFS_RET_NONE0)
+        if(dpos_valid(random_pos) != FLFS_RET_NONE)
             return FLFS_RET_ERR;
         #endif
 
@@ -741,9 +741,13 @@ namespace qemucsd::fuse_lfs {
                 tmp_random_ptr.zone = RANDZ_POS.zone;
 
             // Out of random zone space!
-            if (tmp_random_ptr.zone == random_pos.zone)
-                return FLFS_RET_RANDZ_FULL;
+            if (tmp_random_ptr.zone == random_pos.zone) {
                 //if(rewrite_random_blocks() != FLFS_RET_NONE)
+
+                // Invalidate the random_ptr
+                random_ptr.size = 0;
+                return FLFS_RET_RANDZ_FULL;
+            }
         }
 
         random_ptr = tmp_random_ptr;
@@ -756,7 +760,7 @@ namespace qemucsd::fuse_lfs {
      * the drive. The result is placed in num_blocks.
      * @return 0 upon success, < 0 upon failure
      */
-    int FuseLFS::compute_nat_blocks(
+    void FuseLFS::compute_nat_blocks(
         nat_update_set_t *nat_set, uint64_t &num_blocks)
     {
         uint32_t tmp_blocks = 0;
@@ -771,8 +775,6 @@ namespace qemucsd::fuse_lfs {
         }
 
         num_blocks = tmp_blocks;
-
-        return FLFS_RET_NONE;
     }
 
     /**
@@ -830,6 +832,7 @@ namespace qemucsd::fuse_lfs {
             }
         }
 
+        free(data);
         return FLFS_RET_NONE;
 
         buff_rand_blk_err:
@@ -853,12 +856,14 @@ namespace qemucsd::fuse_lfs {
      * Call when the random zone is completely full. 1. Copies the first two
      * zones starting from current randz_lba and migrates these into the random
      * buffer. 2. Resets the zones that where copied. 3. Advances randz_lba
-     * using a new checkpoint block. 4. Identifies most up to date unique
-     * content in buffer and adds these to temporal datastructures. 5. Adds
-     * remaining data until temporal datastructures are size of the two zones.
-     * Flushes temporal data to drive. 6. Repeats until all unique random zone
-     * data is linearly flushed to the drive (occupies the minimal required
-     * amount of space).
+     * using a new checkpoint block. 3.1 On the first loop it advances
+     * random_ptr to the newly freed location from the copied zones. 3.2 exit
+     * condition if the random_pos has reached the initial random_ptr position.
+     * 4. Identifies most up to date unique content in buffer and adds these to
+     * temporal datastructures. 5. Adds remaining data until temporal
+     * datastructures are size of the two zones. Flushes temporal data to drive.
+     * 6. Repeats until all unique random zone data is linearly flushed to the
+     * drive (occupies the minimal required amount of space).
      * @return 0 upon success, < 0 upon failure
      */
     int FuseLFS::rewrite_random_blocks() {
@@ -867,117 +872,162 @@ namespace qemucsd::fuse_lfs {
         static constexpr uint8_t n_rand_buf_zones = 2;
 
         #ifdef QEMUCSD_DEBUG
-        // Should always be valid after initialization, set by
-        // determine_random_ptr
-        if(dpos_valid(random_ptr) != FLFS_RET_NONE)
-            return FLFS_RET_ERR;
-
         // random_pos should always be set to RANDZ_POS once RANDZ_BUFF_POS is
         // reached.
         if(random_pos.zone == RANDZ_BUFF_POS.zone)
             return FLFS_RET_ERR;
         #endif
 
-        /** 1. Copy from random_pos into the random buffer */
-        uint64_t zones[n_rand_buf_zones] = {0};
-        zones[0] = random_pos.zone;
-        zones[1] = random_pos.zone + 1;
+        // Limit of data, buffering random blocks should not continue beyond
+        // this position.
+        struct data_position data_lim_pos = random_ptr;
 
-        // Wrap around if random_pos is on the border (this can only happen if
-        // RANDZ_BUFF_POS - RANDZ_POS is not a multiple of 2)
-        if(zones[1] == RANDZ_BUFF_POS.zone)
-            zones[1] = RANDZ_POS.zone;
+        // Final rand_pos, rewrite is done upon reaching it.
+        struct data_position end_rand_pos = random_ptr;
 
-        if(buffer_random_blocks(zones) != FLFS_RET_NONE)
+        // We need to copy any partial zones entirely as the random_pos is
+        // aligned on zone boundaries.
+        if(end_rand_pos.sector != 0) {
+            end_rand_pos.sector = 0;
+            end_rand_pos.zone += 1;
+
+            // Ensure end_rand_pos is valid position
+            end_rand_pos.size = SECTOR_SIZE;
+        }
+        // advancing random_pos happens with zones in multiple of two
+        // align end_rand_pos to match
+        if((RANDZ_POS.zone - end_rand_pos.zone) % 2 != 0)
+            end_rand_pos.zone += 1;
+
+        #ifdef QEMUCSD_DEBUG
+        // It should at most be set equal to RANDZ_BUFF_POS
+        if(end_rand_pos.zone > RANDZ_BUFF_POS.zone)
             return FLFS_RET_ERR;
-
-        /** 2. resets the copied zones */
-        if(nvme->reset(zones[0]) != 0) return FLFS_RET_ERR;
-        if(nvme->reset(zones[1]) != 0) return FLFS_RET_ERR;
-
-        /** 3. advance the random_pos (randz_lba) and put this in a
-         * checkpoint block */
-        random_pos.zone += 2;
-        if(random_pos.zone > RANDZ_BUFF_POS.zone)
-            random_pos.zone = RANDZ_POS.zone + 1;
-        else if(random_pos.zone == RANDZ_BUFF_POS.zone)
-            random_pos.zone = RANDZ_POS.zone;
-
-        uint64_t new_randz_lba;
-        position_to_lba(random_pos, new_randz_lba);
-        if(update_checkpointblock(new_randz_lba) != FLFS_RET_NONE)
-            return FLFS_RET_ERR;
-
-        /** 4. Set random_ptr to start of newly writable region */
-
-        random_ptr.zone = zones[0];
-        random_ptr.sector = 0;
-
-        /** 4. Identify unique data in random buffer */
-        struct none_block nt_blk = {0};
+        #endif
 
         // Create a copy of all inodes and remove every encountered one.
-        // copy of map will be performant with log(n) lookup time (rb bin tree).
+        // copy of map will be performant with log(n) lookup time
+        // (rb bin tree).
         inode_lba_map_t inode_lba_copy = inode_lba_map;
 
-        // Subset of inodes to current flush to drive
-        nat_update_set_t nat_set = nat_update_set_t();
+        // Rewrite parts of the random zone until random_pos meets end_rand_pos
+        while(random_pos != end_rand_pos) {
 
-        // Total spendable blocks freed from moving data into random buffer
-        uint64_t available_blocks = n_rand_buf_zones* nvme_info.zone_capacity;
+            /** 1. Copy from random_pos into the random buffer */
+            uint64_t zones[n_rand_buf_zones] = {0};
+            zones[0] = random_pos.zone;
+            zones[1] = random_pos.zone + 1;
 
-        // Read all the data in the buffered zones
-        for(uint32_t i = 0; i < n_rand_buf_zones; i++) {
-            for(uint32_t j = 0; j < nvme_info.zone_capacity; j++) {
-                if(nvme->read(RANDZ_BUFF_POS.zone + i, j, 0, &nt_blk,
-                              sizeof(none_block)) != 0) return FLFS_RET_ERR;
+            // Wrap around if random_pos is on the border (this can only happen
+            // if RANDZ_BUFF_POS - RANDZ_POS is not a multiple of 2)
+            if(zones[1] == RANDZ_BUFF_POS.zone)
+                zones[1] = RANDZ_POS.zone;
 
-                // Process NAT block
-                if(nt_blk.type == RANDZ_NAT_BLK) {
-                    auto nat_blk = reinterpret_cast<nat_block *>(&nt_blk);
-                    // Iterate over each inode in the block
-                    for(uint32_t z = 0; z < NAT_BLK_INO_LBA_NUM; z++) {
-                        // If we have yet to rewrite this inode add it to the set
-                        // and removes it from our map of pending updates.
-                        auto it = inode_lba_copy.find(nat_blk->inode[z]);
+            if(buffer_random_blocks(zones) != FLFS_RET_NONE)
+                return FLFS_RET_ERR;
 
-                        #ifdef FLFS_RANDOM_RW_STRICT
-                        if(it != inode_lba_copy.end() && it->second == nat_blk->lba[z]) {
-                        #else
-                        if(it != inode_lba_copy.end()) {
-                        #endif
-                            nat_set.insert(nat_blk->inode[z]);
-                            // Reuse iterator for erase, prevents additional lookup
-                            inode_lba_copy.erase(it);
+            /** 2. resets the copied zones */
+            if(nvme->reset(zones[0]) != 0) return FLFS_RET_ERR;
+            if(nvme->reset(zones[1]) != 0) return FLFS_RET_ERR;
+
+            /** 3. advance the random_pos (randz_lba) and put this in a
+             * checkpoint block */
+
+            random_pos.zone += 2;
+            // Only update the random_pos if we haven't reached the end yet
+            if(random_pos != end_rand_pos) {
+
+                if(random_pos.zone > RANDZ_BUFF_POS.zone)
+                    random_pos.zone = RANDZ_POS.zone + 1;
+                else if(random_pos.zone == RANDZ_BUFF_POS.zone)
+                    random_pos.zone = RANDZ_POS.zone;
+
+                uint64_t new_randz_lba;
+                position_to_lba(random_pos, new_randz_lba);
+                if(update_checkpointblock(new_randz_lba) != FLFS_RET_NONE)
+                    return FLFS_RET_ERR;
+            }
+
+            /** 3.1. If random zone was full (random_ptr invalid) set random_ptr
+             * to start of newly writeable region*/
+
+            if(dpos_valid(random_ptr) != FLFS_RET_NONE) {
+                random_ptr.zone = zones[0];
+                random_ptr.sector = 0;
+
+                // Make the random_ptr valid
+                random_ptr.size = SECTOR_SIZE;
+            }
+
+            /** 4. Identify unique data in random buffer */
+            struct none_block nt_blk = {0};
+
+            // Subset of inodes to current flush to drive
+            nat_update_set_t nat_set = nat_update_set_t();
+
+            // Total spendable blocks freed from moving data into random buffer
+            uint64_t available_blocks = n_rand_buf_zones * nvme_info.zone_capacity;
+
+            // Read all the data in the buffered zones
+            for(uint32_t i = 0; i < n_rand_buf_zones; i++) {
+                for(uint32_t j = 0; j < nvme_info.zone_capacity; j++) {
+                    if(nvme->read(RANDZ_BUFF_POS.zone + i, j, 0, &nt_blk,
+                                  sizeof(none_block)) != 0)
+                        return FLFS_RET_ERR;
+
+                    // Process NAT block
+                    if(nt_blk.type == RANDZ_NAT_BLK) {
+                        auto nat_blk = reinterpret_cast<nat_block *>(&nt_blk);
+                        // Iterate over each inode in the block
+                        for(uint32_t z = 0; z < NAT_BLK_INO_LBA_NUM; z++) {
+                            // If we have yet to rewrite this inode add it to the set
+                            // and removes it from our map of pending updates.
+                            auto it = inode_lba_copy.find(nat_blk->inode[z]);
+
+                            #ifdef FLFS_RANDOM_RW_STRICT
+                            if(it != inode_lba_copy.end() && it->second == nat_blk->lba[z]) {
+                            #else
+                            if(it != inode_lba_copy.end()) {
+                            #endif
+                                nat_set.insert(nat_blk->inode[z]);
+                                // Reuse iterator for erase, prevents additional lookup
+                                inode_lba_copy.erase(it);
+                            }
                         }
                     }
+                    // Process SIT block
+                    // TODO(Dantali0n): SIT blocks
                 }
-                // Process SIT block
-                // TODO(Dantali0n): SIT blocks
             }
-        }
 
-        uint64_t nat_blocks;
-        if(compute_nat_blocks(&nat_set, nat_blocks) != FLFS_RET_NONE)
-            return FLFS_RET_ERR;
+            uint64_t nat_blocks;
+            compute_nat_blocks(&nat_set, nat_blocks);
+            available_blocks -= nat_blocks;
 
-        available_blocks -= nat_blocks;
+            uint64_t sit_blocks;
+            // TODO(Dantali0n): SIT blocks
 
-        uint64_t sit_blocks;
-        // TODO(Dantali0n): SIT blocks
+            // Worst case, Zones must be entirely rewritten no extra free space
+            // claimed. This will cause append_random_block to return
+            // FLFS_RET_RANDZ_FULL which is propagated by update_nat_blocks.
+            // This in turn changes what return code we should consider as
+            // error.
+            if(available_blocks == 0) {
+                if(update_nat_blocks(&nat_set) < FLFS_RET_NONE)
+                    return FLFS_RET_ERR;
+            }
+            else {
+                if(update_nat_blocks(&nat_set) != FLFS_RET_NONE)
+                    return FLFS_RET_ERR;
+            }
 
-        // Worst case, Zones must be entirely rewritten no extra free space
-        // claimed. This will cause append_random_block to return
-        // FLFS_RET_RANDZ_FULL which is propagated by update_nat_blocks.
-        if(available_blocks == 0) {
-            if(update_nat_blocks(&nat_set) < FLFS_RET_NONE)
+            // Random buffer can now safely be erased
+            if(erase_random_buffer() != FLFS_RET_NONE)
                 return FLFS_RET_ERR;
         }
-        else {
-            if(update_nat_blocks(&nat_set) != FLFS_RET_NONE)
-                return FLFS_RET_ERR;
-        }
 
+        if(random_pos == RANDZ_BUFF_POS)
+            random_pos = RANDZ_POS;
 
         return FLFS_RET_NONE;
     }
