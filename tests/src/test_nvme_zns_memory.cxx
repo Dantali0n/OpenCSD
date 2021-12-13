@@ -114,6 +114,8 @@ BOOST_AUTO_TEST_SUITE(Test_NvmeZnsMemoryBackend)
         constexpr uint32_t sector_size = 512;
 
         NvmeZnsMemoryBackend backend(10,  16, sector_size);
+        qemucsd::nvme_zns::nvme_zns_info info;
+        backend.get_nvme_zns_info(&info);
 
         // Reset the zone so it is zeroed
         backend.reset(0);
@@ -121,7 +123,7 @@ BOOST_AUTO_TEST_SUITE(Test_NvmeZnsMemoryBackend)
         unsigned char buffer[sector_size];
 
         uint64_t sector = 0;
-        for(uint32_t i = 0; i < 16; i++) {
+        for(uint32_t i = 0; i < info.zone_capacity; i++) {
             BOOST_CHECK(backend.append(0, sector, 0, buffer, sector_size) == 0);
             BOOST_CHECK(sector == i);
             BOOST_CHECK(backend.read(0, sector, 0, buffer, sector_size) == 0);
@@ -135,6 +137,8 @@ BOOST_AUTO_TEST_SUITE(Test_NvmeZnsMemoryBackend)
         constexpr uint32_t sector_size = 512;
 
         NvmeZnsMemoryBackend backend(10,  16, sector_size);
+        qemucsd::nvme_zns::nvme_zns_info info;
+        backend.get_nvme_zns_info(&info);
 
         // Reset the zones so they are zeroed
         backend.reset(0);
@@ -146,17 +150,17 @@ BOOST_AUTO_TEST_SUITE(Test_NvmeZnsMemoryBackend)
         }
 
         uint64_t sector;
-        for(uint32_t i = 0; i < 16; i++) {
+        for(uint32_t i = 0; i < info.zone_capacity; i++) {
             backend.append(0, sector, 0, buffer, sector_size);
         }
-        BOOST_CHECK(sector == 15);
+        BOOST_CHECK(sector == info.zone_capacity - 1);
 
         // should not affect data in zone 0
         backend.reset(1);
 
         unsigned char result_buffer[sector_size];
 
-        backend.read(0, 15, 0, result_buffer, sector_size);
+        backend.read(0, info.zone_capacity - 1, 0, result_buffer, sector_size);
 
         for(uint32_t i = 0; i < sector_size; i++) {
             BOOST_CHECK(result_buffer[i] == buffer[i]);
@@ -172,6 +176,23 @@ BOOST_AUTO_TEST_SUITE(Test_NvmeZnsMemoryBackend)
 
         for(uint32_t i = 0; i < sector_size; i++) {
             BOOST_CHECK(result_buffer[i] == buffer[i]);
+        }
+    }
+
+    BOOST_AUTO_TEST_CASE(Test_NvmeZnsMemoryBackend_append_read_entire) {
+        constexpr uint32_t sector_size = 512;
+
+        NvmeZnsMemoryBackend backend(10,  16, sector_size);
+        qemucsd::nvme_zns::nvme_zns_info info;
+        backend.get_nvme_zns_info(&info);
+
+        // Reset the zones so they are zeroed
+        backend.reset(0);
+
+        unsigned char buffer[sector_size];
+
+        for(uint32_t i = 0; i < sector_size; i++) {
+            buffer[i] = i % UINT8_MAX;
         }
     }
 

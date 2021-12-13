@@ -35,7 +35,7 @@
 
 namespace qemucsd::nvme_zns {
 
-    static output::Output output = output::Output("[NVME_ZNS_MEMORY] ");
+    static output::Output output = output::Output("[NVME_ZNS_MEMORY] ", output::INFO);
 
     class NvmeZnsMemoryBackend : public NvmeZnsBackend {
     protected:

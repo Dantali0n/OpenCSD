@@ -59,6 +59,7 @@ namespace qemucsd::fuse_lfs {
         FLFS_RET_ERR = -1,
         FLFS_RET_NONE = 0,
         FLFS_RET_RANDZ_FULL = 1,
+        FLFS_RET_RANDZ_INSUFFICIENT = 2,
     };
 
     /**

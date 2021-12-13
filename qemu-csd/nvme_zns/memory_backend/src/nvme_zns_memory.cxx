@@ -33,7 +33,7 @@ namespace qemucsd::nvme_zns {
     {
         info.max_open = 0;
 
-        uint64_t size = num_zones * zone_size * sector_size * sizeof(*data);
+        uint64_t size = num_zones * info.zone_capacity * sector_size * sizeof(*data);
         data = (unsigned char*) malloc(size);
 
         if(!data) {
@@ -87,8 +87,8 @@ namespace qemucsd::nvme_zns {
         // Refuse to read unwritten sectors
         if(write_pointers.at(zone) <= sector) return -1;
 
-//        output(std::cout, "read: [", zone, "][", sector, "][", offset, "][",
-//                     size, "]");
+        output(std::cout, output::DEBUG,"read: [", zone, "][", sector, "][",
+               offset, "][", size, "]");
 
         memcpy(buffer, data + address, size);
 
@@ -112,13 +112,13 @@ namespace qemucsd::nvme_zns {
         if(remainder != 0) temp_write_pointer += 1;
 
         // Write pointer should never advance into next zone
-        if(temp_write_pointer > info.zone_size) return -1;
+        if(temp_write_pointer > info.zone_capacity) return -1;
 
         // Only modify external variable after guaranteeing success
         sector = write_pointers.at(zone);
 
-//        output(std::cout, "append: [", zone, "][", sector, "][", offset, "][",
-//                     size, "]");
+        output(std::cout, output::DEBUG, "append: [", zone, "][", sector,
+               "][", offset, "][", size, "]");
 
         // All is well, update the write pointer
         write_pointers.at(zone) = temp_write_pointer;
@@ -135,11 +135,11 @@ namespace qemucsd::nvme_zns {
     }
 
     int NvmeZnsMemoryBackend::reset(uint64_t zone) {
-        uintptr_t address = zone * info.zone_size * info.sector_size;
+        uintptr_t address = zone * info.zone_capacity * info.sector_size;
         if(memory_limit < (uintptr_t) data + address + zone_byte_size)
             return -1;
 
-        output(std::cout, "reset: [", zone, "]");
+        output(std::cout, output::DEBUG, "reset: [", zone, "]");
 
         write_pointers.at(zone) = 0;
 

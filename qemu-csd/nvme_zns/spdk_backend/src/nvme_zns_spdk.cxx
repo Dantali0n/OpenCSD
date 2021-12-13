@@ -88,8 +88,7 @@ namespace qemucsd::nvme_zns {
         if(in_range(zone, sector, offset, size) != 0)
             return -1;
 
-        if(position_to_lba(zone, sector, lba) != 0)
-            return -1;
+        position_to_lba(zone, sector, lba);
 
         // Refuse to read unwritten sectors
         if(write_pointers.at(zone) <= sector) return -1;
@@ -119,8 +118,7 @@ namespace qemucsd::nvme_zns {
         if(in_range(zone, 0, offset, size) != 0)
             return -1;
 
-        if(position_to_lba(zone, 0, lba) != 0)
-            return -1;
+        position_to_lba(zone, 0, lba);
 
         // Refuse to append to full zone
         if(write_pointers.at(zone) >= info.zone_size)
@@ -152,8 +150,7 @@ namespace qemucsd::nvme_zns {
         if(in_range(zone, 0, 0, 0) != 0)
             return -1;
 
-        if(position_to_lba(zone, 0, lba) != 0)
-            return -1;
+        position_to_lba(zone, 0, lba);
 
         spdk_nvme_zns_reset_zone(entry.ns, entry.qpair, lba, false,
                                  spdk_init::error_print, &entry);

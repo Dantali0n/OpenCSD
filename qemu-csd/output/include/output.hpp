@@ -28,6 +28,11 @@
 #include <iostream>
 #include <string>
 
+#ifdef QEMUCSD_DEBUG
+    #include <backward.hpp>
+    using namespace backward;
+#endif
+
 namespace qemucsd::output {
 
     enum output_levels {
@@ -50,11 +55,11 @@ namespace qemucsd::output {
         std::string prefix;
         output_levels current_level;
 
-        template<typename D>
-        static void output_i(std::ostream &out, D &&t);
+        template<typename I>
+        static void output_i(std::ostream &out, I &&t);
 
-        template<typename Head2, typename... Tail2>
-        static void output_i(std::ostream &out, Head2 &&head, Tail2&&... tail);
+        template<typename HeadI, typename... TailI>
+        static void output_i(std::ostream &out, HeadI &&head, TailI&&... tail);
     public:
         Output(std::string prefix);
 
@@ -78,11 +83,11 @@ namespace qemucsd::output {
         template<typename Head, typename... Tail>
         void output(std::ostream &out, output_levels level, Head &&head, Tail&&... tail);
 
-        template<typename T>
-        void debug(T &&t);
+        template<typename D>
+        void debug(D &&t);
 
-        template<typename Head, typename... Tail>
-        void debug(Head &&head, Tail&&... tail);
+        template<typename HeadD, typename... TailD>
+        void debug(HeadD &&head, TailD&&... tail);
 
         template<typename T>
         void info(T &&t);
@@ -102,11 +107,11 @@ namespace qemucsd::output {
         template<typename Head, typename... Tail>
         void error(Head &&head, Tail&&... tail);
 
-        template<typename T>
-        void fatal(T &&t);
+        template<typename F>
+        void fatal(F &&t);
 
-        template<typename Head, typename... Tail>
-        void fatal(Head &&head, Tail&&... tail);
+        template<typename HeadF, typename... TailF>
+        void fatal(HeadF &&head, TailF&&... tail);
     };
 
     #include "output.tpp"

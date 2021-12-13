@@ -23,6 +23,7 @@
  */
 
 #include "fuse_lfs.hpp"
+#include "nvme_zns_memory.hpp"
 
 namespace qemucsd::fuse_lfs {
 
@@ -659,8 +660,14 @@ namespace qemucsd::fuse_lfs {
                 current_pos.zone = RANDZ_POS.zone;
         }
 
-        random_ptr = current_pos;
+        // Random zone is full and random_ptr is invalid
+        if(current_pos == end_pos) {
+            current_pos.size = 0;
+            random_ptr = current_pos;
+            return FLFS_RET_RANDZ_FULL;
+        }
 
+        random_ptr = current_pos;
         return FLFS_RET_NONE;
     }
 
@@ -674,8 +681,6 @@ namespace qemucsd::fuse_lfs {
     {
         uint16_t i = 0;
         for(auto &nt : *nat_set) {
-            nat_set->erase(nt);
-
             nt_blk.inode[i] = nt;
             nt_blk.lba[i] = inode_lba_map.at(nt);
 
@@ -683,8 +688,14 @@ namespace qemucsd::fuse_lfs {
 
             // Block has reached limit
             if(i == NAT_BLK_INO_LBA_NUM) {
-                return FLFS_RET_NONE;
+                break;
             }
+        }
+
+        for(uint32_t i = 0 ; i < NAT_BLK_INO_LBA_NUM; i++) {
+            if(nt_blk.inode[i] == 0) break;
+
+            nat_set->erase(i);
         }
 
         return FLFS_RET_NONE;
@@ -696,9 +707,7 @@ namespace qemucsd::fuse_lfs {
      * successful append. random_pos is taken into account to identify if we
      * are out of random zone space.
      *
-     * WARNING: will call rewrite_random_blocks if there is no more space!
-     *
-     * @return 0 upon success, < 0 upon failure
+     * @return FLFS_RET_NONE upon success, < FLFS_RET_ERR upon failure
      */
     int FuseLFS::append_random_block(struct rand_block_base &block) {
         struct data_position tmp_random_ptr = random_ptr;
@@ -763,18 +772,10 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::compute_nat_blocks(
         nat_update_set_t *nat_set, uint64_t &num_blocks)
     {
-        uint32_t tmp_blocks = 0;
-
-        uint32_t i = 0;
-        for(auto &item : *nat_set) {
-            i++;
-            if(i == NAT_BLK_INO_LBA_NUM) {
-                tmp_blocks += 1;
-                i = 0;
-            }
-        }
-
-        num_blocks = tmp_blocks;
+        uint64_t set_size = nat_set->size();
+        num_blocks = 0;
+        num_blocks += set_size / NAT_BLK_INO_LBA_NUM;
+        num_blocks += set_size % NAT_BLK_INO_LBA_NUM == 0 ? 0 : 1;
     }
 
     /**
@@ -887,6 +888,9 @@ namespace qemucsd::fuse_lfs {
         if(random_ptr == random_pos)
             return FLFS_RET_NONE;
 
+        bool not_reached_end_pos = true;
+        struct data_position tmp_random_pos = random_pos;
+
         // Limit of data, buffering random blocks should not continue at this
         // position.
         struct data_position data_lim_pos = random_ptr;
@@ -923,11 +927,11 @@ namespace qemucsd::fuse_lfs {
 
         // Rewrite parts of the random zone until random_pos meets end_rand_pos
         /** 7. Repeat until all data has been linearly rewritten */
-        while(random_pos != end_rand_pos) {
+        while(not_reached_end_pos) {
 
             /** 1. Copy from random_pos into the random buffer */
-            zones[0] = random_pos.zone;
-            zones[1] = random_pos.zone + 1;
+            zones[0] = tmp_random_pos.zone;
+            zones[1] = tmp_random_pos.zone + 1;
 
             // Wrap around if random_pos is on the border (this can only happen
             // if RANDZ_BUFF_POS - RANDZ_POS is not a multiple of 2)
@@ -944,20 +948,22 @@ namespace qemucsd::fuse_lfs {
             /** 3. advance the random_pos (randz_lba) and put this in a
              * checkpoint block */
 
-            random_pos.zone += 2;
-            // Only update the random_pos if we haven't reached the end yet
-            if(random_pos != end_rand_pos) {
+            tmp_random_pos.zone += 2;
+           // Detect termination
+            if(tmp_random_pos == end_rand_pos)
+                not_reached_end_pos = false;
 
-                if(random_pos.zone > RANDZ_BUFF_POS.zone)
-                    random_pos.zone = RANDZ_POS.zone + 1;
-                else if(random_pos.zone == RANDZ_BUFF_POS.zone)
-                    random_pos.zone = RANDZ_POS.zone;
+            if(tmp_random_pos.zone > RANDZ_BUFF_POS.zone)
+                tmp_random_pos.zone = RANDZ_POS.zone + 1;
+            else if(tmp_random_pos.zone == RANDZ_BUFF_POS.zone)
+                tmp_random_pos.zone = RANDZ_POS.zone;
 
-                uint64_t new_randz_lba;
-                position_to_lba(random_pos, new_randz_lba);
-                if(update_checkpointblock(new_randz_lba) != FLFS_RET_NONE)
-                    return FLFS_RET_ERR;
-            }
+            uint64_t new_randz_lba;
+            position_to_lba(tmp_random_pos, new_randz_lba);
+            if(update_checkpointblock(new_randz_lba) != FLFS_RET_NONE)
+                return FLFS_RET_ERR;
+
+            random_pos = tmp_random_pos;
 
             /** 3.1. If random zone was full (random_ptr invalid) set random_ptr
              * to start of newly writeable region */
@@ -969,6 +975,15 @@ namespace qemucsd::fuse_lfs {
                 // Make the random_ptr valid
                 random_ptr.size = SECTOR_SIZE;
             }
+
+//            // In case the end position was RANDZ_BUFF_POS ensure random_pos
+//            // overflow to RANDZ_POS as RANDZ_BUFF_POS is not a valid position for
+//            // random_pos
+//            if(random_pos == RANDZ_BUFF_POS)
+//                random_pos = RANDZ_POS;
+
+//            if(random_ptr == RANDZ_BUFF_POS)
+//                random_ptr = RANDZ_POS;
 
             /** 4. Identify unique data in random buffer */
             struct none_block nt_blk = {0};
@@ -1049,19 +1064,28 @@ namespace qemucsd::fuse_lfs {
                 return FLFS_RET_ERR;
         }
 
-        // random_pos has advanced beyond the write pointer, mark random_pos
-        // as new random_ptr
-        if(random_ptr.zone < random_pos.zone)
+        if(!random_ptr.valid()) {
+            output.fatal("Insufficient random zone space! linear rewrite ",
+                         "occupied entire zone!!");
+            return FLFS_RET_RANDZ_INSUFFICIENT;
+        }
+
+        if (random_ptr.zone < random_pos.zone)
             random_ptr = random_pos;
 
-        // In case the end position was RANDZ_BUFF_POS ensure random_pos
-        // overflow to RANDZ_POS as RANDZ_BUFF_POS is not a valid position for
-        // random_pos
-        if(random_pos == RANDZ_BUFF_POS)
-            random_pos = RANDZ_POS;
-
-        if(random_ptr == RANDZ_BUFF_POS)
-            random_ptr = RANDZ_POS;
+//        // random_pos has advanced beyond the write pointer, mark random_pos
+//        // as new random_ptr
+//        if(random_ptr.zone < random_pos.zone)
+//            random_ptr = random_pos;
+//
+//        // In case the end position was RANDZ_BUFF_POS ensure random_pos
+//        // overflow to RANDZ_POS as RANDZ_BUFF_POS is not a valid position for
+//        // random_pos
+//        if(random_pos == RANDZ_BUFF_POS)
+//            random_pos = RANDZ_POS;
+//
+//        if(random_ptr == RANDZ_BUFF_POS)
+//            random_ptr = RANDZ_POS;
 
         return FLFS_RET_NONE;
     }

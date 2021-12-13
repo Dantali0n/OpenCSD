@@ -102,7 +102,7 @@ namespace qemucsd::fuse_lfs {
         RANDZ_SIT_BLK = 2
     } randz_blk_types;
 
-    struct rand_block_base {
+    struct __attribute__((packed)) rand_block_base {
         uint64_t type;
     };
 
@@ -110,7 +110,7 @@ namespace qemucsd::fuse_lfs {
      * The point of this datastructure is to be able to safely cast and
      * determine type before doing anything else.
      */
-    struct none_block : rand_block_base {
+    struct __attribute__((packed)) none_block : rand_block_base {
         // Set type to to RANDZ_NON_BLK
         uint8_t padding[SECTOR_SIZE-8];
     };
@@ -123,7 +123,7 @@ namespace qemucsd::fuse_lfs {
      * The highest lba occurrence of a particular inode identifies the valid
      * data. The start LBA is determined from the checkpoint block randz_lba.
      */
-    struct nat_block : rand_block_base {
+    struct __attribute__((packed)) nat_block : rand_block_base {
         // Set type to to RANDZ_NAT_BLK
         //std::pair<uint64_t, uint64_t> inode_lba[NAT_BLK_INO_LBA_NUM];
         uint64_t inode[NAT_BLK_INO_LBA_NUM];
@@ -152,7 +152,7 @@ namespace qemucsd::fuse_lfs {
      * | inode_entry | file/dir name | inode entry | file/dir name | ...
      */
 
-    struct inode_block {
+    struct __attribute__((packed)) inode_block {
         uint8_t data[SECTOR_SIZE];
     };
     static_assert(sizeof(inode_block) == SECTOR_SIZE);
@@ -166,7 +166,7 @@ namespace qemucsd::fuse_lfs {
         // Followed by a null terminated file/dir name
     };
 
-    struct data_block {
+    struct __attribute__((packed)) data_block {
         uint64_t data_lbas[63]; // LBAs of data blocks linearly for size
         uint64_t next_block;    // LBA for next data block or zero if none
     };

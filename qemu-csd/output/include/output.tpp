@@ -56,14 +56,14 @@ void Output::output(std::ostream &out, output_levels level, Head &&head, Tail&&.
     output_i(out, std::forward<Tail>(tail)...);
 }
 
-template<typename T>
-void Output::debug(T &&t) {
+template<typename D>
+void Output::debug(D &&t) {
     output(std::cout, DEBUG, t);
 }
 
-template<typename Head, typename... Tail>
-void Output::debug(Head &&head, Tail&&... tail) {
-    output(std::cout, DEBUG, std::forward<Tail>(tail)...);
+template<typename HeadD, typename... TailD>
+void Output::debug(HeadD &&head, TailD&&... tail) {
+    output(std::cout, DEBUG, std::forward<TailD>(tail)...);
 }
 
 template<typename T>
@@ -73,7 +73,7 @@ void Output::info(T &&t) {
 
 template<typename Head, typename... Tail>
 void Output::info(Head &&head, Tail&&... tail) {
-    output(std::cout, INFO, std::forward<Tail>(tail)...);
+    output(std::cout, INFO, head, std::forward<Tail>(tail)...);
 }
 
 template<typename T>
@@ -83,7 +83,7 @@ void Output::warning(T &&t) {
 
 template<typename Head, typename... Tail>
 void Output::warning(Head &&head, Tail&&... tail) {
-    output(std::cout, WARNING, std::forward<Tail>(tail)...);
+    output(std::cout, WARNING, head, std::forward<Tail>(tail)...);
 }
 
 template<typename T>
@@ -93,26 +93,30 @@ void Output::error(T &&t) {
 
 template<typename Head, typename... Tail>
 void Output::error(Head &&head, Tail&&... tail) {
-    output(std::cerr, ERROR, std::forward<Tail>(tail)...);
+    output(std::cerr, ERROR, head, std::forward<Tail>(tail)...);
 }
 
-template<typename T>
-void Output::fatal(T &&t) {
+template<typename F>
+void Output::fatal(F &&t) {
     output(std::cerr, FATAL, t);
+    StackTrace st; st.load_here(32);
+    Printer p; p.print(st);
 }
 
-template<typename Head, typename... Tail>
-void Output::fatal(Head &&head, Tail&&... tail) {
-    output(std::cerr, FATAL, std::forward<Tail>(tail)...);
+template<typename HeadF, typename... TailF>
+void Output::fatal(HeadF &&head, TailF&&... tail) {
+    output(std::cerr, FATAL, head, std::forward<TailF>(tail)...);
+    StackTrace st; st.load_here(32);
+    Printer p; p.print(st);
 }
 
-template<typename D>
-void Output::output_i(std::ostream &out, D &&t) {
+template<typename I>
+void Output::output_i(std::ostream &out, I &&t) {
     out << t << "\n";
 }
 
-template<typename Head2, typename... Tail2>
-void Output::output_i(std::ostream &out, Head2 &&head, Tail2&&... tail) {
+template<typename HeadI, typename... TailI>
+void Output::output_i(std::ostream &out, HeadI &&head, TailI&&... tail) {
     out << head;
-    output_i(out, std::forward<Tail2>(tail)...);
+    output_i(out, std::forward<TailI>(tail)...);
 }
