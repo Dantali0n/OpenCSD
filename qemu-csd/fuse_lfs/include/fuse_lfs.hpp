@@ -135,7 +135,12 @@ namespace qemucsd::fuse_lfs {
 
         static int determine_random_ptr();
 
-        static int read_random_zone(nat_update_set_t *nat_set);
+        static void random_zone_distance(
+            struct data_position lhs, struct data_position rhs,
+            uint32_t &distance);
+
+        static int read_random_zone(
+            nat_update_set_t *nat_set);
 
         static int fill_nat_block(nat_update_set_t *nat_set,
                                   struct nat_block &nt_blk);
@@ -149,9 +154,13 @@ namespace qemucsd::fuse_lfs {
 
         static int buffer_random_blocks(const uint64_t zones[2],
             struct data_position limit);
+        static int process_random_buffer(
+            nat_update_set_t *nat_set, inode_lba_map_t *inodes);
         static int erase_random_buffer();
 
         static int rewrite_random_blocks();
+        static int rewrite_random_blocks_partial();
+        static int rewrite_random_blocks_full();
     public:
         FuseLFS() = delete;
         ~FuseLFS() = delete;

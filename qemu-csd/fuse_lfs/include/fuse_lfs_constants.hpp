@@ -95,6 +95,14 @@ namespace qemucsd::fuse_lfs {
             return 1;
         }
 
+        int operator<(data_position const& cmp) const {
+            if(this->zone >= cmp.zone) return 0;
+            if(this->sector >= cmp.sector) return 0;
+            if(this->offset >= cmp.offset) return 0;
+
+            return 1;
+        }
+
         int operator!=(data_position const& cmp) const {
             return !(*this == cmp);
         }
@@ -181,8 +189,11 @@ namespace qemucsd::fuse_lfs {
     static constexpr struct data_position LOG_POS = {
         12,0, 0, SECTOR_SIZE
     };
+
+    static constexpr uint32_t N_RAND_BUFF_ZONES =
+        LOG_POS.zone - RANDZ_BUFF_POS.zone;
     // random buffer must be exactly two zones large
-    static_assert((LOG_POS.zone - RANDZ_BUFF_POS.zone) == 2);
+    static_assert(N_RAND_BUFF_ZONES == 2);
 
     /**
      * No need to store LOG_BUFF_POS as it is num_zones - 2;
