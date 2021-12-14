@@ -48,18 +48,25 @@ namespace qemucsd::fuse_lfs {
      * (with the current lba) as soon as the inode is encountered.
      *
      * While strict mode has substantially less data to write while rewriting
-     * the random zone after each copy to the random buffer, the memory map it
-     * has to access remains larger for a longer period of time.
+     * upon each copy to the random buffer, the memory map it has to access
+     * remains larger for a longer period of time.
      */
 //    #define FLFS_RANDOM_RW_STRICT
 
     #define flfs_min(x, y) ((x) < (y) ? (x) : (y))
 
     enum FLFS_RETURN_CODES {
-        FLFS_RET_ERR = -1,
-        FLFS_RET_NONE = 0,
-        FLFS_RET_RANDZ_FULL = 1,
-        FLFS_RET_RANDZ_INSUFFICIENT = 2,
+        // Generic error not otherwise specified
+        FLFS_RET_ERR                = -1,
+
+        // Success, no problem during operation
+        FLFS_RET_NONE               =  0,
+
+        // Indicates the random zone is full
+        FLFS_RET_RANDZ_FULL         =  1,
+
+        // Indicates the random zone is of insufficient size
+        FLFS_RET_RANDZ_INSUFFICIENT =  2,
     };
 
     /**
@@ -95,17 +102,17 @@ namespace qemucsd::fuse_lfs {
             return 1;
         }
 
-        int operator<(data_position const& cmp) const {
-            if(this->zone >= cmp.zone) return 0;
-            if(this->sector >= cmp.sector) return 0;
-            if(this->offset >= cmp.offset) return 0;
-
-            return 1;
-        }
-
         int operator!=(data_position const& cmp) const {
             return !(*this == cmp);
         }
+
+//        int operator<(data_position const& cmp) const {
+//            if(this->zone >= cmp.zone) return 0;
+//            if(this->sector >= cmp.sector) return 0;
+//            if(this->offset >= cmp.offset) return 0;
+//
+//            return 1;
+//        }
 
         /**
          * If the data_position is valid
@@ -140,8 +147,6 @@ namespace qemucsd::fuse_lfs {
     };
     static_assert(sizeof(data_position) == sizeof(uint64_t) * 4);
     static_assert(std::is_trivially_copyable<data_position>::value);
-
-    int dpos_valid(struct data_position dpos);
 
     /**
      * Position of super block on device

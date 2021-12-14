@@ -124,9 +124,19 @@ and processed into the thesis.
   tables
 - Filebench benchmark to identify filesystems calls. db_bench from RocksDB, run
   both with strace
-- Filesystem design why FUSE, why build from scratch
+
+#### Research questions
+
+- Filesystem design and CSD requirements, why FUSE, why build from scratch
 - FUSE, is it enough? filesystem calls, does the API support what we need.
   Research question.
+- How does it perform compared to other filesystems / solutions
+  - Characteristics to proof
+    - Data reduction
+    - Simplicity of algorithms (BPF) vs 'vanilla'
+    - Performance (static analysis of no. of clock cycles using LLVM-MCA)
+  - Experiments
+    - Write append in separate process and CSD averaging of file.
 
 #### Correlation POSIX and FUSE
 
@@ -207,6 +217,12 @@ Potential issues:
 - Use of IOCTL
 - Use of IO_URING
 
+### Fuse LFS design limitations and potential improvements
+
+- data_position struct and its validity and comparisons being controlled by
+  their size property is clunky and counterintuitive.
+- random zone can only be rewritten once it is completely full.
+
 # ZCSD
 
 ZCSD is a full stack prototype to execute eBPF programs as if they are
@@ -216,11 +232,6 @@ are still unavailable, QEMU can be used to create a virtual ZNS SSD. The
 programming and interactive steps of individual components is shown below.
 
 ![](documentation/resources/images/prototype-landscape.png)
-
-### Fuse LFS design limitations and potential improvements
-
-- data_position struct and its validity and comparisons being controlled by
-  their size property is clunky and counterintuitive.
 
 ## Getting Started
 

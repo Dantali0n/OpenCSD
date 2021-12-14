@@ -75,6 +75,27 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         using FuseLFS::rewrite_random_blocks;
     };
 
+    struct qemucsd::fuse_lfs::data_position NULL_POS = {0};
+
+    struct TestFuseLFSFixture {
+        TestFuseLFSFixture() {
+            TestFuseLFS::nvme = nullptr;
+
+            TestFuseLFS::nvme_info.zone_capacity = 0;
+            TestFuseLFS::nvme_info.zone_size = 0;
+            TestFuseLFS::nvme_info.sector_size = 0;
+            TestFuseLFS::nvme_info.num_zones = 0;
+            TestFuseLFS::nvme_info.max_open = 0;
+
+            TestFuseLFS::cblock_pos = NULL_POS;
+
+            TestFuseLFS::random_pos = NULL_POS;
+            TestFuseLFS::random_ptr = NULL_POS;
+
+            TestFuseLFS::inode_lba_map.clear();
+        }
+    };
+
     /**
      * Early setup for rewrite_random_blocks tests
      */
@@ -92,7 +113,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         BOOST_CHECK(TestFuseLFS::random_ptr == TestFuseLFS::random_pos);
     }
 
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_mkfs) {
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_mkfs, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
 
         TestFuseLFS::nvme = &nvme_memory;
@@ -101,7 +122,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         BOOST_CHECK(TestFuseLFS::mkfs() == 0);
     }
 
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_super_block) {
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_super_block, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
 
         TestFuseLFS::nvme = &nvme_memory;
@@ -113,7 +134,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         BOOST_CHECK(TestFuseLFS::verify_superblock() == 0);
     }
 
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_dirty_block) {
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_dirty_block, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
 
         TestFuseLFS::nvme = &nvme_memory;
@@ -129,7 +150,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         BOOST_CHECK(TestFuseLFS::verify_dirtyblock() == 0);
     }
 
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_checkpoint_block) {
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_checkpoint_block, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
 
         TestFuseLFS::nvme = &nvme_memory;
@@ -145,7 +166,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                     qemucsd::fuse_lfs::RANDZ_POS.zone);
     }
 
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_checkpoint_block_fill) {
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_checkpoint_block_fill, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
 
         TestFuseLFS::nvme = &nvme_memory;
@@ -170,7 +191,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         }
     }
 
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_checkpoint_block_power_atomicity) {
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_checkpoint_block_power_atomicity, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
 
         TestFuseLFS::nvme = &nvme_memory;
@@ -202,7 +223,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         BOOST_CHECK(cblock.randz_lba == 1337);
     }
 
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_append_random_block) {
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_append_random_block, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
 
         TestFuseLFS::nvme = &nvme_memory;
@@ -222,7 +243,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
     }
 
 
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_append_random_block_verify_data) {
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_append_random_block_verify_data, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
 
         TestFuseLFS::nvme = &nvme_memory;
@@ -250,7 +271,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         }
     }
 
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_append_random_blocks_full) {
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_append_random_blocks_full, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
 
         TestFuseLFS::nvme = &nvme_memory;
@@ -277,7 +298,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                     qemucsd::fuse_lfs::FLFS_RET_RANDZ_FULL);
     }
 
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_append_random_blocks_illegal_pos) {
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_append_random_blocks_illegal_pos, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
 
         TestFuseLFS::nvme = &nvme_memory;
@@ -298,12 +319,16 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         #endif
     }
 
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_determine_random_ptr_base) {
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_determine_random_ptr_base, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
         setup_rewrite_random_blocks(&nvme_memory);
     }
 
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_determine_random_ptr_restore_half) {
+    /**
+     * Write half of the random zone and verify that the random_ptr ends up
+     * at the right location.
+     */
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_determine_random_ptr_restore_half, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
         setup_rewrite_random_blocks(&nvme_memory);
 
@@ -322,7 +347,13 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         BOOST_CHECK(temp_ptr == TestFuseLFS::random_ptr);
     }
 
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_determine_random_ptr_restore_full) {
+    /**
+     * Fill the random zone with invalid data. Check that the last append
+     * returns FLFS_RET_RANDZ_FULL and invalidates the random_ptr. Next
+     * rewrite the random zone and verify that random_pos and random_ptr are
+     * equal, this indicates the zone is empty.
+     */
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_determine_random_ptr_restore_full, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
         setup_rewrite_random_blocks(&nvme_memory);
 
@@ -336,9 +367,9 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         }
 
         // This last append should make the random zone full
+        // This should invalidate the random_ptr
         BOOST_CHECK(TestFuseLFS::append_random_block(nt_blk) ==
                     qemucsd::fuse_lfs::FLFS_RET_RANDZ_FULL);
-        // This should invalidate the random_ptr
         BOOST_CHECK(TestFuseLFS::random_ptr.valid() == false);
 
         // Rewrite the random zone
@@ -405,7 +436,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
      * Assert that rewrite_random_blocks does nothing if random_pos and
      * random_ptr are equal (the random zone is empty).
      */
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_determine_random_ptr_restore_none) {
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_determine_random_ptr_restore_none, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
         setup_rewrite_random_blocks(&nvme_memory);
 
@@ -422,7 +453,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
      * This should raise the FLFS_RET_RANDZ_INSUFFICIENT error upon rewrite.
      * determine_random_ptr should indicate that the random zone is full.
      */
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_rewrite_random_zone_fill_data) {
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_rewrite_random_zone_fill_data, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
         setup_rewrite_random_blocks(&nvme_memory);
 
@@ -458,8 +489,6 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
         // This will free 0 space as the entire random zone is linearly filled
         // so it contains no invalid data.
-        // Will also print a stracktrace since insufficiently sized random zone
-        // is fatal error.
         BOOST_CHECK(TestFuseLFS::rewrite_random_blocks() ==
             qemucsd::fuse_lfs::FLFS_RET_RANDZ_INSUFFICIENT);
         // The random_ptr should still be invalid after this
@@ -475,7 +504,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
      * Fill half of the random zone with valid data and perform a rewrite
      * freeing no space.
      */
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_rewrite_random_zone_fill_data_half) {
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_rewrite_random_zone_fill_data_half, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
         setup_rewrite_random_blocks(&nvme_memory);
 
@@ -514,9 +543,10 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
     }
 
     /**
-     * Fill and rewrite the random zone multiple times
+     * Fill and rewrite the random zone 5 times. only occupy about 2 blocks of
+     * inodes.
      */
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_rewrite_random_zone_fill_data_rounds) {
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_rewrite_random_zone_fill_data_rounds, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
         setup_rewrite_random_blocks(&nvme_memory);
 
@@ -528,24 +558,41 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                               TestFuseLFS::nvme_info.zone_capacity *
                               qemucsd::fuse_lfs::NAT_BLK_INO_LBA_NUM;
 
-        uint64_t i = 1;
-        while(i != max_inodes) {
-            TestFuseLFS::inode_lba_map.insert(std::make_pair(i, i));
-            uint32_t index_mod = i % qemucsd::fuse_lfs::NAT_BLK_INO_LBA_NUM;
+        // Fill exactly two nat blocks with unique data
+        uint32_t overflow = (qemucsd::fuse_lfs::NAT_BLK_INO_LBA_NUM * 2);
 
-            if(index_mod == 0) {
-                nt_blk.inode[index_mod] = i;
-                BOOST_CHECK(TestFuseLFS::append_random_block(nt_blk) == 0);
-                BOOST_CHECK(TestFuseLFS::rewrite_random_blocks() == 0);
+        uint32_t i, ino;
+        for(uint32_t rounds = 0; rounds < 5; rounds++) {
+            // Never insert inode 0 as this interpreted as 'no further data'
+            ino = 1;
+            for(i = 1; i < max_inodes; i++){
+                TestFuseLFS::inode_lba_map.insert(std::make_pair(ino, ino));
+                uint32_t index_mod = i % qemucsd::fuse_lfs::NAT_BLK_INO_LBA_NUM;
+
+                if(index_mod == 0) {
+                    nt_blk.inode[index_mod] = ino;
+                    BOOST_CHECK_MESSAGE(TestFuseLFS::append_random_block(nt_blk) == 0,
+                        "Append node: " << i << " ino: " << ino << " round: " << rounds);
+                }
+                else
+                    nt_blk.inode[index_mod] = ino;
+
+                // Increment and overflow the inode, being sure to never insert 0
+                ino = (i % overflow) + 1;
             }
-            else
-                nt_blk.inode[index_mod] = i;
 
-            i++;
+            // After the first round the maximum inodes we can append is
+            // decreased by the number inodes that remain valid after the
+            // rewrite
+            if(rounds == 0) max_inodes -= (overflow);
+
+            TestFuseLFS::inode_lba_map.insert(std::make_pair(ino, ino));
+            nt_blk.inode[qemucsd::fuse_lfs::NAT_BLK_INO_LBA_NUM-1] = ino;
+            BOOST_CHECK(TestFuseLFS::append_random_block(nt_blk) ==
+                qemucsd::fuse_lfs::FLFS_RET_RANDZ_FULL);
+
+            BOOST_CHECK(TestFuseLFS::rewrite_random_blocks() == 0);
         }
-        TestFuseLFS::inode_lba_map.insert(std::make_pair(max_inodes + 1, max_inodes + 1));
-        nt_blk.inode[qemucsd::fuse_lfs::NAT_BLK_INO_LBA_NUM-1] - max_inodes + 1;
-        BOOST_CHECK(TestFuseLFS::append_random_block(nt_blk) == qemucsd::fuse_lfs::FLFS_RET_RANDZ_FULL);
     }
 
 BOOST_AUTO_TEST_SUITE_END()

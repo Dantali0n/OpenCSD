@@ -495,7 +495,7 @@ namespace qemucsd::fuse_lfs {
 
         // cblock_pos not set yet, somehow update is called before mkfs() or
         // get_checkpointblock()
-        if(dpos_valid(cblock_pos) != FLFS_RET_NONE)
+        if(!cblock_pos.valid())
             return FLFS_RET_ERR;
 
         // If the current checkpoint block lives on the last sector in the zone
@@ -538,7 +538,7 @@ namespace qemucsd::fuse_lfs {
      * get_checkpointblock_locate.
      */
     int FuseLFS::get_checkpointblock(struct checkpoint_block &cblock) {
-        if(dpos_valid(cblock_pos) != FLFS_RET_NONE)
+        if(!cblock_pos.valid())
             return get_checkpointblock_locate(cblock);
 
         struct checkpoint_block tmp_cblock = {0};
@@ -625,7 +625,7 @@ namespace qemucsd::fuse_lfs {
 
         #ifdef QEMUCSD_DEBUG
         // Should always be valid after initialization
-        if(dpos_valid(random_pos) != FLFS_RET_NONE)
+        if(!random_pos.valid())
             return FLFS_RET_ERR;
         #endif
 
@@ -725,7 +725,7 @@ namespace qemucsd::fuse_lfs {
         #ifdef QEMUCSD_DEBUG
         // Should always be valid after initialization, set by
         // determine_random_ptr
-        if(dpos_valid(random_ptr) != FLFS_RET_NONE)
+        if(!random_ptr.valid())
             return FLFS_RET_ERR;
 
         // random_pos should always be set to RANDZ_POS once RANDZ_BUFF_POS is
@@ -933,6 +933,11 @@ namespace qemucsd::fuse_lfs {
         return FLFS_RET_NONE;
     }
 
+    /**
+     * rewrite the random zone if it is only partially filled with data.
+     * TODO(Dantali0n): Finish this method
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure,
+     */
     int FuseLFS::rewrite_random_blocks_partial() {
         uint32_t distance;
         random_zone_distance(random_pos, random_ptr, distance);
@@ -945,6 +950,11 @@ namespace qemucsd::fuse_lfs {
         return FLFS_RET_NONE;
     }
 
+    /**
+     *
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure,
+     *         FLFS_RET_RANDZ_INSUFFICIENT if no data could be freed.
+     */
     int FuseLFS::rewrite_random_blocks_full() {
         uint64_t zones[N_RAND_BUFF_ZONES] = {0};
 
@@ -1026,8 +1036,11 @@ namespace qemucsd::fuse_lfs {
                 return FLFS_RET_ERR;
         }
 
-        if(!random_ptr.valid())
+        if(!random_ptr.valid()) {
+            output.fatal("Insufficient random zone space! linear rewrite ",
+                         "occupied entire zone!!");
             return FLFS_RET_RANDZ_INSUFFICIENT;
+        }
 
         return FLFS_RET_NONE;
     }
