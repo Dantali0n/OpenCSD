@@ -4,6 +4,11 @@
 [![source code license MIT](https://shields.io/github/license/Dantali0n/qemu-csd)](https://gitlab.dantalion.nl/vu/qemu-csd/-/blob/master/LICENSE)
 [![follow me on twitter](https://img.shields.io/twitter/follow/D4ntali0n?style=social)](https://twitter.com/D4ntali0n)
 
+# Publications
+
+* arXiv, 29 November 2021 - [ZCSD: a Computational Storage Device over Zoned Namespaces (ZNS) SSDs](https://arxiv.org/abs/2112.00142)
+* Coming soon. arXiv Past, Present and Future of Computational Storage: A Survey
+
 # OpenCSD
 
 OpenCSD is an improved version of ZCSD achieving snapshot consistency
@@ -14,214 +19,6 @@ differs due to the use of emulation using technologies such as QEMU, uBPF and
 SPDK.
 
 ![](thesis/resources/images/loader-pfs-arch-2.drawio.png)
-
-### Progress Report
-provisional
-- Week 1 -> Goal: get fuse-lfs working with libfuse
-  - [X] Add libfuse, fuse-lfs and rocksdb as dependencies
-  - [X] Create custom libfuse fork to support non-privileged installation
-  - [X] Configure CMake to install libfuse
-  - [X] Configure environment script to setup pkg-config path
-  - [X] Use Docker in Docker (dind) to build docker image for Gitlab CI pipeline
-  - [X] Investigate and document how to debug fuse filesystems
-  - [X] Determine and document RocksDB required syscalls
-  - [X] Setup persistent memory that can be shared across processes
-    - [ ] Split into daemon and client modes
-- Week 2 -> Goal get a working LFS filesystem
-  - [X] Create solid digital logbook to track discussions
-- Week 3 -> Investigate FUSE I/O calls and fadvise
-  - [ ] Get a working LFS filesystem using FUSE
-    - [ ] What are the requirements for these filesystems.
-    - [X] Create FUSE LFS path to inode function.
-      - [ ] Test path to inode function using unit tests.
-  - [X] Setup research questions in thesis.
-  - [ ] Run filesystem benchmarks with strace
-    - [ ] RocksDB DBBench
-    - [ ] Filebench
-  - [X] Use fsetxattr for 'process' attributes in FUSE
-    - [X] Document how this can enable CSD functionality in regular filesystems
-- Week 4 -> FUSE LFS filesystem
-  - [ ] Get a working LFS filesystem using FUSE
-    - [ ] What are the requirements for these filesystems? (research question)
-      - [ ] Snapshots
-      - [ ] GC
-   - [ ] Test path to inode function using unit tests.
-- Week 5 -> FUSE LFS filesystem
-  - [ ] Get a working LFS filesystem using FUSE
-    - [ ] Filesystem considerations for fair testing against proven filesystems
-      - [ ] _fsync_ must actually flush to disc.
-      - [ ] In memory caching is only allowed if filesystem can recover to a
-            stable state upon crash or power loss.
-    - [ ] Filesystem considerations to achieve functionality
-      - [ ] Upon initialization all directory / filename and inode relations are
-            restored from disc and stored in memory. These datastructures
-            utilize maps as the lookup is `log(n)`.
-      - [ ] Periodically all changes are flushed to disc (every 5 seconds).
-      - [ ] Use bitmaps to determine occupied sectors.
-      - [ ] Snapshots are memory backed and remain as long as the file is open.
-        - [ ] GC needs to check both open snapshot sectors and occupied sector
-              bitmap.
-      - [ ] GC uses two modes
-        - [ ] (foreground) blocking if there is no more drive space to perform
-              the append.
-        - [ ] (background) periodic to clear entirely unoccupied zones.
-        - [X] Reserve last two zones from total space for GC operations.
-- Week 6 -> FUSE LFS filesystem
-  - [ ] Get a working LFS filesystem using FUSE
-    - [X] Filesystem constraints / limitations
-      - [X] No power atomicity
-    - [X] Test path to inode function using unit tests.
-    - [ ] Test checkpoint functionality
-    - [ ] Write a nat block to the drive
-      - [ ] Function to append nat block
-    - [ ] Write an inode block to the drive
-      - [ ] Inode append function
-    - [ ] Decide location of size and filename fields on disc
-      - [ ] inode vs file / data block
-  - [ ] Account for zone capacity vs zone size differences
-    - [ ] Ensure lba_to_position and position_to_lba solve these gaps.
-    - [ ] Configurable zone cap / zone size gap in NvmeZnsMemoryBackend
-    - [ ] Correctly determine zone cap / zone size gap in NvmeZnsSpdkBackend
-- Week 7 -> FUSE LFS filesystem
-- Week 8 -> FUSE LFS filesystem
-  - [ ] Run filesystem benchmarks with strace
-    - [ ] RocksDB DBBench
-    - [ ] Filebench
-
-### Logbook
-
-Serves as a place to quickly store digital information until it can be refined
-and processed into the thesis.
-
-- [Discussion Notes](#discussion-notes)
-- [Correlation POSIX and FUSE](#correlation-posix-and-fuse)
-- [Non-persistent Conditional Extended Attributes in FUSE](#non-persistent-conditional-extended-attributes-in-FUSE)
-- [RocksDB Integration](#rocksdb-integration)
-
-#### Discussion Notes
-
-- In order to analyze the exact calls RocksDB makes during its benchmarks tools
-  like `strace` can be used.
-- Several methods exist to prototype filesystem integration for CSDs. Among
-  these are using LD_PRELOAD to override system calls such as read(), write()
-  and open(). In this design we choose to use FUSE as this simplifies some of
-  the management and opens the possibility of allowing parallelism while the
-  interface between FUSE and the filesystem calls is still thin enough it can be
-  correlated.
-- The filesystem can use a snapshot concurrency model with reference counts.
-- Each file can maintain a special table that associates system calls with CSD
-  kernels. To isolate this behavior (to specific users) we can use filehandles
-  and process IDs (These should be available for most FUSE API calls anyway).
-- The design should reuse existing operating system interfaces as much as
-  possible. Any new API or call should be well motivated with solid arguments.
-  As an initial idea we can investigate reusing POSIX fadvise.
-- As requirements our FUSE LFS requires gc and snapshots. It would be nice to
-  have parallelism.
-- Crossing kernel and userspace boundaries can be achieved using ioctl should
-  the need arise.
-- As experiment for evaluation we should try to run RocksDB benchmarks on top
-  of the FUSE LFS filesystem while offloading bloom filter computations from SST
-  tables
-- Filebench benchmark to identify filesystems calls. db_bench from RocksDB, run
-  both with strace
-
-#### Research questions
-
-- Filesystem design and CSD requirements, why FUSE, why build from scratch
-- FUSE, is it enough? filesystem calls, does the API support what we need.
-  Research question.
-- How does it perform compared to other filesystems / solutions
-  - Characteristics to proof
-    - Data reduction
-    - Simplicity of algorithms (BPF) vs 'vanilla'
-    - Performance (static analysis of no. of clock cycles using LLVM-MCA)
-  - Experiments
-    - Write append in separate process and CSD averaging of file.
-
-#### Correlation POSIX and FUSE
-
-For convenience and reasonings sake a map between common POSIX I/O and FUSE API
-calls is needed.
-
-POSIX
-
-- close
-- (p/w)read
-- (p/w)write
-- lseek
-- open
-- fcntl
-- readdir
-- posix_fadvise
-
-FUSE
-
-- getattr
-- readdir
-- open
-- create
-- read
-- write
-- unlink
-- statfs
-
-#### Non-persistent Conditional Extended Attributes in FUSE
-
-Extended filesystem attributes support various namespaces with different
-behavior and responsibility. Since the underlying filesystem is still tasked
-with storing these attributes persistently regardless of namespace, the FUSE
-filesystem is effectively in full control on how to proceed.
-
-Given the already existing standard to use namespaces for permissions roles and
-behavior an additional namespace is an easy and clean extension. Introducing
-the _process_ namespace. Non-persistent extended file attributes that are only
-visible to the process that created them. Effectively an in memory map that
-lives inside the filesystem instead of in the calling process.
-
-Requirements:
-
-* Calling PID must be (made) available to either the high level or low level
-  FUSE API hooks (By observing the `-d` FUSE output the PID is already available
-  in some contexts just not to the API calls).
-* A clean method to deregister all hooks is needed, this either needs to be done
-  when the file is released or when the file is reopened using a previously used
-  PID. Using the release / releasedir system calls is difficult as the calling
-  PID is not available in this context.
-
-#### RocksDB Integration
-
-Required syscalls, by analysis of
-https://github.com/facebook/rocksdb/blob/7743f033b17bf3e0ea338bc6751b28adcc8dc559/env/io_posix.cc
-
-- clearerr (stdio.h)
-- close (unistd.h)
-- fclose (stdio.h)
-- feof (stdio.h)
-- ferror (stdio.h)
-- fread_unlocked (stdio.h)
-- fseek (stdio.h)
-- fstat (sys/stat.h)
-- fstatfs (sys/statfs.h / sys/vfs.h)
-- ioctl (sys/ioctl.h)
-- major (sys/sysmacros.h)
-- open (fcntl.h)
-- posix_fadvise (fcntl.h)
-- pread (unistd.h)
-- pwrite (unistd.h)
-- readahead (fcntl.h + _GNU_SOURCE)
-- realpath (stdlib.h)
-- sync_file_range (fcntl.h + _GNU_SOURCE)
-- write (unistd.h)
-
-Potential issues:
-- Use of IOCTL
-- Use of IO_URING
-
-### Fuse LFS design limitations and potential improvements
-
-- data_position struct and its validity and comparisons being controlled by
-  their size property is clunky and counterintuitive.
-- random zone can only be rewritten once it is completely full.
 
 # ZCSD
 
@@ -253,7 +50,8 @@ section, followed by the steps in [Usage Examples](#usage-examples).
 * [CMake Configuration](#cmake-configuration)
 * [Licensing](#licensing)
 * [References](#references)
-* [Snippets](#snippets)
+* [Progress Report](#progress-report)
+* [Logbook](#logbook)
 
 ### Directory structure
 
@@ -590,4 +388,236 @@ including:
   * [ZNS SSD QEMU patch v11](http://patchwork.ozlabs.org/project/qemu-devel/list/?series=219344)
   * [ZNS SSD QEMU patch v2](https://patchwork.kernel.org/project/qemu-devel/cover/20200617213415.22417-1-dmitry.fomichev@wdc.com/)
 
-### Snippets
+### Progress Report
+
+- Week 1 -> Goal: get fuse-lfs working with libfuse
+  - [X] Add libfuse, fuse-lfs and rocksdb as dependencies
+  - [X] Create custom libfuse fork to support non-privileged installation
+  - [X] Configure CMake to install libfuse
+  - [X] Configure environment script to setup pkg-config path
+  - [X] Use Docker in Docker (dind) to build docker image for Gitlab CI pipeline
+  - [X] Investigate and document how to debug fuse filesystems
+  - [X] Determine and document RocksDB required syscalls
+  - [X] Setup persistent memory that can be shared across processes
+    - [ ] Split into daemon and client modes
+- Week 2 -> Goal get a working LFS filesystem
+  - [X] Create solid digital logbook to track discussions
+- Week 3 -> Investigate FUSE I/O calls and fadvise
+  - [ ] Get a working LFS filesystem using FUSE
+    - [ ] What are the requirements for these filesystems.
+    - [X] Create FUSE LFS path to inode function.
+      - [X] Test path to inode function using unit tests.
+  - [X] Setup research questions in thesis.
+  - [ ] Run filesystem benchmarks with strace
+    - [ ] RocksDB DBBench
+    - [ ] Filebench
+  - [X] Use fsetxattr for 'process' attributes in FUSE
+    - [X] Document how this can enable CSD functionality in regular filesystems
+- Week 4 -> FUSE LFS filesystem
+  - [ ] Get a working LFS filesystem using FUSE
+    - [ ] What are the requirements for these filesystems? (research question)
+      - [ ] Snapshots
+      - [ ] GC
+  - [X] Test path to inode function using unit tests.
+- Week 5 -> FUSE LFS filesystem
+  - [ ] Get a working LFS filesystem using FUSE
+    - [ ] Filesystem considerations for fair testing against proven filesystems
+      - [ ] _fsync_ must actually flush to disc.
+      - [ ] In memory caching is only allowed if filesystem can recover to a
+        stable state upon crash or power loss.
+    - [ ] Filesystem considerations to achieve functionality
+      - [ ] Upon initialization all directory / filename and inode relations are
+        restored from disc and stored in memory. These datastructures
+        utilize maps as the lookup is `log(n)`.
+      - [ ] Periodically all changes are flushed to disc (every 5 seconds).
+      - [ ] Use bitmaps to determine occupied sectors.
+      - [ ] Snapshots are memory backed and remain as long as the file is open.
+        - [ ] GC needs to check both open snapshot sectors and occupied sector
+          bitmap.
+      - [ ] GC uses two modes
+        - [ ] (foreground) blocking if there is no more drive space to perform
+          the append.
+        - [ ] (background) periodic to clear entirely unoccupied zones.
+        - [X] Reserve last two zones from total space for GC operations.
+- Week 6 -> FUSE LFS filesystem
+  - [ ] Get a working LFS filesystem using FUSE
+    - [X] Filesystem constraints / limitations
+      - [X] No power atomicity
+    - [X] Test path to inode function using unit tests.
+    - [X] Test checkpoint functionality
+    - [X] Write a nat block to the drive
+      - [X] Function to append nat block
+    - [ ] Write an inode block to the drive
+      - [ ] Inode append function
+    - [ ] Decide location of size and filename fields on disc
+      - [ ] inode vs file / data block
+  - [X] Account for zone capacity vs zone size differences
+    - [X] Ensure lba_to_position and position_to_lba solve these gaps.
+    - [ ] Configurable zone cap / zone size gap in NvmeZnsMemoryBackend
+    - [X] Correctly determine zone cap / zone size gap in NvmeZnsSpdkBackend
+- Week 7 -> FUSE LFS filesystem
+  - [ ] Get a working LFS filesystem using FUSE
+    - [ ] Write an inode block to the drive
+      - [ ] Inode append function
+    - [ ] Decide location of size and filename fields on disc
+      - [ ] inode vs file / data block
+- Week 8 -> FUSE LFS filesystem
+  - [ ] Run filesystem benchmarks with strace
+    - [ ] RocksDB DBBench
+    - [ ] Filebench
+
+### Logbook
+
+Serves as a place to quickly store digital information until it can be refined
+and processed into the master thesis.
+
+- [Discussion Notes](#discussion-notes)
+- [Research Questions](#research-questions)
+- [Correlation POSIX and FUSE](#correlation-posix-and-fuse)
+- [RocksDB Integration](#rocksdb-integration)
+- [Fuse LFS Design](#fuse-lfs-design)
+  - [Requirements](#requirements)
+  - [Design Limitations](#limitations-and-potential-improvements)
+  - [Non-persistent Conditional Extended Attributes in FUSE](#non-persistent-conditional-extended-attributes-in-FUSE)
+
+#### Discussion Notes
+
+- In order to analyze the exact calls RocksDB makes during its benchmarks tools
+  like `strace` can be used.
+- Several methods exist to prototype filesystem integration for CSDs. Among
+  these are using LD_PRELOAD to override system calls such as read(), write()
+  and open(). In this design we choose to use FUSE as this simplifies some of
+  the management and opens the possibility of allowing parallelism while the
+  interface between FUSE and the filesystem calls is still thin enough it can be
+  correlated.
+- The filesystem can use a snapshot concurrency model with reference counts.
+- Each file can maintain a special table that associates system calls with CSD
+  kernels. To isolate this behavior (to specific users) we can use filehandles
+  and process IDs (These should be available for most FUSE API calls anyway).
+- The design should reuse existing operating system interfaces as much as
+  possible. Any new API or call should be well motivated with solid arguments.
+  As an initial idea we can investigate reusing POSIX fadvise.
+- As requirements our FUSE LFS requires gc and snapshots. It would be nice to
+  have parallelism.
+- Crossing kernel and userspace boundaries can be achieved using ioctl should
+  the need arise.
+- As experiment for evaluation we should try to run RocksDB benchmarks on top
+  of the FUSE LFS filesystem while offloading bloom filter computations from SST
+  tables
+- Filebench benchmark to identify filesystems calls. db_bench from RocksDB, run
+  both with strace
+
+#### Research questions
+
+- Filesystem design and CSD requirements, why FUSE, why build from scratch
+- FUSE, is it enough? filesystem calls, does the API support what we need.
+  Research question.
+- How does it perform compared to other filesystems / solutions
+  - Characteristics to proof
+    - Data reduction
+    - Simplicity of algorithms (BPF) vs 'vanilla'
+    - Performance (static analysis of no. of clock cycles using LLVM-MCA)
+  - Experiments
+    - Write append in separate process and CSD averaging of file.
+
+#### Correlation POSIX and FUSE
+
+For convenience and reasonings sake a map between common POSIX I/O and FUSE API
+calls is needed.
+
+POSIX
+
+- close
+- (p/w)read
+- (p/w)write
+- lseek
+- open
+- fcntl
+- readdir
+- posix_fadvise
+
+FUSE
+
+- getattr
+- readdir
+- open
+- create
+- read
+- write
+- unlink
+- statfs
+
+#### RocksDB Integration
+
+Required syscalls, by analysis of
+https://github.com/facebook/rocksdb/blob/7743f033b17bf3e0ea338bc6751b28adcc8dc559/env/io_posix.cc
+
+- clearerr (stdio.h)
+- close (unistd.h)
+- fclose (stdio.h)
+- feof (stdio.h)
+- ferror (stdio.h)
+- fread_unlocked (stdio.h)
+- fseek (stdio.h)
+- fstat (sys/stat.h)
+- fstatfs (sys/statfs.h / sys/vfs.h)
+- ioctl (sys/ioctl.h)
+- major (sys/sysmacros.h)
+- open (fcntl.h)
+- posix_fadvise (fcntl.h)
+- pread (unistd.h)
+- pwrite (unistd.h)
+- readahead (fcntl.h + _GNU_SOURCE)
+- realpath (stdlib.h)
+- sync_file_range (fcntl.h + _GNU_SOURCE)
+- write (unistd.h)
+
+Potential issues:
+- Use of IOCTL
+- Use of IO_URING
+
+### Fuse LFS Design
+
+Filesystem design and architecture is continuously improving and being modified
+see source files such as `fuse_lfs_disc.hpp` until design is frozen.
+
+#### Requirements
+
+- Log-structured
+- Persistent
+- Directories / files with names up to 480 bytes
+- File / directory renaming
+- In memory snapshots
+- Garbage Collection (GC)
+- Non-persistent conditional extended attributes
+- _fsync_ must actually flush to disc
+- In memory caching is only allowed if filesystem can recover to a valid state
+
+#### Limitations and potential improvements
+
+- data_position struct and its validity and comparisons being controlled by
+  their size property is clunky and counterintuitive.
+- random zone can only be rewritten once it is completely full.
+
+#### Non-persistent Conditional Extended Attributes in FUSE
+
+Extended filesystem attributes support various namespaces with different
+behavior and responsibility. Since the underlying filesystem is still tasked
+with storing these attributes persistently regardless of namespace, the FUSE
+filesystem is effectively in full control on how to proceed.
+
+Given the already existing standard to use namespaces for permissions roles and
+behavior an additional namespace is an easy and clean extension. Introducing
+the _process_ namespace. Non-persistent extended file attributes that are only
+visible to the process that created them. Effectively an in memory map that
+lives inside the filesystem instead of in the calling process.
+
+Requirements:
+
+* Calling PID must be (made) available to either the high level or low level
+  FUSE API hooks (By observing the `-d` FUSE output the PID is already available
+  in some contexts just not to the API calls).
+* A clean method to deregister all hooks is needed, this either needs to be done
+  when the file is released or when the file is reopened using a previously used
+  PID. Using the release / releasedir system calls is difficult as the calling
+  PID is not available in this context.
