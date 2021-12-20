@@ -23,7 +23,7 @@ SPDK.
 # ZCSD
 
 ZCSD is a full stack prototype to execute eBPF programs as if they are
-running on a ZNS SSD CSD. The entire prototype can be run from userspace by
+running on a ZNS CSD SSDs. The entire prototype can be run from userspace by
 utilizing existing technologies such as SPDK and uBPF. Since consumer ZNS SSDs
 are still unavailable, QEMU can be used to create a virtual ZNS SSD. The
 programming and interactive steps of individual components is shown below.
@@ -69,16 +69,18 @@ section, followed by the steps in [Usage Examples](#usage-examples).
 
 ### Modules
 
-| Module       | Task                                                     |
-|--------------|----------------------------------------------------------|
-| arguments    | Parse commandline arguments to relevant components       |
-| bpf_helpers  | Headers to define functions available from within BPF    |
-| bpf_programs | BPF programs ready to run on a CSD using bpf_helpers     |
-| fuse_lfs     | Log Structured Filesystem in FUSE                        |
-| nvme_csd     | Emulated additional NVMe commands to enable BPF CSDs     |
-| nvme_zns     | Interface to handle zoned I/O using abstracted backends  |
-| output       | Neatly control messages to stdout and stderr with levels |
-| spdk_init    | Provides SPDK initialization and handles for nvme_csd    |
+| Module          | Task                                                             |
+|-----------------|------------------------------------------------------------------|
+| arguments       | Parse commandline arguments to relevant components               |
+| bpf_helpers     | Headers to define functions available from within BPF            |
+| bpf_programs    | BPF programs ready to run on a CSD using bpf_helpers             |
+| fuse_lfs        | Log Structured Filesystem in FUSE                                |
+| nvme_csd        | Emulated additional NVMe commands to enable BPF CSDs             |
+| nvme_zns        | Interface to handle zoned I/O using abstracted backends          |
+| nvme_zns_memory | Non-persistent memory backed emulated ZNS SSD backend            |
+| nvme_zns_spdk   | Persistent SPDK backed ZNS SSD backend                           |
+| output          | Neatly control messages to stdout and stderr with levels         |
+| spdk_init       | Provides SPDK initialization and handles for nvme_zns & nvme_csd |
 
 ### Dependencies
 
@@ -119,7 +121,7 @@ linked statically due to the nature of this project. However, for several depend
 this is not possible due to various reason. For Boost, it is because the unit test
 framework can not be statically linked (easily):
 
-| Dependency                                                         | Systen  | Version                                                                                                         |
+| Dependency                                                         | System  | Version                                                                                                         |
 |--------------------------------------------------------------------|---------|-----------------------------------------------------------------------------------------------------------------|
 | [backward](https://github.com/bombela/backward-cpp)                | ZCSD    | 1.6                                                                                                             |
 | [booost](https://www.boost.org/)                                   | ZCSD    | 1.74.0                                                                                                          |

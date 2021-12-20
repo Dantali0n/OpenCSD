@@ -29,7 +29,7 @@
 \usepackage{xcolor}
 \usepackage{cleveref}
 
-\title{eBPF Computational Storage Device for ZNS in QEMU%\\
+\title{OpenCSD: Log Structured Filesystem (LFS) enabled Computational Storage Device platform over Zoned Namespaces (ZNS) SSDs%\\
 %{\footnotesize \textsuperscript{*}Note: Sub-titles are not captured in Xplore
 % and should not be used}
 %\thanks{Identify applicable funding agency here. If none, delete this.}
@@ -168,7 +168,7 @@
 \begin{titlepage}
 \begingroup
 \centering
-{\LARGE\bfseries Log Structured Filesystem for Computational Storage Device}
+{\LARGE\bfseries OpenCSD: Log Structured Filesystem (LFS) enabled Computational Storage Device platform over Zoned Namespaces (ZNS) SSDs}
 
 \vspace{1cm}
 
@@ -224,6 +224,108 @@ info@dantalion.nl}
 
 \addcontentsline{toc}{section}{\protect\numberline{}INTRODUCTION}
 \section*{INTRODUCTION}
+
+% Problem
+
+The amount of data being generated and processed worldwide is growing rapidly.
+Meanwhile the prevelant Von Nuemann computer architecture requires all data is 
+moved to system memory before it can be processed. Until recently storage
+devices such as hard-disk drives (HDDs) or solid state drives (SSDs) have only
+been passively storing data. With the increasing bandwidth persistent storage
+devices like SSDs achieve this excessive data movement to memory is increasingly
+becoming a bottleneck. Similarly, the CPU generational performance improvements
+as well as link speeds of interconnects are stagnating compared to nand flash
+bandwidth, the underlying technology enabling modern SSDs.
+
+% Potential solution and benefits
+
+A promising solution to this problem is the processing of data in-situ by
+pushing compute to the storage layer. This solution is actively being researched
+as \textit{"Programmable Storage"} and \textit{"Computational Storage"} among
+other terms. The concept is not new however, as it has been previously
+explored in both database mainframes as well as for conventional HDDs. With rise
+of Non-Volatile Memory (NVMe) technologies offering signifcantly more 
+device-internal bandwidth this concept is being revisted. What makes NVMe SSDs
+even more suited is that they already contain capable processing units often
+boasting even multiple cores. This requirement comes from the internal
+management the device has to perform known as the Flash Translation Layer (FTL).
+Devices utilizing computational elements on conventional SSDs for
+\textit{Computational Storage} are commonly known as
+\textit{Computational Storage Devices}(CSx)s. The potential benefits of such a
+heteregenous architecture offering programmable storage include energy saving,
+cost reduction and performance improvements.
+
+% Challenges
+
+Despite all these benefits there is still no widespread adoption even after a
+decade of research \textit{cite literature-study}. A multitude of challenges
+have prohibited this adoption of which several still applicable today. Four
+prominent challenges include that, firstly, \textit{Computational Storage}
+requires complete vertical integration. Meaning that changes are required at all
+levels of abstraction, device hardware, interfaces, drivers and operating system
+to name a few. Trying to integrate a solution for all levels in one prototype
+results in a very large problem space. This large problem space complicates
+deriving standards for designs and interfaces although the development of such a
+standard by SNIA is on-going. Secondly, vendors might choose to use different
+hardware with different \textit{Instruction Set Architectures}(ISA)s or different
+host-to-device interfaces. These differences might result in incompatible
+user applications across vendors hurting reusability and hindering adoption.
+Third, filesystems are managed by the host operating system while the FTL is
+managed by the device. Given that one is not aware of the processes within the
+other, this semantic gap complicates several aspects such as consistency,
+concurreny, multi-user tenancy and filesystem integration. Lastly, no
+specialized filesystem designs exist that support both regular user access
+concurrent with \textit{Computational Storage} offloading.
+
+% Solutions
+
+In this work we address each of these challenges directly and propose a
+complete \textit{Computational Storage} solution that offers a filesystem
+capable of concurrent multi-user tenancy with both regular and compute
+offloading access (hybrid). We introduce each of the solutions briefly before
+describing their complete case. Firstly, we circumvent the complexity of
+complete vertical integration by creating a simulation platform on top of QEMU.
+Secondly, We eliminate potential incompatibities across vendors by using eBPF as
+compute kernel language. Third, We bridge the semantic gap by using Zoned
+Namespaces (ZNS) SSDs which move the FTL to the host operating system
+(host-managed). Lastly, we allow for concurrent multi-user tenancy in a hybrid
+filesystem context by developing a specialized Log-Structured Filesystem (LFS)
+with an in-memory snapshot consistency model. We present this complete solution
+as \textit{OpenCSD} an open-source Apache 2 licensed CSx simulation framework
+with accompanying filesystem.
+
+\subsection*{A Case for CSx Simulation}
+
+The lack of a standardized design has lead to a large variety of different
+hardware architectures being explored including using embedded CPUs or
+\textit{Field Programmable Gate Arrays}(FPGA)s. Meanwhile, even closed-source
+devices have become commercially available. Even with this variety of prototypes
+
+\subsection*{A Case for eBPF Programmability}
+
+\subsection*{A Case for ZNS CSxs}
+
+\subsection*{A Case for LFS}
+
+\section{Previous Work}
+
+\section{Research Questions}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 How to achieve multi-user tenancy in a Log Structured Filesystem (LFS) while
 supporting Computational Storage offloading?
