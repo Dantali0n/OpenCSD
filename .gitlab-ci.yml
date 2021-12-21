@@ -51,7 +51,7 @@ build-documentation:
     - mkdir -p build
     - cd build || exit
     - cmake -DENABLE_DOCUMENTATION=on ..
-    - make latex-pdf
+    - make all-documents
   artifacts:
     paths:
       - "*/*.pdf"
