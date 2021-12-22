@@ -6,8 +6,12 @@
 
 # Publications
 
+* arXiv, 13 December 2021 - [Past, Present and Future of Computational Storage: A Survey](https://arxiv.org/abs/2112.09691)
 * arXiv, 29 November 2021 - [ZCSD: a Computational Storage Device over Zoned Namespaces (ZNS) SSDs](https://arxiv.org/abs/2112.00142)
-* Coming soon. arXiv Past, Present and Future of Computational Storage: A Survey
+
+**on-going / pending**
+
+* thesis - [OpenCSD: LFS enabled Computational Storage Device over Zoned Namespaces (ZNS) SSDs](https://gitlab.dantalion.nl/vu/qemu-csd/-/jobs/artifacts/master/download?job=build-documentation)
 
 # OpenCSD
 

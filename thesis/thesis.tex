@@ -229,13 +229,15 @@ info@dantalion.nl}
 
 The amount of data being generated and processed worldwide is growing rapidly.
 Meanwhile the prevelant Von Nuemann computer architecture requires all data is 
-moved to system memory before it can be processed. Until recently storage
-devices such as hard-disk drives (HDDs) or solid state drives (SSDs) have only
-been passively storing data. With the increasing bandwidth persistent storage
-devices like SSDs achieve this excessive data movement to memory is increasingly
-becoming a bottleneck. Similarly, the CPU generational performance improvements
-as well as link speeds of interconnects are stagnating compared to nand flash
-bandwidth, the underlying technology enabling modern SSDs.
+moved to system memory before it can be processed\cite{2018-neumann-bottleneck}.
+Until recently storage devices such as hard-disk drives (HDDs) or solid state
+drives (SSDs) have only been passively storing data. With the increasing
+bandwidth persistent storage devices like SSDs achieve this excessive data
+movement to memory is increasingly becoming a bottleneck\cite{2014-micro-ndp}.
+Similarly, the CPU generational performance
+improvements\cite{2016-western-digital} as well as link speeds of interconnects
+are stagnating compared to nand flash bandwidth\cite{10.1145/3286588}, the
+underlying technology enabling modern SSDs.
 
 % Potential solution and benefits
 
@@ -243,22 +245,23 @@ A promising solution to this problem is the processing of data in-situ by
 pushing compute to the storage layer. This solution is actively being researched
 as \textit{"Programmable Storage"} and \textit{"Computational Storage"} among
 other terms. The concept is not new however, as it has been previously
-explored in both database mainframes as well as for conventional HDDs. With rise
-of Non-Volatile Memory (NVMe) technologies offering signifcantly more 
+explored in database mainframes\cite{database-computer} as well as for
+conventional HDDs\cite{active-disk-pillar, active-disks-tech, intelligent-disk}.
+With rise of Non-Volatile Memory (NVMe) technologies offering signifcantly more 
 device-internal bandwidth this concept is being revisted. What makes NVMe SSDs
 even more suited is that they already contain capable processing units often
 boasting even multiple cores. This requirement comes from the internal
-management the device has to perform known as the Flash Translation Layer (FTL).
-Devices utilizing computational elements on conventional SSDs for
-\textit{Computational Storage} are commonly known as
-\textit{Computational Storage Devices}(CSx)s. The potential benefits of such a
+management the device has to perform known as the
+\textit{Flash Translation Layer} (FTL). Devices utilizing computational elements
+on conventional SSDs for \textit{Computational Storage} are commonly known as
+\textit{Computational Storage Devices} (CSx)s. The potential benefits of such a
 heteregenous architecture offering programmable storage include energy saving,
 cost reduction and performance improvements.
 
 % Challenges
 
 Despite all these benefits there is still no widespread adoption even after a
-decade of research \textit{cite literature-study}. A multitude of challenges
+decade of research\cite{lukken2021past}. A multitude of challenges
 have prohibited this adoption of which several still applicable today. Four
 prominent challenges include that, firstly, \textit{Computational Storage}
 requires complete vertical integration. Meaning that changes are required at all
@@ -266,11 +269,12 @@ levels of abstraction, device hardware, interfaces, drivers and operating system
 to name a few. Trying to integrate a solution for all levels in one prototype
 results in a very large problem space. This large problem space complicates
 deriving standards for designs and interfaces although the development of such a
-standard by SNIA is on-going. Secondly, vendors might choose to use different
-hardware with different \textit{Instruction Set Architectures}(ISA)s or different
-host-to-device interfaces. These differences might result in incompatible
-user applications across vendors hurting reusability and hindering adoption.
-Third, filesystems are managed by the host operating system while the FTL is
+standard by SNIA is on-going\cite{snia-model}. Secondly, vendors might choose to
+use different hardware with different
+\textit{Instruction Set Architectures} (ISA)s or different host-to-device
+interfaces. These differences might result in incompatible user applications
+across vendors hurting reusability and hindering adoption. Third, filesystems
+are managed by the host operating system while the FTL is
 managed by the device. Given that one is not aware of the processes within the
 other, this semantic gap complicates several aspects such as consistency,
 concurreny, multi-user tenancy and filesystem integration. Lastly, no
@@ -284,22 +288,27 @@ complete \textit{Computational Storage} solution that offers a filesystem
 capable of concurrent multi-user tenancy with both regular and compute
 offloading access (hybrid). We introduce each of the solutions briefly before
 describing their complete case. Firstly, we circumvent the complexity of
-complete vertical integration by creating a simulation platform on top of QEMU.
-Secondly, We eliminate potential incompatibities across vendors by using eBPF as
-compute kernel language. Third, We bridge the semantic gap by using Zoned
-Namespaces (ZNS) SSDs which move the FTL to the host operating system
-(host-managed). Lastly, we allow for concurrent multi-user tenancy in a hybrid
-filesystem context by developing a specialized Log-Structured Filesystem (LFS)
-with an in-memory snapshot consistency model. We present this complete solution
-as \textit{OpenCSD} an open-source Apache 2 licensed CSx simulation framework
-with accompanying filesystem.
+complete vertical integration by creating a simulation platform on top of
+QEMU\cite{qemu}. Secondly, We eliminate potential incompatibities across vendors
+by using eBPF\cite{what-ebpf} as compute kernel language. Third, We bridge the
+semantic gap by using Zoned Namespaces (ZNS)\cite{zns} SSDs which move the FTL
+to the host operating system (host-managed). Lastly, we allow for concurrent
+multi-user tenancy in a \textit{hybrid filesystem} context by developing a
+specialized \textit{Log-Structured Filesystem} (LFS)\cite{Rosenblum1992TheDA}
+with an in-memory snapshot consistency model\cite{Viotti2016ConsistencyIN}. We
+present this complete solution as \textit{OpenCSD} an open-source Apache 2
+licensed CSx simulation framework with accompanying filesystem\cite{qemu-csd}.
 
 \subsection*{A Case for CSx Simulation}
 
 The lack of a standardized design has lead to a large variety of different
 hardware architectures being explored including using embedded CPUs or
-\textit{Field Programmable Gate Arrays}(FPGA)s. Meanwhile, even closed-source
-devices have become commercially available. Even with this variety of prototypes
+\textit{Field Programmable Gate Arrays}(FPGA)s. Moreover, closed-source
+devices have even become commercially available. Still there is a lot of
+uncertainty about the right computational hardware models, interconnects and
+interconnects their interfaces. Even though the PCIe interconnect and the NVMe
+storage interface currently dominate modern storage devices it is unclear if
+their current capabilities are sufficient to support CSxs.
 
 \subsection*{A Case for eBPF Programmability}
 
@@ -309,23 +318,11 @@ devices have become commercially available. Even with this variety of prototypes
 
 \section{Previous Work}
 
+% Introduce early working prototypes
+
+% Demonstrate different hardware platforms, embedded CPU, vs FPGA.
+
 \section{Research Questions}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 How to achieve multi-user tenancy in a Log Structured Filesystem (LFS) while
 supporting Computational Storage offloading?
@@ -337,67 +334,6 @@ existing operating system APIs?
 
 How to differentiate individual users, files and I/O operations in relation to
 their CSD compute kernel?
-
-Recently pieces of literature have been presented about Zones Namespace (ZNS)
-SSDs. These cover a variety of topics such as migrating from Open-Channel
-SSDs (OCSSD) to Zoned Namespaces\cite{bjorling2019open}. Other literature
-addresses some of the functionality these ZNS SSDs
-introduce\cite{bjorling2020zone}. Finally, some works evaluate host-based SSD
-features such as flash management and garbage collection when implemented using
-ZNS SSDs\cite{254268,9188086}.
-
-The concept of ZNS SSDs is interesting as this device level abstraction opens
-new possibilities for research, such as for Computational Storage Devices (CSD).
-Similar to OCSSD, ZNS gives insight into the internal device structure as well
-as providing some additional guarantees. In the context of ZNS these structures
-are known as namespaces and zones. This could have several advantages for CSD
-applications as it could reduce the semantic gap between host and device.
-Furthermore, it could provide safety guarantees by tying access level control
-(ACL) to individual zones.
-
-In order to investigate these research possibilities a functional prototype is
-needed. The development of such a prototype requires making several decisions
-such as to use existing technologies or develop new technologies. Typically,
-from these technologies there might be several applicable options. furthermore,
-the prototype might be aimed at answering a very specific research questions or
-might be kept very broadly applicable intentionally.
-
-In this work the use of ZNS SSDs as CSD will be investigated by building a
-broadly applicable prototype. However, this requires the availability of ZNS SSD
-devices. Currently, the availability of physical ZNS SSDs is problematic, this
-is likely due to the NVMe Zoned Namespace technical proposal only being ratified
-recently\cite{zns-nvme-ratified}. NVMe is the communication protocol prominent
-across all flash based storage devices predominantly those connected using a
-PCI-e bus.
-
-This NVMe Zoned Namespace command set specification is what enables ZNS SSDs to
-exist\cite{nvme-zns}. Luckily, the functionality of this NVMe command set is
-already enabled in QEMU. QEMU is a dynamic binary translation emulator that
-allows to create virtual hardware devices and subsequently use those inside the
-emulator. This allows for the development of technologies utilizing ZNS SSDs in
-a virtualized environment even if these devices do not currently physically
-exist.
-
-Several online resources exist explaining how this functionality was enabled in
-QEMU\cite{nvme-qemu-1,nvme-qemu-2} as well as resources on general information
-about ZNS SSDs\cite{zns-info}.
-
-This work focuses on documenting the steps necessary to implement CSDs
-utilizing ZNS SSDs with QEMU. The emphasis is on describing existing
-technologies and how to combine these in a working prototype.
-
-The overall structure of this work is as follows. Introduce several project
-dependencies and how to configure these (\cref{dependencies}), describe
-development and debugging methodologies and how these can be configured by
-the CMake project accompanying this work (\cref{development}), describe the
-existing technologies that are used in the final prototype (\cref{technology}),
-define design requirements and the final implemented design as well as
-limitations (\cref{design}), mention alternative technologies and why they
-are not used in the prototype (\cref{alternatives}), finally, describe future
-work and open questions that arise from this design (\cref{future}).
-
-The entire prototype including source files for reports and documentation
-is available online under an permissive open-source license\cite{qemu-csd}.
 
 % \footnotemark[1]
 
