@@ -509,7 +509,7 @@ namespace qemucsd::fuse_lfs {
 
             tmp_cblock_pos.sector = 0;
         }
-        // Otherwise just advance the sector by 1
+        // Otherwise, just advance the sector by 1
         else {
             tmp_cblock_pos.sector += 1;
         }
@@ -648,7 +648,7 @@ namespace qemucsd::fuse_lfs {
             current_pos.sector += 1;
 
             // Reached end of sectors in current zone, advance zone
-            if(current_pos.sector == nvme_info.zone_capacity -1) {
+            if(current_pos.sector == nvme_info.zone_capacity) {
                 current_pos.sector = 0;
                 current_pos.zone += 1;
             }
@@ -683,11 +683,58 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
+     * Read the entire random zone and reconstruct the inode_lba map. Can only
+     * be called after random_pos has been restored from checkpoint blocks.
+     * TODO(Dantali0n): Process and reconstruct SIT map.
+     */
+    int FuseLFS::read_random_zone(inode_lba_map_t *inode_map) {
+        auto current_pos = random_pos;
+        struct none_block nt_blk = {0};
+
+        // Go through all positions in the random zone
+        do {
+            // Stop reading after first unreadable sector
+            if(nvme->read(current_pos.zone, current_pos.sector,
+                          current_pos.offset, &nt_blk, sizeof(nt_blk)) != 0)
+                break;
+
+            // Type is nat_block
+            if(nt_blk.type == RANDZ_NAT_BLK) {
+                auto nat_blk = reinterpret_cast<nat_block *>(&nt_blk);
+
+                for(uint32_t i = 0; i < NAT_BLK_INO_LBA_NUM; i++) {
+                    if(nat_blk->inode[i] == 0)
+                        break;
+
+                    uint64_t inode = nat_blk->inode[i];
+                    uint64_t lba = nat_blk->lba[i];
+                    inode_map->insert_or_assign(inode, lba);
+                }
+            }
+            // TODO(Dantali0n): Process SIT blocks.
+
+            current_pos.sector += 1;
+
+            // Reached end of sectors in current zone, advance zone
+            if(current_pos.sector == nvme_info.zone_capacity) {
+                current_pos.sector = 0;
+                current_pos.zone += 1;
+            }
+
+            // Reached end of random zone overflow back to beginning.
+            if(current_pos.zone == RANDZ_BUFF_POS.zone)
+                current_pos.zone = RANDZ_POS.zone;
+
+        } while(current_pos != random_pos);
+
+        return FLFS_RET_NONE;
+    }
+
+    /**
      * Fill a nat_block until it is full removing any appendices from nat_set or
      * when nat_set is empty.
-     * @return 0 upon success, < 0 upon failure
      */
-    int FuseLFS::fill_nat_block(
+    void FuseLFS::fill_nat_block(
         nat_update_set_t *nat_set, struct nat_block &nt_blk)
     {
         uint16_t i = 0;
@@ -707,8 +754,6 @@ namespace qemucsd::fuse_lfs {
             if(nt_blk.inode[i] == 0) break;
             nat_set->erase(nt_blk.inode[i]);
         }
-
-        return FLFS_RET_NONE;
     }
 
     /**
@@ -717,7 +762,8 @@ namespace qemucsd::fuse_lfs {
      * successful append. random_pos is taken into account to identify if we
      * are out of random zone space.
      *
-     * @return FLFS_RET_NONE upon success, < FLFS_RET_ERR upon failure
+     * @return FLFS_RET_NONE upon success, < FLFS_RET_ERR upon failure,
+     *         FLFS_RET_RANDZ_FULL when random zone full.
      */
     int FuseLFS::append_random_block(struct rand_block_base &block) {
         struct data_position tmp_random_ptr = random_ptr;
@@ -777,7 +823,6 @@ namespace qemucsd::fuse_lfs {
     /**
      * Determine the number of nat blocks required to flush the nat_set to
      * the drive. The result is placed in num_blocks.
-     * @return 0 upon success, < 0 upon failure
      */
     void FuseLFS::compute_nat_blocks(
         nat_update_set_t *nat_set, uint64_t &num_blocks)
@@ -790,7 +835,8 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Perform a flush to drive of all changes that happened to nat blocks
-     * @return 0 upon success, < 0 upon failure
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure,
+     *         FLFS_RET_RANDZ_FULL when random zone full.
      */
     int FuseLFS::update_nat_blocks(
         nat_update_set_t *nat_set = &nat_update_set)
@@ -817,7 +863,7 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Buffer the two zones into the random buffer
-     * @return 0 upon success, < 0 upon failure
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
      */
     int FuseLFS::buffer_random_blocks(
         const uint64_t zones[2], struct data_position limit)
@@ -856,6 +902,12 @@ namespace qemucsd::fuse_lfs {
         return FLFS_RET_ERR;
     }
 
+    /**
+     * Go through the current contents of the random buffer adding found data
+     * to nat_set if it is still present in inodes. Modifies both nat_set and
+     * inodes.
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
+     */
     int FuseLFS::process_random_buffer(
         nat_update_set_t *nat_set, inode_lba_map_t *inodes) {
         struct none_block nt_blk = {0};
@@ -907,6 +959,12 @@ namespace qemucsd::fuse_lfs {
         return FLFS_RET_NONE;
     }
 
+    /**
+     * Perform random zone rewrites deciding upon the appropriate strategy based
+     * on how full the zone is.
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon error and
+     *         FLFS_RET_RANDZ_INSUFFICIENT if no random zone data can be freed.
+     */
     int FuseLFS::rewrite_random_blocks() {
         // No blocks written nothing to do
         if(random_ptr == random_pos)
@@ -951,7 +1009,7 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
-     *
+     * Rewrite the entirely full random zone
      * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure,
      *         FLFS_RET_RANDZ_INSUFFICIENT if no data could be freed.
      */

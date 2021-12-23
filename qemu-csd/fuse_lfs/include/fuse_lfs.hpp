@@ -139,10 +139,9 @@ namespace qemucsd::fuse_lfs {
             struct data_position lhs, struct data_position rhs,
             uint32_t &distance);
 
-        static int read_random_zone(
-            nat_update_set_t *nat_set);
+        static int read_random_zone(inode_lba_map_t *inode_map);
 
-        static int fill_nat_block(nat_update_set_t *nat_set,
+        static void fill_nat_block(nat_update_set_t *nat_set,
                                   struct nat_block &nt_blk);
 
         static int append_random_block(struct rand_block_base &block);
