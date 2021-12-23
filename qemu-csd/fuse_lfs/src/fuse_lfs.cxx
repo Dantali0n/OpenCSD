@@ -196,6 +196,10 @@ namespace qemucsd::fuse_lfs {
         output(std::cout, "Creating root inode..");
         path_inode_map.insert(std::make_pair(root, 1));
 
+        /** Now that random_pos is known reconstruct inode lba map */
+        // TODO(Dantali0n): Make this also reconstruct SIT blocks
+        read_random_zone(&inode_lba_map);
+
         session = fuse_session_new(
             &args, &operations, sizeof(operations), nullptr);
         if (session == nullptr)
@@ -617,7 +621,8 @@ namespace qemucsd::fuse_lfs {
      * unreadable (unwritten) sector from random_pos with overflow from
      * RANDZ_BUFF_POS back to RANDZ_POS (The random zone is interpreted as
      * linearly contiguous from random_pos up until random_pos).
-     * @return 0 upon success, < 0 upon failure
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure and
+     *         FLFS_RET_RANDZ_FULL if the random zone is full
      */
     int FuseLFS::determine_random_ptr() {
         struct data_position end_pos = random_pos;
