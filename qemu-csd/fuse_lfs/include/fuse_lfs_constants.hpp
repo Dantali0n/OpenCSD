@@ -53,6 +53,8 @@ namespace qemucsd::fuse_lfs {
      */
 //    #define FLFS_RANDOM_RW_STRICT
 
+
+
     #define flfs_min(x, y) ((x) < (y) ? (x) : (y))
 
     enum FLFS_RETURN_CODES {
@@ -67,6 +69,15 @@ namespace qemucsd::fuse_lfs {
 
         // Indicates the random zone is of insufficient size
         FLFS_RET_RANDZ_INSUFFICIENT =  2,
+
+        // Indicate the log zone is full
+        FLFS_RET_LOGZ_FULL          =  3,
+
+        // Maximum number of inodes used
+        FLFS_RET_MAX_INO            =  4,
+
+        // Indicate the requested inode was not found
+        FLFS_RET_ENOENT             =  5,
     };
 
     /**
@@ -191,17 +202,17 @@ namespace qemucsd::fuse_lfs {
      * Position of start of the LOG ZONE
      * TODO(Dantali0n): Compute this using some function
      */
-    static constexpr struct data_position LOG_POS = {
+    static constexpr struct data_position LOGZ_POS = {
         12,0, 0, SECTOR_SIZE
     };
 
     static constexpr uint32_t N_RAND_BUFF_ZONES =
-        LOG_POS.zone - RANDZ_BUFF_POS.zone;
+            LOGZ_POS.zone - RANDZ_BUFF_POS.zone;
     // random buffer must be exactly two zones large
     static_assert(N_RAND_BUFF_ZONES == 2);
 
     /**
-     * No need to store LOG_BUFF_POS as it is num_zones - 2;
+     * No need to store LOGZ_BUFF_POS as it is num_zones - 2;
      */
 }
 

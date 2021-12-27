@@ -48,8 +48,12 @@ namespace qemucsd::fuse_lfs {
     // TODO(Dantali0n): Investigate if memory consumption will be beyond control
     typedef std::pair<fuse_ino_t, std::string> path_node_t;
 
+    // Names and their inodes for use in path_inode_map_t
+    typedef std::map<std::string, fuse_ino_t> path_map_t;
+
     // Map path sections to their corresponding inode
-    typedef std::map<path_node_t, fuse_ino_t> path_inode_map_t;
+//    typedef std::map<path_node_t, fuse_ino_t> path_inode_map_t;
+    typedef std::map<fuse_ino_t, path_map_t*> path_inode_map_t;
 
     // Map corresponding inodes to the lba storing the inode_block
     typedef std::map<fuse_ino_t, uint64_t> inode_lba_map_t;
@@ -60,6 +64,9 @@ namespace qemucsd::fuse_lfs {
 
     // A set of inodes that have been updated since flush and must be written
     typedef std::set<fuse_ino_t> nat_update_set_t;
+
+    // A vector of inode_entry and name that must be flushed to drive
+    typedef std::vector<std::pair<inode_entry, std::string>> inode_entries_t;
 }
 
 #endif //QEMU_CSD_FUSE_LFS_MEMORY_HPP

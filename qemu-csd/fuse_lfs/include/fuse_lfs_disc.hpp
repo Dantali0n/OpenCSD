@@ -148,7 +148,7 @@ namespace qemucsd::fuse_lfs {
      * inode block on drive layout, remaining space is zero filled no partial
      * entries written across sector boundaries. names must be null terminated.
      *
-     *     25 bytes     x bytes           25 bytes     y bytes
+     *     33 bytes     x bytes           33 bytes     y bytes
      * | inode_entry | file/dir name | inode entry | file/dir name | ...
      */
 
@@ -160,8 +160,10 @@ namespace qemucsd::fuse_lfs {
 
     struct inode_entry {
         uint64_t parent;   // Parent inode, can be 1 for root. only root has 0
+                           // but root inode is never stored on drive.
         uint64_t inode;    // This inode
         uint8_t  type;     // Inode type see enum inode_type
+        uint64_t size;     // Size of inode on drive in bytes
         uint64_t data_lba; // LBA of first data block
         // Followed by a null terminated file/dir name
     };

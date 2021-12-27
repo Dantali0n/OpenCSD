@@ -47,6 +47,8 @@ namespace qemucsd::fuse_lfs {
 
     nat_update_set_t FuseLFS::nat_update_set = nat_update_set_t();
 
+    inode_entries_t FuseLFS::inode_entries = inode_entries_t();
+
     // Current checkpoint position on drive
     struct data_position FuseLFS::cblock_pos = {
         0, 0, 0, 0
@@ -61,6 +63,13 @@ namespace qemucsd::fuse_lfs {
     struct data_position FuseLFS::random_ptr = {
         0, 0, 0, 0
     };
+
+    // Current write pointer into the log zone
+    struct data_position FuseLFS::log_ptr = {
+            0, 0, 0, 0
+    };
+
+    fuse_ino_t FuseLFS::ino_ptr = 0;
 
     const struct fuse_lowlevel_ops FuseLFS::operations = {
         .init       = FuseLFS::init,
@@ -89,7 +98,6 @@ namespace qemucsd::fuse_lfs {
         struct fuse_loop_config loop_config = {0};
 
         struct checkpoint_block cblock = {0};
-        path_node_t root = std::make_pair(0, "");
 
         int ret = -1;
 
@@ -191,26 +199,65 @@ namespace qemucsd::fuse_lfs {
         lba_to_position(cblock.randz_lba, random_pos);
 
         /** Determine random_ptr now that random_pos is known */
-        determine_random_ptr();
+        if(determine_random_ptr() == FLFS_RET_RANDZ_FULL) {
+            output.warning("Filesystem initialized while random zone still ",
+                           "full, unclean shutdown attempting recovery..");
+            if(rewrite_random_blocks() != FLFS_RET_NONE) {
+                ret = 1;
+                goto err_out1;
+            }
+
+            if(determine_random_ptr() != FLFS_RET_NONE) {
+                ret = 1;
+                goto err_out1;
+            }
+        }
 
         output(std::cout, "Creating root inode..");
-        path_inode_map.insert(std::make_pair(root, 1));
+        path_inode_map.insert(std::make_pair(1, new path_map_t()));
+
+        #if QEMUCSD_DEBUG
+        output.info("Create debug test file in root directory");
+        path_inode_map.find(1)->second->insert(std::make_pair("test", 2));
+        inode_lba_map.insert_or_assign(2, 0);
+        #endif
 
         /** Now that random_pos is known reconstruct inode lba map */
         // TODO(Dantali0n): Make this also reconstruct SIT blocks
         read_random_zone(&inode_lba_map);
 
+        /** Find highest free inode number and keep track */
+        for(auto &ino : inode_lba_map) {
+            if(ino.first > ino_ptr) ino_ptr = ino.first + 1;
+        }
+
+        /** Determine the log write pointer */
+        determine_log_ptr();
+
+        /** With inodes available build path_inode_map now */
+        // TODO(Dantali0n): Build path_inode_map
+        if(build_path_inode_map() != FLFS_RET_NONE) {
+            ret = 1;
+            goto err_out1;
+        }
+
         session = fuse_session_new(
             &args, &operations, sizeof(operations), nullptr);
-        if (session == nullptr)
+        if (session == nullptr) {
+            ret = 1;
             goto err_out1;
+        }
 
-        if (fuse_set_signal_handlers(session) != FLFS_RET_NONE)
+        if (fuse_set_signal_handlers(session) != FLFS_RET_NONE) {
+            ret = 1;
             goto err_out2;
+        }
 
         if (fuse_session_mount(session, opts.mountpoint) !=
-                FLFS_RET_NONE)
+                FLFS_RET_NONE) {
+            ret = 1;
             goto err_out3;
+        }
 
         fuse_daemonize(opts.foreground);
 
@@ -238,32 +285,33 @@ namespace qemucsd::fuse_lfs {
     /**
      * Translate the (inefficient) char* path to an inode starting from parent.
      * Absolute paths need to set parent to 0.
+     * TODO(Dantali0n): Repair this method
      */
     void FuseLFS::path_to_inode(
         fuse_ino_t parent, const char* path, fuse_ino_t &ino)
     {
-        std::istringstream spath(path);
-        std::string token;
-        fuse_ino_t cur_parent = parent;
-
-        // Iterate over the path with increased depth, finding the inode from
-        // the parent
-        while(std::getline(spath, token, '/')) {
-            // If find does not return the end of the map it's a match
-            auto it = path_inode_map.find(std::make_pair(cur_parent, token));
-            if(it == path_inode_map.end()) {
-                // Indicate not found, 0 is invalid inode
-                ino = 0;
-                return;
-            }
-
-            // Update the parent
-            cur_parent = it->second;
-        }
-
-        // If we traversed the entire path and found an entry at each stage in
-        // the map then the final update pointed to the actual inode.
-        ino = cur_parent;
+//        std::istringstream spath(path);
+//        std::string token;
+//        fuse_ino_t cur_parent = parent;
+//
+//        // Iterate over the path with increased depth, finding the inode from
+//        // the parent
+//        while(std::getline(spath, token, '/')) {
+//            // If find does not return the end of the map it's a match
+//            auto it = path_inode_map.find(std::make_pair(cur_parent, token));
+//            if(it == path_inode_map.end()) {
+//                // Indicate not found, 0 is invalid inode
+//                ino = 0;
+//                return;
+//            }
+//
+//            // Update the parent
+//            cur_parent = it->second;
+//        }
+//
+//        // If we traversed the entire path and found an entry at each stage in
+//        // the map then the final update pointed to the actual inode.
+//        ino = cur_parent;
     }
 
     /**
@@ -300,34 +348,65 @@ namespace qemucsd::fuse_lfs {
      * Meaning that a position inside the random zone will never advance into
      * the random buffer. Alternatively a position in the checkpoint zone will
      * never advance into the random zone etc...
+     * TODO(Dantali0n): Actually implement advance_position
      */
     void FuseLFS::advance_position(struct data_position &position) {
 
     }
 
     /**
-     * Find and fill the stbuf information for the given inode.
+     * Find and fill the stbuf information for the given inode. Every FUSE call
+     * that needs to determine if an inode exists should use this method.
      * TODO(Dantali0n): Cache these lookups as much as possible.
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ENONT upon not found
      */
     int FuseLFS::ino_stat(fuse_ino_t ino, struct stat *stbuf) {
-
+        auto lookup = inode_lba_map.end();
         stbuf->st_ino = ino;
-        switch (ino) {
-            case 1:
-                stbuf->st_mode = S_IFDIR | 0755;
-                stbuf->st_nlink = 2;
-                break;
 
-            case 2:
-                stbuf->st_mode = S_IFREG | 0444;
-                stbuf->st_nlink = 1;
-                stbuf->st_size = TEST_SIZE;
-                break;
-
-            default:
-                return FLFS_RET_ERR;
+        // Root inode has hardcoded data
+        if(ino == 1) {
+            goto ino_stat_dir;
         }
-        return FLFS_RET_NONE;
+
+        lookup = inode_lba_map.find(ino);
+        if(lookup != inode_lba_map.end()){
+            // Read the inode entry from drive and check if it is a file or
+            // directory
+            // TODO(Dantali0n): Cache this data somewhere as these lookups are
+            //                  quite expensive considering the return 1 bit of
+            //                  information (dir or not dir).
+
+            // Check if inode information still cached in inode_entries
+            for(auto &entry : inode_entries) {
+                if(entry.first.inode == ino) {
+                    stbuf->st_size = entry.first.size;
+                    if(entry.first.type == INO_T_FILE)
+                        goto ino_stat_file;
+                    else
+                        goto ino_stat_dir;
+                }
+            }
+
+            stbuf->st_mode = S_IFREG | 0644;
+            stbuf->st_nlink = 1;
+            stbuf->st_size = 11;
+
+            return FLFS_RET_NONE;
+        }
+        else
+            goto ino_stat_enoent;
+
+        ino_stat_file:
+            stbuf->st_mode = S_IFREG | 0644;
+            stbuf->st_nlink = 1;
+            return FLFS_RET_NONE;
+        ino_stat_dir:
+            stbuf->st_mode = S_IFDIR | 0755;
+            stbuf->st_nlink = 2;
+            return FLFS_RET_NONE;
+        ino_stat_enoent:
+            return FLFS_RET_ENOENT;
     }
 
     /**
@@ -692,7 +771,7 @@ namespace qemucsd::fuse_lfs {
      * be called after random_pos has been restored from checkpoint blocks.
      * TODO(Dantali0n): Process and reconstruct SIT map.
      */
-    int FuseLFS::read_random_zone(inode_lba_map_t *inode_map) {
+    void FuseLFS::read_random_zone(inode_lba_map_t *inode_map) {
         auto current_pos = random_pos;
         struct none_block nt_blk = {0};
 
@@ -731,8 +810,6 @@ namespace qemucsd::fuse_lfs {
                 current_pos.zone = RANDZ_POS.zone;
 
         } while(current_pos != random_pos);
-
-        return FLFS_RET_NONE;
     }
 
     /**
@@ -1005,7 +1082,6 @@ namespace qemucsd::fuse_lfs {
         uint32_t distance;
         random_zone_distance(random_pos, random_ptr, distance);
         while(distance > N_RAND_BUFF_ZONES) {
-
 
             random_zone_distance(random_pos, random_ptr, distance);
         }
@@ -1339,16 +1415,124 @@ namespace qemucsd::fuse_lfs {
 //        return FLFS_RET_NONE;
 //    }
 
+    /**
+     * Increment the log zone pointer and detect when the log zone is full
+     * @return FLFS_RET_NONE upon success, FLFS_RET_LOGZ_FULL if log zone full
+     */
+    int FuseLFS::advance_log_ptr(struct data_position *log_ptr) {
+        log_ptr->sector += 1;
+        if(log_ptr->sector == nvme_info.zone_capacity) {
+            log_ptr->sector = 0;
+            log_ptr->zone += 1;
+        }
+
+        // Log zone full, invalidate the log pointer
+        if(log_ptr->zone == nvme_info.num_zones) {
+            log_ptr->size = 0;
+            return FLFS_RET_LOGZ_FULL;
+        }
+
+        return FLFS_RET_NONE;
+    }
+
+    /**
+     * Find the location of the current log write pointer and adjust log_ptr
+     * accordingly.
+     */
+    void FuseLFS::determine_log_ptr() {
+        struct data_position drive_end =
+            {nvme_info.num_zones, 0, 0, SECTOR_SIZE};
+        void* buff = malloc(SECTOR_SIZE);
+        log_ptr = LOGZ_POS;
+
+        do {
+            if(nvme->read(log_ptr.zone, log_ptr.sector, log_ptr.offset, buff,
+                          SECTOR_SIZE) != 0)
+                break;
+
+            advance_log_ptr(&log_ptr);
+        } while(log_ptr != drive_end);
+
+        free(buff);
+    }
+
+    /**
+     * Read the entire drive its log zone and construct the path_inode_map.
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
+     */
+    int FuseLFS::build_path_inode_map() {
+
+    }
+
+    /**
+     * Create a new inode entry and add this to inode_entries. Increment ino_ptr
+     * accordingly.
+     * @return FLFS_RET_NONE upon success, FLFS_RET_MAX_INO if no more inodes
+     *         available
+     */
+    int FuseLFS::create_inode(fuse_entry_param *e,fuse_ino_t parent,
+        const char *name, enum inode_type type)
+    {
+        struct inode_entry entry = {0};
+        entry.parent = parent;
+        entry.type = type;
+        entry.inode = ino_ptr;
+        entry.data_lba = 0;
+        entry.size = 0;
+
+        if(ino_ptr == UINT64_MAX)
+            return FLFS_RET_MAX_INO;
+        ino_ptr += 1;
+
+        inode_entries.push_back(std::make_pair(entry, std::string(name)));
+
+        inode_lba_map.insert(std::make_pair(entry.inode, 0));
+        path_inode_map.find(parent)->second->insert(std::make_pair(name, entry.inode));
+
+        e->ino = entry.inode;
+
+        return FLFS_RET_NONE;
+    }
+
+    int FuseLFS::append_inode_block(inode_block *entries) {
+
+    }
+
+    int FuseLFS::append_data_block(data_block *data) {
+
+    }
+
+    /**
+     * Flush data to drive and return start lba of data. All data will be
+     * flushed linearly starting from lba.
+     * TODO(Dantali0n): Make nvme_zns backend support multi sector linear
+     *                  writes.
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
+     */
+    int FuseLFS::append_data(void *data, size_t size, uint64_t &lba) {
+        if(size != SECTOR_SIZE)
+            return FLFS_RET_ERR;
+
+        uint64_t res_sector;
+        if(nvme->append(log_ptr.zone, res_sector, log_ptr.offset, data, size)
+            != 0)
+            return FLFS_RET_ERR;
+
+        lba = res_sector;
+
+        return advance_log_ptr(&log_ptr);
+    }
+
     void FuseLFS::init(void *userdata, struct fuse_conn_info *conn) {
         connection = conn;
     }
 
     void FuseLFS::destroy(void *userdata) {
-        output(std::cout, "Tearing down filesystem");
+        output.info("Tearing down filesystem");
 
         if(remove_dirtyblock() != FLFS_RET_NONE) {
-            output(std::cerr, "Failed to remove dirty block from drive"
-                   " this will cause issues on subsequent mounts!");
+            output.error("Failed to remove dirty block from drive",
+                " this will cause issues on subsequent mounts!");
         }
     }
 
@@ -1358,60 +1542,92 @@ namespace qemucsd::fuse_lfs {
      * TODO(Dantali0n): Make lookup use path_to_inode function.
      */
     void FuseLFS::lookup(fuse_req_t req, fuse_ino_t parent, const char *name) {
-        struct fuse_entry_param e;
-        if (parent != 1 || strcmp(name, "test") != 0)
-            fuse_reply_err(req, ENOENT);
-        else {
-            memset(&e, 0, sizeof(e));
-            e.ino = 2;
-            e.attr_timeout = 1.0;
-            e.entry_timeout = 1.0;
-            ino_stat(e.ino, &e.attr);
+        struct fuse_entry_param e = {0};
+        e.ino = parent;
+        e.attr_timeout = 1.0;
+        e.entry_timeout = 1.0;
 
-            fuse_reply_entry(req, &e);
+        // Check if parent exists
+        if(ino_stat(e.ino, &e.attr) == FLFS_RET_ENOENT) {
+            fuse_reply_err(req, ENOENT);
+            return;
         }
+
+        // TODO(Dantali0n): Do not directly return not found if path_inode_map
+        //                  becomes partial / incomplete
+        // Search for the name in the path_inode_map
+        auto result = path_inode_map.find(parent)->second->find(name);
+        if(result == path_inode_map.find(parent)->second->end()) {
+            fuse_reply_err(req, ENOENT);
+            return;
+        }
+
+        // Clear parent fuse_entry_param information
+        memset(&e, 0, sizeof(e));
+
+        e.ino = result->second;
+        e.attr_timeout = 1.0;
+        e.entry_timeout = 1.0;
+        if(ino_stat(e.ino, &e.attr) == FLFS_RET_ENOENT) {
+            fuse_reply_err(req, ENOENT);
+            return;
+        }
+
+        fuse_reply_entry(req, &e);
     }
 
     void FuseLFS::getattr(fuse_req_t req, fuse_ino_t ino,
                           struct fuse_file_info *fi)
     {
         struct stat stbuf = {0};
-        if (ino_stat(ino, &stbuf) == -1)
+        if (ino_stat(ino, &stbuf) == FLFS_RET_ENOENT)
             fuse_reply_err(req, ENOENT);
         else
             fuse_reply_attr(req, &stbuf, 1.0);
     }
 
+    // TODO(Dantali0n): Use ino_stat
     void FuseLFS::readdir(fuse_req_t req, fuse_ino_t ino, size_t size,
                           off_t offset, struct fuse_file_info *fi)
     {
-        if(ino != 1) {
+        struct stat stbuf = {0};
+
+        // Check if the inode exists
+        if (ino_stat(ino, &stbuf) == FLFS_RET_ENOENT)
+            fuse_reply_err(req, ENOENT);
+
+        // Check if it is a directory
+        if(!(stbuf.st_mode & S_IFDIR))
             fuse_reply_err(req, ENOTDIR);
-            return;
-        }
 
         struct dir_buf buf;
-
         memset(&buf, 0, sizeof(buf));
-        dir_buf_add(req, &buf, ".", 1);
-        dir_buf_add(req, &buf, "..", 1);
-        dir_buf_add(req, &buf, "test", 2);
+        dir_buf_add(req, &buf, ".", ino);
+        dir_buf_add(req, &buf, "..", ino);
+
+        for(auto &entry : *path_inode_map.find(ino)->second) {
+            dir_buf_add(req, &buf, entry.first.c_str(), ino);
+        }
+
         reply_buf_limited(req, buf.p, buf.size, offset, size);
         free(buf.p);
     }
 
+    // TODO(Dantali0n): Use ino_stat
     void FuseLFS::open(fuse_req_t req, fuse_ino_t ino,
                       struct fuse_file_info *fi)
     {
-        // Inode 1 is root directory
-        if (ino == 1) {
-            fuse_reply_err(req, EISDIR);
+        struct stat stbuf = {0};
+
+        // Check if the inode exists
+        if(ino_stat(ino, &stbuf) == FLFS_RET_ENOENT) {
+            fuse_reply_err(req, ENONET);
             return;
         }
 
-        // If it is not inode 2 it does not exist.
-        if(ino != 2) {
-            fuse_reply_err(req, ENONET);
+        // Check if directory
+        if (stbuf.st_mode & S_IFDIR) {
+            fuse_reply_err(req, EISDIR);
             return;
         }
 
@@ -1428,28 +1644,60 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::create(fuse_req_t req, fuse_ino_t parent, const char *name,
                         mode_t mode, struct fuse_file_info *fi)
     {
-        return;
+        struct fuse_entry_param e = {0};
+        e.ino = parent;
+
+        // Maximum length of file / directory name is dominated by sector and
+        // inode_entry size.
+        if(strlen(name) > SECTOR_SIZE - sizeof(inode_entry)) {
+            fuse_reply_err(req, ENAMETOOLONG);
+        }
+
+        // Verify parent exists
+        if(ino_stat(e.ino, &e.attr) == FLFS_RET_ENOENT)
+            fuse_reply_err(req, ENOENT);
+
+        // Check if file exists
+        if(path_inode_map.find(parent)->second->find(name) !=
+            path_inode_map.find(parent)->second->end())
+            fuse_reply_err(req, EEXIST);
+
+        // Clear parent data from e
+        memset(&e, 0, sizeof(fuse_entry_param));
+
+        // Create directory
+        if(mode & S_IFDIR) {
+            create_inode(&e, parent, name, INO_T_DIR);
+            ino_stat(e.ino, &e.attr);
+            fuse_reply_create(req, &e, fi);
+        }
+        // Create file
+        else if(mode & S_IFREG) {
+            create_inode(&e, parent, name, INO_T_FILE);
+            ino_stat(e.ino, &e.attr);
+            fuse_reply_create(req, &e, fi);
+        }
+        // Symlinks, block and character devices are not supported
+        else {
+            // Operation not supported, Never reply ENOSYS this has side effects
+            // in FUSE.
+            fuse_reply_err(req, EOPNOTSUPP);
+        }
     }
 
+    // TODO(Dantali0n): Use ino_stat
     void FuseLFS::read(fuse_req_t req, fuse_ino_t ino, size_t size,
                        off_t offset, struct fuse_file_info *fi)
     {
         const fuse_ctx* context = fuse_req_ctx(req);
 
         // Non CSD path
-        char *buffer = (char *) malloc(TEST_SIZE);
+//        char *buffer = (char *) malloc(TEST_SIZE);
 
-        for (size_t i = 0; i < offset; i++) {
-            rand();
-        }
+        std::string buffer = "Je moeder!\n";
+        int check = reply_buf_limited(req, buffer.c_str(), buffer.size(), offset, size);
 
-        char value = 0;
-        for (size_t i = 0; i < size; i++) {
-            value = rand();
-            memcpy(buffer + i, &value, 1);
-        }
-
-        reply_buf_limited(req, buffer, TEST_SIZE, offset, size);
+//        free(buffer);
     }
 
     void FuseLFS::write(fuse_req_t req, fuse_ino_t ino, const char *buf,

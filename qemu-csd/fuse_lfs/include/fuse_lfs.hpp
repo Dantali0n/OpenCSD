@@ -69,6 +69,8 @@ namespace qemucsd::fuse_lfs {
 
         static const struct fuse_lowlevel_ops operations;
 
+        /** Inode, path and data position helper functions */
+
         static void path_to_inode(
             fuse_ino_t parent, const char* path, fuse_ino_t &ino);
 
@@ -82,12 +84,17 @@ namespace qemucsd::fuse_lfs {
 
         static void advance_position(struct data_position &position);
 
+        /** FUSE helper functions */
+
         static int ino_stat(fuse_ino_t ino, struct stat *stbuf);
 
         static int reply_buf_limited(fuse_req_t req, const char *buf,
                                      size_t bufsize, off_t off, size_t maxsize);
         static void dir_buf_add(fuse_req_t req, struct dir_buf* buf,
                                 const char *name, fuse_ino_t ino);
+
+        // TODO(Dantali0n): Move filesystem creation methods to separate
+        //                  interface
 
         static int mkfs();
 
@@ -139,7 +146,7 @@ namespace qemucsd::fuse_lfs {
             struct data_position lhs, struct data_position rhs,
             uint32_t &distance);
 
-        static int read_random_zone(inode_lba_map_t *inode_map);
+        static void read_random_zone(inode_lba_map_t *inode_map);
 
         static void fill_nat_block(nat_update_set_t *nat_set,
                                   struct nat_block &nt_blk);
@@ -160,6 +167,34 @@ namespace qemucsd::fuse_lfs {
         static int rewrite_random_blocks();
         static int rewrite_random_blocks_partial();
         static int rewrite_random_blocks_full();
+
+        // TODO(Dantali0n): Move inode block methods to separate interface
+
+        static inode_entries_t inode_entries;
+
+        // Keep track of the highest observed ino and increment it for new
+        // files and directories. The ino_ptr indicates the next possible ino
+        // for new files and directories (similar to write pointers)
+        static fuse_ino_t ino_ptr;
+
+        // Write pointer within the log zone
+        static struct data_position log_ptr;
+
+        static int advance_log_ptr(struct data_position *log_ptr);
+
+        static void determine_log_ptr();
+
+        static int build_path_inode_map();
+
+        static int create_inode(fuse_entry_param *e, fuse_ino_t parent,
+                                const char *name, enum inode_type type);
+
+        static int append_inode_block(inode_block *entries);
+
+        static int append_data_block(data_block *data);
+
+        static int append_data(void *data, size_t size, uint64_t &lba);
+
     public:
         FuseLFS() = delete;
         ~FuseLFS() = delete;
