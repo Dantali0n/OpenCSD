@@ -664,8 +664,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
         auto test_inode_map = qemucsd::fuse_lfs::inode_lba_map_t();
 
-        BOOST_CHECK(TestFuseLFS::read_random_zone(&test_inode_map) ==
-            qemucsd::fuse_lfs::FLFS_RET_NONE);
+        TestFuseLFS::read_random_zone(&test_inode_map);
 
         for(auto &entry : TestFuseLFS::inode_lba_map) {
             auto result = test_inode_map.find(entry.first);
@@ -720,8 +719,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
         auto test_inode_map = qemucsd::fuse_lfs::inode_lba_map_t();
 
-        BOOST_CHECK(TestFuseLFS::read_random_zone(&test_inode_map) ==
-                    qemucsd::fuse_lfs::FLFS_RET_NONE);
+        TestFuseLFS::read_random_zone(&test_inode_map);
 
         for(auto &entry : TestFuseLFS::inode_lba_map) {
             auto result = test_inode_map.find(entry.first);

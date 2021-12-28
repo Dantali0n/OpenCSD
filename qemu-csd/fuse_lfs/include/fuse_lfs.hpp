@@ -89,9 +89,6 @@ namespace qemucsd::fuse_lfs {
 
         /** Inode, path and data position helper functions */
 
-        static void path_to_inode(
-            fuse_ino_t parent, const char* path, fuse_ino_t &ino);
-
         static void inode_to_lba(fuse_ino_t ino, uint64_t &lba);
 
         static void lba_to_position(

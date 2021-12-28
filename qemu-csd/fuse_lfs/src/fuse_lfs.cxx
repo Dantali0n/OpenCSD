@@ -347,38 +347,6 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
-     * Translate the (inefficient) char* path to an inode starting from parent.
-     * Absolute paths need to set parent to 0.
-     * TODO(Dantali0n): Repair this method
-     */
-    void FuseLFS::path_to_inode(
-        fuse_ino_t parent, const char* path, fuse_ino_t &ino)
-    {
-//        std::istringstream spath(path);
-//        std::string token;
-//        fuse_ino_t cur_parent = parent;
-//
-//        // Iterate over the path with increased depth, finding the inode from
-//        // the parent
-//        while(std::getline(spath, token, '/')) {
-//            // If find does not return the end of the map it's a match
-//            auto it = path_inode_map.find(std::make_pair(cur_parent, token));
-//            if(it == path_inode_map.end()) {
-//                // Indicate not found, 0 is invalid inode
-//                ino = 0;
-//                return;
-//            }
-//
-//            // Update the parent
-//            cur_parent = it->second;
-//        }
-//
-//        // If we traversed the entire path and found an entry at each stage in
-//        // the map then the final update pointed to the actual inode.
-//        ino = cur_parent;
-    }
-
-    /**
      * Find the Logical Block Address (LBA) of any given inode. Behavior
      * undefined if the inode does not actually exist.
      */
