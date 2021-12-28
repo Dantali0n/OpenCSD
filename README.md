@@ -359,6 +359,8 @@ including:
 * [Getting started with ZNS in QEMU](https://www.snia.org/educational-library/getting-started-nvme-zns-qemu-2020)
 * [NVMe ZNS command set 1.0 ratified TP](https://nvmexpress.org/wp-content/uploads/NVM-Express-1.4-Ratified-TPs-1.zip)
 * [libnvme presentation](https://www.usenix.org/sites/default/files/conference/protected-files/vault20_slides_busch.pdf)
+* Filesystems
+  * [Linux Inode](https://man7.org/linux/man-pages/man7/inode.7.html)
 * FUSE
   * [FUSE kermel documentation](https://www.kernel.org/doc/html/latest/filesystems/fuse.html)
 * LFS

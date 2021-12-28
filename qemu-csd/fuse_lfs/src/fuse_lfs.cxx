@@ -41,6 +41,8 @@ namespace qemucsd::fuse_lfs {
     output::Output FuseLFS::output =
         output::Output(FuseLFS::FUSE_LFS_NAME_PREFIX);
 
+    inode_nlookup_map_t FuseLFS::inode_nlookup_map = inode_nlookup_map_t();
+
     path_inode_map_t FuseLFS::path_inode_map = path_inode_map_t();
 
     inode_lba_map_t FuseLFS::inode_lba_map = inode_lba_map_t();
@@ -66,7 +68,7 @@ namespace qemucsd::fuse_lfs {
 
     // Current write pointer into the log zone
     struct data_position FuseLFS::log_ptr = {
-            0, 0, 0, 0
+        0, 0, 0, 0
     };
 
     fuse_ino_t FuseLFS::ino_ptr = 0;
@@ -75,7 +77,9 @@ namespace qemucsd::fuse_lfs {
         .init       = FuseLFS::init,
         .destroy    = FuseLFS::destroy,
         .lookup     = FuseLFS::lookup,
+        .forget     = FuseLFS::forget,
         .getattr    = FuseLFS::getattr,
+        .mkdir      = FuseLFS::mkdir,
         .unlink     = FuseLFS::unlink,
         .open	    = FuseLFS::open,
         .read       = FuseLFS::read,
@@ -283,6 +287,66 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
+     * Increment nlookup for the given inode by either creating the map
+     * entry or incrementing the existing one.
+     */
+    void FuseLFS::inode_nlookup_increment(fuse_ino_t ino) {
+        auto it = inode_nlookup_map.find(ino);
+        if(it == inode_nlookup_map.end())
+            inode_nlookup_map.insert(std::make_pair(ino, 1));
+        else
+            it->second += 1;
+    }
+
+    void FuseLFS::inode_nlookup_decrement(fuse_ino_t ino, uint64_t count) {
+        auto it = inode_nlookup_map.find(ino);
+
+        if(it == inode_nlookup_map.end()) {
+            output.error("Requested to decrease nlookup count of inode that ",
+                "has already reached count zero!");
+            return;
+        }
+
+        #ifdef QEMUCSD_DEBUG
+        if(count > it->second)
+            output.error("Attempting to decrease nlookup count more than ",
+                "current value!");
+        #endif
+
+        it->second -= count;
+
+        // TODO(Dantali0n): Implement forget callbacks (unlink, rename, rmdir)
+        //                  and fire these once this count reaches zero.
+        if(it->second == 0)
+            inode_nlookup_map.erase(it);
+    }
+
+    /**
+     * Perform the necessary cache count management for inodes by tracking
+     * the nlookup value by wrapping fuse_reply_entry.
+     */
+    void FuseLFS::fuse_reply_entry_nlookup(
+        fuse_req_t req, struct fuse_entry_param *e)
+    {
+        inode_nlookup_increment(e->ino);
+        e->attr.st_nlink = inode_nlookup_map.find(e->ino)->second;
+        fuse_reply_entry(req, e);
+    }
+
+    /**
+     * Perform the necessary cache count management for inodes by tracking
+     * the nlookup value by wrapping fuse_reply_create.
+     */
+    void FuseLFS::fuse_reply_create_nlookup(
+        fuse_req_t req, struct fuse_entry_param *e,
+        const struct fuse_file_info *f)
+    {
+        inode_nlookup_increment(e->ino);
+        e->attr.st_nlink = inode_nlookup_map.find(e->ino)->second;
+        fuse_reply_create(req, e, f);
+    }
+
+    /**
      * Translate the (inefficient) char* path to an inode starting from parent.
      * Absolute paths need to set parent to 0.
      * TODO(Dantali0n): Repair this method
@@ -369,6 +433,7 @@ namespace qemucsd::fuse_lfs {
             goto ino_stat_dir;
         }
 
+        // Inode_lba_map should always be complete so find the inode there.
         lookup = inode_lba_map.find(ino);
         if(lookup != inode_lba_map.end()){
             // Read the inode entry from drive and check if it is a file or
@@ -1489,6 +1554,9 @@ namespace qemucsd::fuse_lfs {
         inode_lba_map.insert(std::make_pair(entry.inode, 0));
         path_inode_map.find(parent)->second->insert(std::make_pair(name, entry.inode));
 
+        if(type == INO_T_DIR)
+            path_inode_map.insert(std::make_pair(entry.inode, new path_map_t()));
+
         e->ino = entry.inode;
 
         return FLFS_RET_NONE;
@@ -1573,7 +1641,12 @@ namespace qemucsd::fuse_lfs {
             return;
         }
 
-        fuse_reply_entry(req, &e);
+        fuse_reply_entry_nlookup(req, &e);
+    }
+
+    void FuseLFS::forget(fuse_req_t req, fuse_ino_t ino, uint64_t nlookup) {
+        inode_nlookup_decrement(ino, nlookup);
+        fuse_reply_none(req);
     }
 
     void FuseLFS::getattr(fuse_req_t req, fuse_ino_t ino,
@@ -1632,6 +1705,7 @@ namespace qemucsd::fuse_lfs {
         }
 
         // Can only read files in this demo
+        // TODO(Dantali0n): Support opening files in write mode
         if ((fi->flags & O_ACCMODE) != O_RDONLY) {
             fuse_reply_err(req, EACCES);
             return;
@@ -1657,7 +1731,15 @@ namespace qemucsd::fuse_lfs {
         if(ino_stat(e.ino, &e.attr) == FLFS_RET_ENOENT)
             fuse_reply_err(req, ENOENT);
 
+        // Verify the parent is a directory, this check is already performed by
+        // Linux ABI
+        #ifdef QEMUCSD_DEBUG
+            if(e.attr.st_mode & S_IFREG)
+                fuse_reply_err(req, ENOTDIR);
+        #endif
+
         // Check if file exists
+        // TODO(Dantali0n): Fix this once path_inode_map becomes partial
         if(path_inode_map.find(parent)->second->find(name) !=
             path_inode_map.find(parent)->second->end())
             fuse_reply_err(req, EEXIST);
@@ -1669,13 +1751,13 @@ namespace qemucsd::fuse_lfs {
         if(mode & S_IFDIR) {
             create_inode(&e, parent, name, INO_T_DIR);
             ino_stat(e.ino, &e.attr);
-            fuse_reply_create(req, &e, fi);
+            fuse_reply_entry_nlookup(req, &e);
         }
         // Create file
         else if(mode & S_IFREG) {
             create_inode(&e, parent, name, INO_T_FILE);
             ino_stat(e.ino, &e.attr);
-            fuse_reply_create(req, &e, fi);
+            fuse_reply_create_nlookup(req, &e, fi);
         }
         // Symlinks, block and character devices are not supported
         else {
@@ -1683,6 +1765,17 @@ namespace qemucsd::fuse_lfs {
             // in FUSE.
             fuse_reply_err(req, EOPNOTSUPP);
         }
+    }
+
+    void FuseLFS::mkdir(fuse_req_t req, fuse_ino_t parent, const char *name,
+        mode_t mode)
+    {
+        // Unset S_IFREG
+        mode &= ~(S_IFREG);
+        // Set S_IFDIR
+        mode |= S_IFDIR;
+
+        create(req, parent, name, mode, nullptr);
     }
 
     // TODO(Dantali0n): Use ino_stat

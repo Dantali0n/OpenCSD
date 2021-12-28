@@ -58,6 +58,9 @@ namespace qemucsd::fuse_lfs {
         static struct nvme_zns::nvme_zns_info nvme_info;
         static nvme_zns::NvmeZnsBackend* nvme;
 
+        // Keep track of nlookup count per inode
+        static inode_nlookup_map_t inode_nlookup_map;
+
         // Map filenames and their respective parent to inodes
         static path_inode_map_t path_inode_map;
 
@@ -68,6 +71,21 @@ namespace qemucsd::fuse_lfs {
         static const std::string FUSE_SEQUENTIAL_PARAM;
 
         static const struct fuse_lowlevel_ops operations;
+
+        /** nlookup helpers */
+
+        // TODO(Dantali0n): Use nlookup count to drive path_inode_map caching
+        //                  and response to memory pressure
+
+        static void inode_nlookup_increment(fuse_ino_t ino);
+        static void inode_nlookup_decrement(fuse_ino_t ino, uint64_t count);
+
+        static void fuse_reply_entry_nlookup(
+            fuse_req_t req, struct fuse_entry_param *e);
+
+        static void fuse_reply_create_nlookup(
+            fuse_req_t req, struct fuse_entry_param *e,
+            const struct fuse_file_info *f);
 
         /** Inode, path and data position helper functions */
 
@@ -205,6 +223,7 @@ namespace qemucsd::fuse_lfs {
         static void init(void *userdata, struct fuse_conn_info *conn);
         static void destroy(void *userdata);
         static void lookup(fuse_req_t req, fuse_ino_t parent, const char *name);
+        static void forget(fuse_req_t req, fuse_ino_t ino, uint64_t nlookup);
         static void getattr(fuse_req_t req, fuse_ino_t ino,
                            struct fuse_file_info *fi);
         static void readdir(
@@ -214,6 +233,8 @@ namespace qemucsd::fuse_lfs {
                          struct fuse_file_info *fi);
         static void create(fuse_req_t req, fuse_ino_t parent, const char *name,
                           mode_t mode, struct fuse_file_info *fi);
+        static void mkdir(fuse_req_t req, fuse_ino_t parent, const char *name,
+                          mode_t mode);
         static void read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                         struct fuse_file_info *fi);
         static void write(fuse_req_t req, fuse_ino_t ino, const char *buf,

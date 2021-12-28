@@ -44,6 +44,13 @@ namespace qemucsd::fuse_lfs {
         size_t size;
     };
 
+    // Keep track of the number of nlookups per inode.
+    // Increases by one for every call to fuse_reply_entry & fuse_reply_create
+    // Decreases by calls to forget.
+    // Scheduled unlink, rmdir or rename operations can only be flushed when
+    // count reaches 0.
+    typedef std::map<fuse_ino_t, uint64_t> inode_nlookup_map_t;
+
     // Section of path at with a certain parent.
     // TODO(Dantali0n): Investigate if memory consumption will be beyond control
     typedef std::pair<fuse_ino_t, std::string> path_node_t;
