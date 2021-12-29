@@ -27,9 +27,6 @@
 
 namespace qemucsd::fuse_lfs {
 
-    // TODO(Dantali0n): Remove me
-    static constexpr uint64_t TEST_SIZE = 4096;
-
     struct fuse_conn_info* FuseLFS::connection = nullptr;
 
     struct nvme_zns::nvme_zns_info FuseLFS::nvme_info = {0};
@@ -51,6 +48,8 @@ namespace qemucsd::fuse_lfs {
 
     inode_entries_t FuseLFS::inode_entries = inode_entries_t();
 
+    open_inode_map_t FuseLFS::open_inode_map = open_inode_map_t();
+
     // Current checkpoint position on drive
     struct data_position FuseLFS::cblock_pos = {
         0, 0, 0, 0
@@ -71,7 +70,12 @@ namespace qemucsd::fuse_lfs {
         0, 0, 0, 0
     };
 
+    // Will be set to at least 2 upon initialization as 0 is invalid and 1 is
+    // root inode.
     fuse_ino_t FuseLFS::ino_ptr = 0;
+
+    // In memory session so this always start at 1.
+    uint64_t FuseLFS::fh_ptr = 1;
 
     const struct fuse_lowlevel_ops FuseLFS::operations = {
         .init       = FuseLFS::init,
@@ -84,6 +88,7 @@ namespace qemucsd::fuse_lfs {
         .open	    = FuseLFS::open,
         .read       = FuseLFS::read,
         .write      = FuseLFS::write,
+        .release    = FuseLFS::release,
         .readdir    = FuseLFS::readdir,
         .create     = FuseLFS::create,
     };
@@ -465,8 +470,8 @@ namespace qemucsd::fuse_lfs {
         buf->p = (char *) realloc(buf->p, buf->size);
         memset(&stbuf, 0, sizeof(stbuf));
         stbuf.st_ino = ino;
-        fuse_add_direntry(req, buf->p + oldsize, buf->size - oldsize, name, &stbuf,
-        buf->size);
+        fuse_add_direntry(req, buf->p + oldsize, buf->size - oldsize, name,
+                          &stbuf, buf->size);
     }
 
     /**
@@ -1039,8 +1044,8 @@ namespace qemucsd::fuse_lfs {
                     auto nat_blk = reinterpret_cast<nat_block *>(&nt_blk);
                     // Iterate over each inode in the block
                     for(uint32_t z = 0; z < NAT_BLK_INO_LBA_NUM; z++) {
-                        // If we have yet to rewrite this inode add it to the set
-                        // and removes it from our map of pending updates.
+                        // If we have yet to rewrite this inode add it to the
+                        // set and removes it from our map of pending updates.
                         auto it = inodes->find(nat_blk->inode[z]);
 
                         #ifdef FLFS_RANDOM_RW_STRICT
@@ -1049,7 +1054,8 @@ namespace qemucsd::fuse_lfs {
                         if(it != inodes->end()) {
                         #endif
                             nat_set->insert(nat_blk->inode[z]);
-                            // Reuse iterator for erase, prevents additional lookup
+                            // Reuse iterator for erase, prevents additional
+                            // lookup
                             inodes->erase(it);
                         }
                     }
@@ -1520,10 +1526,12 @@ namespace qemucsd::fuse_lfs {
         inode_entries.push_back(std::make_pair(entry, std::string(name)));
 
         inode_lba_map.insert(std::make_pair(entry.inode, 0));
-        path_inode_map.find(parent)->second->insert(std::make_pair(name, entry.inode));
+        path_inode_map.find(parent)->second->insert(
+            std::make_pair(name, entry.inode));
 
         if(type == INO_T_DIR)
-            path_inode_map.insert(std::make_pair(entry.inode, new path_map_t()));
+            path_inode_map.insert(std::make_pair(entry.inode,
+                                                 new path_map_t()));
 
         e->ino = entry.inode;
 
@@ -1536,6 +1544,30 @@ namespace qemucsd::fuse_lfs {
 
     int FuseLFS::append_data_block(data_block *data) {
 
+    }
+
+    /**
+     * Create a uniquely identifying file handle for the inode and calling pid.
+     * These are necessary for state management such as CSD operations and in
+     * memory snapshots.
+     */
+    void FuseLFS::create_file_handle(
+        fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
+    {
+        const fuse_ctx *context = fuse_req_ctx(req);
+
+        open_inode_map.insert(
+            std::make_pair(fh_ptr, std::make_pair(ino, context->pid)));
+
+        fi->fh = fh_ptr;
+
+        if(fh_ptr == UINT64_MAX)
+            output.fatal("Exhausted all possible file handles!");
+        fh_ptr += 1;
+    }
+
+    void FuseLFS::release_file_handle(struct fuse_file_info *fi) {
+        open_inode_map.erase(fi->fh);
     }
 
     /**
@@ -1679,12 +1711,27 @@ namespace qemucsd::fuse_lfs {
             return;
         }
 
-        // Open the file at inode 2
+        create_file_handle(req, ino, fi);
+
         fuse_reply_open(req, fi);
     }
 
+    void FuseLFS::release(
+        fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
+    {
+        struct fuse_entry_param e = {0};
+
+        // Check that inode exists and retrieve its basic information
+        if(ino_stat(ino, &e.attr) == FLFS_RET_ENOENT)
+            fuse_reply_err(req, ENOENT);
+
+        // Release file handle if not directory
+        if(e.attr.st_mode & S_IFREG)
+            release_file_handle(fi);
+    }
+
     void FuseLFS::create(fuse_req_t req, fuse_ino_t parent, const char *name,
-                        mode_t mode, struct fuse_file_info *fi)
+                         mode_t mode, struct fuse_file_info *fi)
     {
         struct fuse_entry_param e = {0};
         e.ino = parent;
@@ -1725,6 +1772,7 @@ namespace qemucsd::fuse_lfs {
         else if(mode & S_IFREG) {
             create_inode(&e, parent, name, INO_T_FILE);
             ino_stat(e.ino, &e.attr);
+            create_file_handle(req, e.ino, fi);
             fuse_reply_create_nlookup(req, &e, fi);
         }
         // Symlinks, block and character devices are not supported

@@ -362,6 +362,7 @@ including:
 * Filesystems
   * [Linux Inode](https://man7.org/linux/man-pages/man7/inode.7.html)
 * FUSE
+  * [To FUSE or Not to FUSE: Performance of User-Space File Systems](http://libfuse.github.io/doxygen/fast17-vangoor.pdf)
   * [FUSE kermel documentation](https://www.kernel.org/doc/html/latest/filesystems/fuse.html)
 * LFS
   * [f2fs usenix paper](https://www.usenix.org/system/files/conference/fast15/fast15-paper-lee.pdf)

@@ -58,9 +58,6 @@ namespace qemucsd::fuse_lfs {
         static struct nvme_zns::nvme_zns_info nvme_info;
         static nvme_zns::NvmeZnsBackend* nvme;
 
-        // Keep track of nlookup count per inode
-        static inode_nlookup_map_t inode_nlookup_map;
-
         // Map filenames and their respective parent to inodes
         static path_inode_map_t path_inode_map;
 
@@ -73,6 +70,9 @@ namespace qemucsd::fuse_lfs {
         static const struct fuse_lowlevel_ops operations;
 
         /** nlookup helpers */
+
+        // Keep track of nlookup count per inode
+        static inode_nlookup_map_t inode_nlookup_map;
 
         // TODO(Dantali0n): Use nlookup count to drive path_inode_map caching
         //                  and response to memory pressure
@@ -210,6 +210,20 @@ namespace qemucsd::fuse_lfs {
 
         static int append_data(void *data, size_t size, uint64_t &lba);
 
+        // TODO(Dantali0n): Move CSD / snapshot methods to separate interface
+
+        // File handle pointer for open files
+        static uint64_t fh_ptr;
+
+        // Keep track of open files and directories using unique handles for
+        // respective inodes and caller pids.
+        static open_inode_map_t open_inode_map;
+
+        static void create_file_handle(
+            fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi);
+
+        static void release_file_handle(struct fuse_file_info *fi);
+
     public:
         FuseLFS() = delete;
         ~FuseLFS() = delete;
@@ -228,6 +242,8 @@ namespace qemucsd::fuse_lfs {
             struct fuse_file_info *fi);
         static void open(fuse_req_t req, fuse_ino_t ino,
                          struct fuse_file_info *fi);
+        static void release(fuse_req_t req, fuse_ino_t ino,
+                            struct fuse_file_info *fi);
         static void create(fuse_req_t req, fuse_ino_t parent, const char *name,
                           mode_t mode, struct fuse_file_info *fi);
         static void mkdir(fuse_req_t req, fuse_ino_t parent, const char *name,

@@ -65,6 +65,9 @@ namespace qemucsd::fuse_lfs {
     // Map corresponding inodes to the lba storing the inode_block
     typedef std::map<fuse_ino_t, uint64_t> inode_lba_map_t;
 
+    // Unique file handles corresponding to open inodes their inode and pid
+    typedef std::map<uint64_t , std::pair<fuse_ino_t, pid_t>> open_inode_map_t;
+
     /**
      * In memory datastructures for synchronizing between memory and drive.
      */
