@@ -97,6 +97,10 @@ namespace qemucsd::fuse_lfs {
         static void position_to_lba(
             struct data_position position, uint64_t &lba);
 
+        static void update_inode_lba_map(
+            std::vector<fuse_ino_t> *inodes, uint64_t lba,
+            inode_lba_map_t *lba_map);
+
         static void advance_position(struct data_position &position);
 
         /** FUSE helper functions */
@@ -155,6 +159,8 @@ namespace qemucsd::fuse_lfs {
         //
         static struct data_position random_ptr;
 
+        static void add_nat_update_set_entries(std::vector<fuse_ino_t> *inodes);
+
         static int determine_random_ptr();
 
         static void random_zone_distance(
@@ -201,14 +207,28 @@ namespace qemucsd::fuse_lfs {
 
         static int build_path_inode_map();
 
+        static int fill_inode_block(
+            struct inode_block *blck, std::vector<fuse_ino_t> *ino_remove,
+            inode_entries_t *entries);
+
+        static void erase_entries(
+            std::vector<fuse_ino_t> *ino_remove, inode_entries_t *entries);
+
         static int create_inode(fuse_entry_param *e, fuse_ino_t parent,
                                 const char *name, enum inode_type type);
 
-        static int append_inode_block(inode_block *entries);
+        static int update_inode(inode_entry *entry, const char *name);
 
-        static int append_data_block(data_block *data);
+        static int log_append(void *data, size_t size, uint64_t &lba);
 
-        static int append_data(void *data, size_t size, uint64_t &lba);
+        // TOOD(Dantali0n): Move synchronization / flush methods to separate
+        //                  interface.
+
+        static int flush_inodes(bool only_if_full);
+
+        static int flush_inodes_always();
+
+        static int flush_inodes_if_full();
 
         // TODO(Dantali0n): Move CSD / snapshot methods to separate interface
 
@@ -223,6 +243,11 @@ namespace qemucsd::fuse_lfs {
             fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi);
 
         static void release_file_handle(struct fuse_file_info *fi);
+
+        // TODO(Dantali0n): Move Garbage Collection methods to separate
+        //                  interface
+
+        static int log_garbage_collect();
 
     public:
         FuseLFS() = delete;
@@ -252,6 +277,8 @@ namespace qemucsd::fuse_lfs {
                         struct fuse_file_info *fi);
         static void write(fuse_req_t req, fuse_ino_t ino, const char *buf,
                          size_t size, off_t off, struct fuse_file_info *fi);
+        static void fsync(fuse_req_t req, fuse_ino_t ino, int datasync,
+                          struct fuse_file_info *fi);
         static void unlink(fuse_req_t req, fuse_ino_t parent, const char *name);
     };
 }

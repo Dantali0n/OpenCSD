@@ -35,7 +35,6 @@
 
 BOOST_AUTO_TEST_SUITE(Test_FuseLfs)
 
-    using qemucsd::fuse_lfs::path_node_t;
     using qemucsd::fuse_lfs::FuseLFS;
 
     class DummyBackend : public qemucsd::nvme_zns::NvmeZnsBackend {

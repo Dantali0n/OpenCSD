@@ -53,7 +53,23 @@ namespace qemucsd::fuse_lfs {
      */
 //    #define FLFS_RANDOM_RW_STRICT
 
+    /**
+     * Flush the nat_update_set as soon as entries occupy one nat_block instead
+     * of waiting for periodic flushes.
+     */
+//    #define FLFS_NAT_FLUSH_IMMEDIATE
 
+    /**
+     * Flush the sit_update_set as soon as entries occupy one sit_block instead
+     * of waiting for periodic flushes.
+     */
+//    #define FLFS_SIT_FLUSH_IMMEDIATE
+
+    /**
+     * Flush inode_entries as soon as they occupy one inode_block instead of
+     * waiting for periodic flushes.
+     */
+    #define FLFS_INODE_FLUSH_IMMEDIATE
 
     #define flfs_min(x, y) ((x) < (y) ? (x) : (y))
 
@@ -76,8 +92,11 @@ namespace qemucsd::fuse_lfs {
         // Maximum number of inodes used
         FLFS_RET_MAX_INO            =  4,
 
+        // Indicate the inode_entries filled an entire inode_block
+        FLFS_RET_INO_BLK_FULL       =  5,
+
         // Indicate the requested inode was not found
-        FLFS_RET_ENOENT             =  5,
+        FLFS_RET_ENOENT             =  6,
     };
 
     /**

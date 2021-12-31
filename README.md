@@ -607,6 +607,8 @@ see source files such as `fuse_lfs_disc.hpp` until design is frozen.
 - data_position struct and its validity and comparisons being controlled by
   their size property is clunky and counterintuitive.
 - random zone can only be rewritten once it is completely full.
+- compaction is only performed upon garbage collection, initial writes might use
+  only partially filled data blocks.
 
 #### Non-persistent Conditional Extended Attributes in FUSE
 

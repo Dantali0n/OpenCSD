@@ -361,8 +361,6 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Compute the position of data from a Logical Block Address (LBA).
-     * TODO(Dantali0n): Use an LRU cache of configurable size for recent
-     *                  positions.
      */
     void FuseLFS::lba_to_position(
         uint64_t lba, struct data_position &position)
@@ -378,6 +376,17 @@ namespace qemucsd::fuse_lfs {
         struct data_position position, uint64_t &lba)
     {
         nvme->position_to_lba(position.zone, position.sector, lba);
+    }
+
+    /**
+     * Update an inode_lba_map_t with the provided lba for the vector of inodes
+     */
+    void FuseLFS::update_inode_lba_map(
+        std::vector<fuse_ino_t> *inodes, uint64_t lba,
+        inode_lba_map_t *lba_map = &inode_lba_map)
+    {
+        for(auto &ino : *inodes)
+            lba_map->insert_or_assign(ino, lba);
     }
 
     /**
@@ -415,15 +424,15 @@ namespace qemucsd::fuse_lfs {
             //                  quite expensive considering the return 1 bit of
             //                  information (dir or not dir).
 
-            // Check if inode information still cached in inode_entries
-            for(auto &entry : inode_entries) {
-                if(entry.first.inode == ino) {
-                    stbuf->st_size = entry.first.size;
-                    if(entry.first.type == INO_T_FILE)
-                        goto ino_stat_file;
-                    else
-                        goto ino_stat_dir;
-                }
+            // Check if inode information still unflushed in inode_entries
+            auto it = inode_entries.find(ino);
+            if(it != inode_entries.end()) {
+                auto data_pair = it->second;
+                stbuf->st_size = data_pair.first.size;
+                if(data_pair.first.type == INO_T_FILE)
+                    goto ino_stat_file;
+                else
+                    goto ino_stat_dir;
             }
 
             stbuf->st_mode = S_IFREG | 0644;
@@ -731,6 +740,14 @@ namespace qemucsd::fuse_lfs {
         cblock = tmp_cblock;
 
         return FLFS_RET_NONE;
+    }
+
+    /**
+     * Add an inode to the nat_set to be processed on next flush
+     */
+    void FuseLFS::add_nat_update_set_entries(std::vector<fuse_ino_t> *inodes) {
+        for(auto &ino : *inodes)
+            nat_update_set.insert(ino);
     }
 
     /**
@@ -1142,8 +1159,8 @@ namespace qemucsd::fuse_lfs {
         uint32_t steps = (RANDZ_BUFF_POS.zone - RANDZ_POS.zone) /
             N_RAND_BUFF_ZONES;
         #ifdef QEMUCSD_DEBUG
-            if((RANDZ_BUFF_POS.zone - RANDZ_POS.zone) % N_RAND_BUFF_ZONES != 0)
-                return FLFS_RET_ERR;
+        if((RANDZ_BUFF_POS.zone - RANDZ_POS.zone) % N_RAND_BUFF_ZONES != 0)
+            return FLFS_RET_ERR;
         #endif
         for(uint32_t i = 0; i < steps; i++) {
             /** 1. Copy from random_pos into the random buffer */
@@ -1273,12 +1290,74 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
+     * Fill an inode_block for entries and remove every entry added to block
+     * @return FLFS_RET_NONE if block not full, FLFS_RET_INO_BLK_FULL if the
+     *         entire block is filled.
+     */
+    int FuseLFS::fill_inode_block(
+        struct inode_block *blck, std::vector<fuse_ino_t> *ino_remove,
+        inode_entries_t *entries)
+    {
+        static constexpr size_t INODE_ENTRY_SIZE = sizeof(inode_entry);
+        static constexpr size_t INODE_BLOCK_SIZE = sizeof(inode_block);
+
+        ino_remove->reserve(INODE_ENTRY_SIZE / INODE_BLOCK_SIZE);
+
+        // Keep track of the occupied size by the current inode_entries
+        uint32_t occupied_size = 0;
+
+        // Store inode_entries and names in temporary buffer as we can overshoot
+        uint8_t *buffer = (uint8_t*) malloc(INODE_BLOCK_SIZE * 2);
+
+        for(auto &entry : *entries) {
+            // If no more space return that the block is full
+            if(entry.second.second.size() + 1 + occupied_size +
+               INODE_ENTRY_SIZE > INODE_BLOCK_SIZE)
+                goto compute_inode_block_full;
+
+            memcpy(buffer + occupied_size,
+                   &entry.second.first, INODE_ENTRY_SIZE);
+            occupied_size += INODE_ENTRY_SIZE;
+
+            memcpy(buffer + occupied_size,
+                   entry.second.second.c_str(), entry.second.second.size() + 1);
+            occupied_size += entry.second.second.size() + 1;
+
+            ino_remove->push_back(entry.first);
+        }
+
+        // If remaining space insufficient return full
+        if(occupied_size > INODE_BLOCK_SIZE - INODE_ENTRY_SIZE)
+            goto compute_inode_block_full;
+
+        // Block is not full so return none
+        return FLFS_RET_NONE;
+
+        compute_inode_block_full:
+        memcpy(blck, buffer, INODE_BLOCK_SIZE);
+        return FLFS_RET_INO_BLK_FULL;
+    }
+
+    /**
+     * Remove the inode_entries present in ino_remove
+     */
+    void FuseLFS::erase_entries(
+        std::vector<fuse_ino_t> *ino_remove,
+        inode_entries_t *entries = &inode_entries)
+    {
+        for(auto &inode : *ino_remove)
+            entries->erase(inode);
+    }
+
+    /**
      * Create a new inode entry and add this to inode_entries. Increment ino_ptr
      * accordingly.
-     * @return FLFS_RET_NONE upon success, FLFS_RET_MAX_INO if no more inodes
-     *         available
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon error,
+     *         FLFS_RET_MAX_INO if no more inodes available and
+     *         FLFS_RET_LOGZ_FULL if the log zone is full
+     *         (LOGZ_FULL only when FLFS_INODE_FLUSH_IMMEDIATE is defined).
      */
-    int FuseLFS::create_inode(fuse_entry_param *e,fuse_ino_t parent,
+    int FuseLFS::create_inode(fuse_entry_param *e, fuse_ino_t parent,
         const char *name, enum inode_type type)
     {
         struct inode_entry entry = {0};
@@ -1292,27 +1371,142 @@ namespace qemucsd::fuse_lfs {
             return FLFS_RET_MAX_INO;
         ino_ptr += 1;
 
-        inode_entries.push_back(std::make_pair(entry, std::string(name)));
+        inode_entries.insert_or_assign(
+            entry.inode, std::make_pair(entry, std::string(name)));
 
         inode_lba_map.insert(std::make_pair(entry.inode, 0));
+
+        // Newly created inodes are added to path_inode_map. Normally this is
+        // handled by lookup only when a file is looked up and nlookup becomes
+        // non zero but since this inode is not flushed to drive yet a call to
+        // lookup would fail otherwise as the lba for this inode is still 0.
         path_inode_map.find(parent)->second->insert(
             std::make_pair(name, entry.inode));
-
         if(type == INO_T_DIR)
             path_inode_map.insert(std::make_pair(entry.inode,
                                                  new path_map_t()));
 
+        // Communicate new inode information to caller through fuse_entry_param
         e->ino = entry.inode;
+        if(type == INO_T_FILE) e->attr.st_mode = S_IFREG;
+        else e->attr.st_mode = S_IFDIR;
+        e->attr.st_size = 0;
+
+        #ifdef FLFS_INODE_FLUSH_IMMEDIATE
+        return flush_inodes(true);
+        #endif
 
         return FLFS_RET_NONE;
     }
 
-    int FuseLFS::append_inode_block(inode_block *entries) {
+    /**
+     * Update any given inode by adding or overriding the new data to
+     * inode_entries
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon error and
+     *         FLFS_RET_LOGZ_FULL if the log zone is full
+     *         (LOGZ_FULL only when FLFS_INODE_FLUSH_IMMEDIATE is defined).
+     */
+    int FuseLFS::update_inode(inode_entry *entry, const char *name) {
 
+        // This overrides the inode_entry in case the previous one hadn't
+        // flushed to drive yet.
+        inode_entries.insert_or_assign(
+            entry->inode, std::make_pair(*entry, name));
+
+        #ifdef FLFS_INODE_FLUSH_IMMEDIATE
+        return flush_inodes(true);
+        #endif
+
+        return FLFS_RET_NONE;
     }
 
-    int FuseLFS::append_data_block(data_block *data) {
+    /**
+     * Flush data to drive and return start lba of data. All data will be
+     * flushed linearly starting from lba.
+     * TODO(Dantali0n): Make nvme_zns backend support multi sector linear
+     *                  writes.
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure and
+     *         FLFS_RET_LOGZ_FULL if the log zone is full.
+     */
+    int FuseLFS::log_append(void *data, size_t size, uint64_t &lba) {
+        if(size != SECTOR_SIZE)
+            return FLFS_RET_ERR;
 
+        uint64_t res_sector;
+        if(nvme->append(log_ptr.zone, res_sector, log_ptr.offset, data, size)
+           != 0)
+            return FLFS_RET_ERR;
+
+        lba = res_sector;
+
+        return advance_log_ptr(&log_ptr);
+    }
+
+    /**
+     * Flush inodes to drive either unconditionally or when an entire block can
+     * be filled. Notice; flush_inodes_if_fill flushes a single block at most.
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon error and
+     *         FLFS_RET_LOGZ_FULL if log zone full.
+     */
+    int FuseLFS::flush_inodes(bool only_if_full = false) {
+        if(only_if_full)
+            return flush_inodes_if_full();
+        else
+            return flush_inodes_always();
+    }
+
+    /**
+     * Flush a single inode block to drive but only of it is filled completely
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon error and
+     *         FLFS_RET_LOGZ_FULL if log zone full.
+     */
+    int FuseLFS::flush_inodes_if_full() {
+        struct inode_block blk = {0};
+        std::vector<fuse_ino_t> inodes;
+        uint64_t res_sector;
+        int result;
+
+        if(fill_inode_block(&blk, &inodes, &inode_entries) ==
+           FLFS_RET_INO_BLK_FULL)
+        {
+            result = log_append(&blk, sizeof(inode_block), res_sector);
+
+            if (result == FLFS_RET_NONE) {
+                erase_entries(&inodes);
+                update_inode_lba_map(&inodes, res_sector);
+                add_nat_update_set_entries(&inodes);
+            }
+            else return result;
+        }
+
+        return FLFS_RET_NONE;
+    }
+
+    /**
+     * Flush one or more inode_blocks to the drive with the first regardless
+     * of how full it is.
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon error and
+     *         FLFS_RET_LOGZ_FULL if log zone full.
+     */
+    int FuseLFS::flush_inodes_always() {
+        struct inode_block blk = {0};
+        std::vector<fuse_ino_t> inodes;
+        uint64_t res_sector;
+        int result = 0;
+
+        fill_inode_block(&blk, &inodes, &inode_entries);
+        do {
+            result = log_append(&blk, sizeof(inode_block), res_sector);
+            if(result == FLFS_RET_NONE) {
+                erase_entries(&inodes);
+                update_inode_lba_map(&inodes, res_sector);
+                add_nat_update_set_entries(&inodes);
+            }
+            else return result;
+        } while(fill_inode_block(&blk, &inodes, &inode_entries) ==
+                FLFS_RET_INO_BLK_FULL);
+
+        return FLFS_RET_NONE;
     }
 
     /**
@@ -1321,12 +1515,12 @@ namespace qemucsd::fuse_lfs {
      * memory snapshots.
      */
     void FuseLFS::create_file_handle(
-        fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
+            fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
     {
         const fuse_ctx *context = fuse_req_ctx(req);
 
         open_inode_map.insert(
-            std::make_pair(fh_ptr, std::make_pair(ino, context->pid)));
+                std::make_pair(fh_ptr, std::make_pair(ino, context->pid)));
 
         fi->fh = fh_ptr;
 
@@ -1335,29 +1529,11 @@ namespace qemucsd::fuse_lfs {
         fh_ptr += 1;
     }
 
+    /**
+     * Called be release to remove the session for a file handle
+     */
     void FuseLFS::release_file_handle(struct fuse_file_info *fi) {
         open_inode_map.erase(fi->fh);
-    }
-
-    /**
-     * Flush data to drive and return start lba of data. All data will be
-     * flushed linearly starting from lba.
-     * TODO(Dantali0n): Make nvme_zns backend support multi sector linear
-     *                  writes.
-     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
-     */
-    int FuseLFS::append_data(void *data, size_t size, uint64_t &lba) {
-        if(size != SECTOR_SIZE)
-            return FLFS_RET_ERR;
-
-        uint64_t res_sector;
-        if(nvme->append(log_ptr.zone, res_sector, log_ptr.offset, data, size)
-            != 0)
-            return FLFS_RET_ERR;
-
-        lba = res_sector;
-
-        return advance_log_ptr(&log_ptr);
     }
 
     void FuseLFS::init(void *userdata, struct fuse_conn_info *conn) {
@@ -1376,7 +1552,9 @@ namespace qemucsd::fuse_lfs {
     /**
      * Lookup the given inode for the parent, name pair and use ino_stat
      * to fill out information about the found inode.
-     * TODO(Dantali0n): Make lookup use path_to_inode function.
+     * TODO(Dantali0n): Any inode accessed with lookup should be added to
+     *                  path_inode_map. Subsequently, if nlookup reaches 0 it
+     *                  should be removed.
      */
     void FuseLFS::lookup(fuse_req_t req, fuse_ino_t parent, const char *name) {
         struct fuse_entry_param e = {0};
@@ -1428,7 +1606,6 @@ namespace qemucsd::fuse_lfs {
             fuse_reply_attr(req, &stbuf, 1.0);
     }
 
-    // TODO(Dantali0n): Use ino_stat
     void FuseLFS::readdir(fuse_req_t req, fuse_ino_t ino, size_t size,
                           off_t offset, struct fuse_file_info *fi)
     {
@@ -1447,6 +1624,7 @@ namespace qemucsd::fuse_lfs {
         dir_buf_add(req, &buf, ".", ino);
         dir_buf_add(req, &buf, "..", ino);
 
+        // TODO(Dantali0n): Fix this once path_inode_map becomes partial
         for(auto &entry : *path_inode_map.find(ino)->second) {
             dir_buf_add(req, &buf, entry.first.c_str(), ino);
         }
@@ -1455,7 +1633,6 @@ namespace qemucsd::fuse_lfs {
         free(buf.p);
     }
 
-    // TODO(Dantali0n): Use ino_stat
     void FuseLFS::open(fuse_req_t req, fuse_ino_t ino,
                       struct fuse_file_info *fi)
     {
@@ -1518,8 +1695,8 @@ namespace qemucsd::fuse_lfs {
         // Verify the parent is a directory, this check is already performed by
         // Linux ABI
         #ifdef QEMUCSD_DEBUG
-            if(e.attr.st_mode & S_IFREG)
-                fuse_reply_err(req, ENOTDIR);
+        if(e.attr.st_mode & S_IFREG)
+            fuse_reply_err(req, ENOTDIR);
         #endif
 
         // Check if file exists
@@ -1563,25 +1740,73 @@ namespace qemucsd::fuse_lfs {
         create(req, parent, name, mode, nullptr);
     }
 
-    // TODO(Dantali0n): Use ino_stat
     void FuseLFS::read(fuse_req_t req, fuse_ino_t ino, size_t size,
                        off_t offset, struct fuse_file_info *fi)
     {
+        struct fuse_entry_param e = {0};
         const fuse_ctx* context = fuse_req_ctx(req);
 
-        // Non CSD path
-//        char *buffer = (char *) malloc(TEST_SIZE);
+        // Check if inode exists
+        if(ino_stat(ino, &e.attr) == FLFS_RET_ENOENT)
+            fuse_reply_err(req, ENOENT);
+
+        #ifdef QEMUCSD_DEBUG
+        // Verify inode is regular file
+        if(!(e.attr.st_mode & S_IFREG))
+            fuse_reply_err(req, EISDIR);
+
+        // Verify file handle (session) exists
+        if(open_inode_map.find(fi->fh) == open_inode_map.end()) {
+            output.error("File handle ", fi->fh, " not found in open_inode_map!");
+            fuse_reply_err(req, EIO);
+        }
+        #endif
 
         std::string buffer = "Je moeder!\n";
         int check = reply_buf_limited(req, buffer.c_str(), buffer.size(), offset, size);
 
-//        free(buffer);
     }
 
     void FuseLFS::write(fuse_req_t req, fuse_ino_t ino, const char *buf,
                        size_t size, off_t off, struct fuse_file_info *fi)
     {
-        return;
+        struct fuse_entry_param e = {0};
+        const fuse_ctx* context = fuse_req_ctx(req);
+
+        // Check if inode exists
+        if(ino_stat(ino, &e.attr) == FLFS_RET_ENOENT)
+            fuse_reply_err(req, ENOENT);
+
+        #ifdef QEMUCSD_DEBUG
+        // Verify inode is regular file
+        if(!(e.attr.st_mode & S_IFREG))
+            fuse_reply_err(req, EISDIR);
+
+        // Verify file handle (session) exists
+        if(open_inode_map.find(fi->fh) == open_inode_map.end()) {
+            output.error("File handle ", fi->fh, " not found in open_inode_map!");
+            fuse_reply_err(req, EIO);
+        }
+        #endif
+
+        uint64_t num_lbas = size / SECTOR_SIZE;
+        if(size % SECTOR_SIZE != 0) num_lbas += 1;
+
+        uint64_t lba_index = off / SECTOR_SIZE;
+        uint64_t offset = off % SECTOR_SIZE;
+
+//        fuse_reply_write();
+    }
+
+    /**
+     * Flush data to drive. Flush order is always 1. raw data 2. data_blocks
+     * 3. inode_blocks. 4. NAT blocks. data blocks contain raw data LBAs,
+     * inode_blocks contain data_blocks LBAs and NAT blocks contain inode LBAs.
+     */
+    void FuseLFS::fsync(fuse_req_t req, fuse_ino_t ino, int datasync,
+                        struct fuse_file_info *fi)
+    {
+
     }
 
     void FuseLFS::unlink(fuse_req_t req, fuse_ino_t parent, const char *name) {
