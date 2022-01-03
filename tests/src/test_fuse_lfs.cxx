@@ -78,7 +78,6 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfs)
         using FuseLFS::position_to_lba;
 
         using FuseLFS::inode_lba_map;
-        using FuseLFS::inode_to_lba;
     };
 
     BOOST_AUTO_TEST_CASE(Test_FuseLFS_lba_to_position) {
@@ -122,20 +121,6 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfs)
                     "res " << result << " t_res " << t_res + 1);
             }
         }
-    }
-
-    BOOST_AUTO_TEST_CASE(Test_FuseLFS_inode_to_lba) {
-        uint64_t lba;
-
-        TestFuseLFS::inode_lba_map.insert(std::make_pair(1, 1));
-        TestFuseLFS::inode_to_lba(1, lba);
-
-        BOOST_CHECK(lba == 1);
-
-        TestFuseLFS::inode_lba_map.insert_or_assign(1, 2);
-        TestFuseLFS::inode_to_lba(1, lba);
-
-        BOOST_CHECK(lba == 2);
     }
 
 BOOST_AUTO_TEST_SUITE_END()

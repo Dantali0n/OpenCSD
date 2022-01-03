@@ -68,14 +68,19 @@ namespace qemucsd::fuse_lfs {
     /**
      * In memory datastructures for synchronizing between memory and drive. That
      * means any data in these pending datastructures are pending and are not on
-     * the drive yet.
+     * the drive yet or need to be updated.
      */
 
     // A set of inodes that have been updated since flush and must be written
     typedef std::set<fuse_ino_t> nat_update_set_t;
 
+    typedef std::pair<inode_entry, std::string> inode_entry_t;
+
     // A map of inode_entry and name that must be flushed to drive
-    typedef std::map<fuse_ino_t, std::pair<inode_entry, std::string>> inode_entries_t;
+    typedef std::map<fuse_ino_t, inode_entry_t> inode_entries_t;
+
+    // A map of data_blocks that must be flushed to drive
+    typedef std::map<fuse_ino_t, std::vector<struct data_block>> data_blocks_t;
 }
 
 #endif //QEMU_CSD_FUSE_LFS_MEMORY_HPP

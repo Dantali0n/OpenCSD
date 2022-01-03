@@ -89,8 +89,6 @@ namespace qemucsd::fuse_lfs {
 
         /** Inode, path and data position helper functions */
 
-        static void inode_to_lba(fuse_ino_t ino, uint64_t &lba);
-
         static void lba_to_position(
             uint64_t lba, struct data_position &position);
 
@@ -189,6 +187,27 @@ namespace qemucsd::fuse_lfs {
         static int rewrite_random_blocks_partial();
         static int rewrite_random_blocks_full();
 
+        // TODO(Dantali0n): Move log management methods to separate interface
+
+        // Write pointer within the log zone
+        static struct data_position log_ptr;
+
+        static int advance_log_ptr(struct data_position *log_ptr);
+
+        static void determine_log_ptr();
+
+        static int log_append(void *data, size_t size, uint64_t &lba);
+
+        // TODO(Dantali0n): Move data block methods to separate interface
+
+        static data_blocks_t data_blocks;
+
+        static int create_data_block();
+
+        static int get_data_block();
+
+        static int update_data_block();
+
         // TODO(Dantali0n): Move inode block methods to separate interface
 
         static inode_entries_t inode_entries;
@@ -198,37 +217,33 @@ namespace qemucsd::fuse_lfs {
         // for new files and directories (similar to write pointers)
         static fuse_ino_t ino_ptr;
 
-        // Write pointer within the log zone
-        static struct data_position log_ptr;
-
-        static int advance_log_ptr(struct data_position *log_ptr);
-
-        static void determine_log_ptr();
-
-        static int build_path_inode_map();
+//        static int build_path_inode_map();
 
         static int fill_inode_block(
             struct inode_block *blck, std::vector<fuse_ino_t> *ino_remove,
             inode_entries_t *entries);
 
-        static void erase_entries(
+        static void erase_inode_entries(
             std::vector<fuse_ino_t> *ino_remove, inode_entries_t *entries);
+
+        static int get_inode_entry(fuse_ino_t ino, inode_entry_t *entry);
 
         static int create_inode(fuse_entry_param *e, fuse_ino_t parent,
                                 const char *name, enum inode_type type);
 
         static int update_inode(inode_entry *entry, const char *name);
 
-        static int log_append(void *data, size_t size, uint64_t &lba);
-
-        // TOOD(Dantali0n): Move synchronization / flush methods to separate
-        //                  interface.
+        // TODO(Dantali0n): Move synchronization / flush methods to separate
+        //                  interface. (These exclude those of the NAT / SIT
+        //                  RANDOM ZONE).
 
         static int flush_inodes(bool only_if_full);
 
         static int flush_inodes_always();
 
         static int flush_inodes_if_full();
+
+        static int flush_data_blocks();
 
         // TODO(Dantali0n): Move CSD / snapshot methods to separate interface
 

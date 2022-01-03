@@ -158,7 +158,9 @@ namespace qemucsd::fuse_lfs {
     static_assert(sizeof(inode_block) == SECTOR_SIZE);
     static_assert(std::is_trivially_copyable<inode_block>::value);
 
-    struct inode_entry {
+    static constexpr size_t INODE_BLOCK_SIZE = sizeof(inode_block);
+
+    struct __attribute__((packed)) inode_entry {
         uint64_t parent;   // Parent inode, can be 1 for root. only root has 0
                            // but root inode is never stored on drive.
         uint64_t inode;    // This inode
@@ -167,6 +169,10 @@ namespace qemucsd::fuse_lfs {
         uint64_t data_lba; // LBA of first data block
         // Followed by a null terminated file/dir name
     };
+
+    static constexpr size_t INODE_ENTRY_SIZE = sizeof(inode_entry);
+    static constexpr size_t INO_BLK_READ_LIM =
+        INODE_BLOCK_SIZE - INODE_ENTRY_SIZE;
 
     struct __attribute__((packed)) data_block {
         uint64_t data_lbas[63]; // LBAs of data blocks linearly for size
