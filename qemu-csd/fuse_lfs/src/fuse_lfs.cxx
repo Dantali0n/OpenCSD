@@ -224,6 +224,7 @@ namespace qemucsd::fuse_lfs {
             }
         }
 
+        // Root inode
         output(std::cout, "Creating root inode..");
         path_inode_map.insert(std::make_pair(1, new path_map_t()));
 
@@ -315,9 +316,12 @@ namespace qemucsd::fuse_lfs {
         }
 
         #ifdef QEMUCSD_DEBUG
-        if(count > it->second)
+        if(count > it->second) {
             output.error("Attempting to decrease nlookup count more than ",
-                "current value!");
+                         "current value!");
+            // Can only subtract the current count maximum
+            count = it->second;
+        }
         #endif
 
         it->second -= count;
@@ -379,8 +383,18 @@ namespace qemucsd::fuse_lfs {
         std::vector<fuse_ino_t> *inodes, uint64_t lba,
         inode_lba_map_t *lba_map = &inode_lba_map)
     {
-        for(auto &ino : *inodes)
+        for(auto &ino : *inodes) {
+            #ifdef QEMUCSD_DEBUG
+            // Inode 0 is regarded as invalid
+            // Inode 1 is hardcoded for root and should not be updated
+            if(ino < 2) {
+                output.error("Invalid attempt to insert inode ", ino, " into ",
+                             "a inode_lba_map_t");
+                continue;
+            }
+            #endif
             lba_map->insert_or_assign(ino, lba);
+        }
     }
 
     /**
@@ -404,10 +418,22 @@ namespace qemucsd::fuse_lfs {
         inode_entry_t entry;
         stbuf->st_ino = ino;
 
+        // 0 is invalid inode
+        if(ino == 0) {
+            goto ino_stat_enoent;
+        }
+
         // Root inode has hardcoded data
         if(ino == 1) {
             goto ino_stat_dir;
         }
+
+        #ifdef QEMUCSD_DEBUG
+        if(ino == 2) {
+            stbuf->st_size = 11;
+            goto ino_stat_file;
+        }
+        #endif
 
         // Read the inode entry from drive or inode_entries synchronization
         // structure.
@@ -419,8 +445,10 @@ namespace qemucsd::fuse_lfs {
             goto ino_stat_file;
         else if(entry.first.type == INO_T_DIR)
             goto ino_stat_dir;
-        else
+        else {
+            output.error("get_inode_entry returned entry with type INO_T_NONE");
             goto ino_stat_enoent;
+        }
 
         ino_stat_file:
             stbuf->st_mode = S_IFREG | 0644;
@@ -1339,16 +1367,6 @@ namespace qemucsd::fuse_lfs {
         if(lookup == inode_lba_map.end())
             return FLFS_RET_ENOENT;
 
-        // TODO(Dantali0n): Remove hardcoded test file
-        if(ino == 2) {
-            entry->first.parent = 1;
-            entry->first.inode = 2;
-            entry->first.type = INO_T_FILE;
-            entry->first.size = 11;
-            entry->first.data_lba = 0;
-            return FLFS_RET_NONE;
-        }
-
         // Check if inode information still unflushed in inode_entries
         // Always check inode_entries first as unflushed data is most up to date
         auto it = inode_entries.find(ino);
@@ -1378,10 +1396,10 @@ namespace qemucsd::fuse_lfs {
             offset += strlen((const char *)ino_blk_ptr + offset) + 1;
         }
 
-        // Inode was not found
+        // Inode was not found while it should have been on this lba
         if(ino_entry->inode != ino) {
             free(ino_blk_ptr);
-            return FLFS_RET_ENOENT;
+            return FLFS_RET_ERR;
         }
 
         // Populate entry to reflect the found inode_entry_t data

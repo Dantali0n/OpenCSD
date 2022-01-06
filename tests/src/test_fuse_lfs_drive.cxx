@@ -56,7 +56,20 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         using FuseLFS::random_pos;
         using FuseLFS::random_ptr;
 
+        using FuseLFS::log_ptr;
+
+        using FuseLFS::inode_nlookup_map;
+
+        using FuseLFS::inode_entries;
+
+        using FuseLFS::inode_nlookup_increment;
+        using FuseLFS::inode_nlookup_decrement;
+
         using FuseLFS::lba_to_position;
+        using FuseLFS::position_to_lba;
+        using FuseLFS::update_inode_lba_map;
+
+        using FuseLFS::ino_stat;
 
         using FuseLFS::mkfs;
 
@@ -74,6 +87,10 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         using FuseLFS::read_random_zone;
         using FuseLFS::append_random_block;
         using FuseLFS::rewrite_random_blocks;
+
+        using FuseLFS::determine_log_ptr;
+
+        using FuseLFS::get_inode_entry;
     };
 
     struct qemucsd::fuse_lfs::data_position NULL_POS = {0};
@@ -93,7 +110,13 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
             TestFuseLFS::random_pos = NULL_POS;
             TestFuseLFS::random_ptr = NULL_POS;
 
+            TestFuseLFS::log_ptr = NULL_POS;
+
             TestFuseLFS::inode_lba_map.clear();
+
+            TestFuseLFS::inode_nlookup_map.clear();
+
+            TestFuseLFS::inode_entries.clear();
         }
     };
 
@@ -167,7 +190,9 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                     qemucsd::fuse_lfs::RANDZ_POS.zone);
     }
 
-    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_checkpoint_block_fill, TestFuseLFSFixture) {
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_checkpoint_block_fill,
+                            TestFuseLFSFixture)
+    {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
 
         TestFuseLFS::nvme = &nvme_memory;
@@ -192,7 +217,9 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         }
     }
 
-    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_checkpoint_block_power_atomicity, TestFuseLFSFixture) {
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_checkpoint_block_power_atomicity,
+                            TestFuseLFSFixture)
+    {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
 
         TestFuseLFS::nvme = &nvme_memory;
@@ -224,7 +251,9 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         BOOST_CHECK(cblock.randz_lba == 1337);
     }
 
-    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_append_random_block, TestFuseLFSFixture) {
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_append_random_block,
+                            TestFuseLFSFixture)
+    {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
 
         TestFuseLFS::nvme = &nvme_memory;
@@ -244,7 +273,9 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
     }
 
 
-    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_append_random_block_verify_data, TestFuseLFSFixture) {
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_append_random_block_verify_data,
+                            TestFuseLFSFixture)
+    {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
 
         TestFuseLFS::nvme = &nvme_memory;
@@ -264,15 +295,18 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         BOOST_CHECK(TestFuseLFS::append_random_block(nt_blk) == 0);
 
         struct qemucsd::fuse_lfs::nat_block nt_blk_test = {0};
-        TestFuseLFS::nvme->read(TestFuseLFS::random_ptr.zone, 0, 0, &nt_blk_test,
-                                sizeof(qemucsd::fuse_lfs::nat_block));
+        TestFuseLFS::nvme->read(
+            TestFuseLFS::random_ptr.zone, 0, 0, &nt_blk_test,
+            sizeof(qemucsd::fuse_lfs::nat_block));
 
         for(uint32_t i = 0; i < qemucsd::fuse_lfs::NAT_BLK_INO_LBA_NUM; i++) {
             BOOST_CHECK(nt_blk_test.inode[i] == nt_blk_test.inode[i]);
         }
     }
 
-    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_append_random_blocks_full, TestFuseLFSFixture) {
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_append_random_blocks_full,
+                            TestFuseLFSFixture)
+    {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
 
         TestFuseLFS::nvme = &nvme_memory;
@@ -783,6 +817,328 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
             BOOST_CHECK(TestFuseLFS::rewrite_random_blocks() == 0);
         }
+    }
+
+    /**
+     * Test keeping track of the nlookup count to adhere to memory pressure
+     * indications from the kernel.
+     */
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_nlookup, TestFuseLFSFixture) {
+        // Test insert and uniqueness
+        TestFuseLFS::inode_nlookup_increment(1);
+        BOOST_CHECK(TestFuseLFS::inode_nlookup_map.size() == 1);
+        TestFuseLFS::inode_nlookup_increment(1);
+        BOOST_CHECK(TestFuseLFS::inode_nlookup_map.size() == 1);
+
+        // Test incremented count
+        BOOST_CHECK(TestFuseLFS::inode_nlookup_map.find(1)->second == 2);
+
+        // Try decrementing more than is incremented
+        TestFuseLFS::inode_nlookup_decrement(1, 3);
+
+        // Decrementing an inode to 0 should remove it
+        BOOST_CHECK(TestFuseLFS::inode_nlookup_map.size() == 0);
+    }
+
+    /**
+     *
+     */
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_update_inode_lba_map,
+                            TestFuseLFSFixture)
+    {
+        uint64_t initial_size = TestFuseLFS::inode_lba_map.size();
+
+        // Add two inodes to vector that should never be present in the map
+        std::vector<fuse_ino_t> inodes;
+        inodes.push_back(0);
+        inodes.push_back(1);
+
+        // Update the map with the invalid inodes
+        TestFuseLFS::update_inode_lba_map(
+            &inodes, 64, &TestFuseLFS::inode_lba_map);
+
+        // Verify the map size is the same before and after
+        BOOST_CHECK(TestFuseLFS::inode_lba_map.size() == initial_size);
+
+        // Clear the invalid inodes
+        inodes.clear();
+
+        // Add two valid inodes
+        inodes.push_back(2);
+        inodes.push_back(3);
+
+        // Update the map
+        TestFuseLFS::update_inode_lba_map(
+            &inodes, 64, &TestFuseLFS::inode_lba_map);
+
+        // Verify the map size has changed
+        BOOST_CHECK(TestFuseLFS::inode_lba_map.size() == initial_size + 2);
+
+        // Verify the lba 64 has been placed in the map
+        BOOST_CHECK(TestFuseLFS::inode_lba_map.find(2)->second == 64);
+        BOOST_CHECK(TestFuseLFS::inode_lba_map.find(3)->second == 64);
+
+        // Update the map now with 192
+        TestFuseLFS::update_inode_lba_map(
+            &inodes, 192, &TestFuseLFS::inode_lba_map);
+
+        // Verify the lba 192 has been placed in the map
+        BOOST_CHECK(TestFuseLFS::inode_lba_map.find(2)->second == 192);
+        BOOST_CHECK(TestFuseLFS::inode_lba_map.find(3)->second == 192);
+    }
+
+    /**
+     *
+     */
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_ino_stat, TestFuseLFSFixture) {
+        struct stat stbuf = {0};
+
+        // Inode 0 is invalid and should never exist
+        BOOST_CHECK(TestFuseLFS::ino_stat(0, &stbuf) ==
+            qemucsd::fuse_lfs::FLFS_RET_ENOENT);
+
+        memset(&stbuf, 0, sizeof(struct stat));
+
+        // Root inode should always exist
+        BOOST_CHECK(TestFuseLFS::ino_stat(1, &stbuf) ==
+            qemucsd::fuse_lfs::FLFS_RET_NONE);
+        BOOST_CHECK(stbuf.st_ino == 1);
+        BOOST_CHECK(stbuf.st_mode & S_IFDIR);
+        BOOST_CHECK(stbuf.st_mode & 0755);
+        BOOST_CHECK(stbuf.st_nlink == 2);
+        BOOST_CHECK(stbuf.st_size == 0);
+
+        memset(&stbuf, 0, sizeof(struct stat));
+
+        // Test file should exist
+        BOOST_CHECK(TestFuseLFS::ino_stat(2, &stbuf) ==
+            qemucsd::fuse_lfs::FLFS_RET_NONE);
+        BOOST_CHECK(stbuf.st_ino == 2);
+        BOOST_CHECK(stbuf.st_mode & S_IFREG);
+        BOOST_CHECK(stbuf.st_mode & 0644);
+        BOOST_CHECK(stbuf.st_nlink == 1);
+        BOOST_CHECK(stbuf.st_size == 11);
+
+        // Hardcoded and invalid inodes should never appear in the map
+        BOOST_CHECK(TestFuseLFS::inode_lba_map.find(0) ==
+            TestFuseLFS::inode_lba_map.end());
+        BOOST_CHECK(TestFuseLFS::inode_lba_map.find(1) ==
+            TestFuseLFS::inode_lba_map.end());
+        BOOST_CHECK(TestFuseLFS::inode_lba_map.find(2) ==
+            TestFuseLFS::inode_lba_map.end());
+
+        // Create inode 3 entry manually so get_inode_entry can find it
+        struct qemucsd::fuse_lfs::inode_entry entry;
+        entry.size = 512;
+        entry.inode = 3;
+        entry.data_lba = 0;
+        entry.type = qemucsd::fuse_lfs::INO_T_FILE;
+        entry.parent = 1;
+
+        // Check that unkown inodes return FLFS_RET_ENOENT
+        BOOST_CHECK(TestFuseLFS::ino_stat(3, &stbuf) ==
+                    qemucsd::fuse_lfs::FLFS_RET_ENOENT);
+
+        // Insert inode 3 entry
+        TestFuseLFS::inode_lba_map.insert(std::make_pair(3, 0));
+        TestFuseLFS::inode_entries.insert(
+            std::make_pair(3, std::make_pair(entry, "test")));
+
+        // Newly added file should exist
+        BOOST_CHECK(TestFuseLFS::ino_stat(3, &stbuf) ==
+                    qemucsd::fuse_lfs::FLFS_RET_NONE);
+        BOOST_CHECK(stbuf.st_ino == 3);
+        BOOST_CHECK(stbuf.st_mode & S_IFREG);
+        BOOST_CHECK(stbuf.st_mode & 0644);
+        BOOST_CHECK(stbuf.st_nlink == 1);
+        BOOST_CHECK(stbuf.st_size == 512);
+
+        // Update entry to represent directory now
+        entry.size = 0;
+        entry.inode = 4;
+        entry.data_lba = 0;
+        entry.type = qemucsd::fuse_lfs::INO_T_DIR;
+        entry.parent = 1;
+
+        // Insert inode 4 entry
+        TestFuseLFS::inode_lba_map.insert(std::make_pair(4, 0));
+        TestFuseLFS::inode_entries.insert(
+                std::make_pair(4, std::make_pair(entry, "directory")));
+
+        // Newly added directory should exist
+        BOOST_CHECK(TestFuseLFS::ino_stat(4, &stbuf) ==
+                    qemucsd::fuse_lfs::FLFS_RET_NONE);
+        BOOST_CHECK(stbuf.st_ino == 4);
+        BOOST_CHECK(stbuf.st_mode & S_IFDIR);
+        BOOST_CHECK(stbuf.st_mode & 0755);
+        BOOST_CHECK(stbuf.st_nlink == 2);
+        BOOST_CHECK(stbuf.st_size == 0);
+
+        // Update entry to represent none type now
+        entry.size = 0;
+        entry.inode = 5;
+        entry.data_lba = 0;
+        entry.type = qemucsd::fuse_lfs::INO_T_NONE;
+        entry.parent = 1;
+        // Insert inode 4 entry
+        TestFuseLFS::inode_lba_map.insert(std::make_pair(5, 0));
+        TestFuseLFS::inode_entries.insert(
+                std::make_pair(5, std::make_pair(entry, "none")));
+
+        // None type should not exist
+        BOOST_CHECK(TestFuseLFS::ino_stat(5, &stbuf) ==
+                    qemucsd::fuse_lfs::FLFS_RET_ENOENT);
+    }
+
+    /**
+     *
+     */
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_get_inode_entry,
+                            TestFuseLFSFixture)
+    {
+        qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
+
+        TestFuseLFS::nvme = &nvme_memory;
+        nvme_memory.get_nvme_zns_info(&TestFuseLFS::nvme_info);
+
+        TestFuseLFS::determine_log_ptr();
+
+        uint64_t lba;
+        TestFuseLFS::position_to_lba(TestFuseLFS::log_ptr, lba);
+
+        // Create 2 inodes at the current log_ptr
+        TestFuseLFS::inode_lba_map.insert(std::make_pair(3, lba));
+        TestFuseLFS::inode_lba_map.insert(std::make_pair(4, lba));
+
+        // Create entry for an inode
+        struct qemucsd::fuse_lfs::inode_entry entry = {0};
+        entry.parent = 1;
+        entry.type = qemucsd::fuse_lfs::INO_T_FILE;
+        entry.data_lba = 0;
+        entry.size = 0;
+
+        // We manually write the contents of an inode block and flush it
+        // This is to avoid relying on flush_inode method functionality.
+        auto *ino_blk_ptr = (uint8_t*) malloc(
+            sizeof(qemucsd::fuse_lfs::inode_block));
+
+        // Store offset per entry
+        static constexpr uint64_t off = qemucsd::fuse_lfs::INODE_ENTRY_SIZE;
+        // Store filename for test files
+        static const std::string filename = "testfile";
+
+        entry.inode = 3;
+        memcpy(ino_blk_ptr, &entry, off);
+        memcpy(ino_blk_ptr + off, filename.c_str(), filename.size() + 1);
+
+        entry.inode = 4;
+        memcpy(ino_blk_ptr + off + filename.size() + 1, &entry, off);
+        memcpy(ino_blk_ptr + (off * 2) + filename.size() + 1, filename.c_str(),
+           filename.size() + 1);
+
+        uint64_t result_sector = 0;
+        struct qemucsd::fuse_lfs::data_position cpy_log_ptr =
+            TestFuseLFS::log_ptr;
+        BOOST_CHECK(TestFuseLFS::nvme->append(
+            cpy_log_ptr.zone, result_sector, cpy_log_ptr.offset, ino_blk_ptr,
+            sizeof(qemucsd::fuse_lfs::inode_block)) == 0);
+        BOOST_CHECK(result_sector == cpy_log_ptr.sector);
+
+        // Now get the inode entry for inode 3
+        qemucsd::fuse_lfs::inode_entry_t inode_entry;
+        BOOST_CHECK(TestFuseLFS::get_inode_entry(3, &inode_entry) ==
+            qemucsd::fuse_lfs::FLFS_RET_NONE);
+        BOOST_CHECK(inode_entry.first.inode == 3);
+        BOOST_CHECK(inode_entry.second == filename);
+
+        // And get the inode entry for inode 4
+        BOOST_CHECK(TestFuseLFS::get_inode_entry(4, &inode_entry) ==
+            qemucsd::fuse_lfs::FLFS_RET_NONE);
+        BOOST_CHECK(inode_entry.first.inode == 4);
+        BOOST_CHECK(inode_entry.second == filename);
+
+        // And get the entry that does not exist
+        BOOST_CHECK(TestFuseLFS::get_inode_entry(5, &inode_entry) ==
+            qemucsd::fuse_lfs::FLFS_RET_ENOENT);
+
+        // Add this invalid entry to the map
+        TestFuseLFS::inode_lba_map.insert(std::make_pair(5, lba));
+
+        // Failing to find this entry now should return an error
+        BOOST_CHECK(TestFuseLFS::get_inode_entry(5, &inode_entry) ==
+                qemucsd::fuse_lfs::FLFS_RET_ERR);
+    }
+
+    /**
+     *
+     */
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_create_inode,
+                            TestFuseLFSFixture)
+    {
+
+    }
+
+    /**
+     *
+     */
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_update_inode,
+                            TestFuseLFSFixture)
+    {
+
+    }
+
+    /**
+     *
+     */
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_add_nat_update_set,
+                            TestFuseLFSFixture)
+    {
+
+    }
+
+    /**
+     *
+     */
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_log_ptr,
+                            TestFuseLFSFixture)
+    {
+
+    }
+
+    /**
+     *
+     */
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_fill_inode_block,
+                            TestFuseLFSFixture)
+    {
+
+    }
+
+    /**
+     *
+     */
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_erase_inode_entries,
+                            TestFuseLFSFixture)
+    {
+
+    }
+
+    /**
+     *
+     */
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_flush_inodes,
+                            TestFuseLFSFixture)
+    {
+
+    }
+
+    /**
+     *
+     */
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_file_handle,
+                            TestFuseLFSFixture)
+    {
+
     }
 
 BOOST_AUTO_TEST_SUITE_END()
