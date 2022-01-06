@@ -32,7 +32,6 @@ set(QEMUCSD_FUSE_LFS_LIBRARIES
 
 set(QEMUCSD_FUSE_LFS_SRC
     src/fuse_lfs.cxx
-    src/fuse_lfs_constants.cxx
 )
 
 set(QEMUCSD_FUSE_LFS_HEADERS

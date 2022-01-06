@@ -110,6 +110,11 @@ namespace qemucsd::fuse_lfs {
         static void dir_buf_add(fuse_req_t req, struct dir_buf* buf,
                                 const char *name, fuse_ino_t ino);
 
+        // TODO(Dantali0n): Move filesystem initialization methods to separate
+        //                  interface
+
+
+
         // TODO(Dantali0n): Move filesystem creation methods to separate
         //                  interface
 
@@ -228,8 +233,8 @@ namespace qemucsd::fuse_lfs {
 
         static int get_inode_entry(fuse_ino_t ino, inode_entry_t *entry);
 
-        static int create_inode(fuse_entry_param *e, fuse_ino_t parent,
-                                const char *name, enum inode_type type);
+        static int create_inode(fuse_ino_t parent, const char *name,
+                                enum inode_type type, fuse_ino_t &ino);
 
         static int update_inode(inode_entry *entry, const char *name);
 

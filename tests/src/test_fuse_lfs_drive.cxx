@@ -50,6 +50,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         using FuseLFS::nvme;
 
         using FuseLFS::inode_lba_map;
+        using FuseLFS::path_inode_map;
 
         using FuseLFS::cblock_pos;
 
@@ -57,6 +58,8 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         using FuseLFS::random_ptr;
 
         using FuseLFS::log_ptr;
+
+        using FuseLFS::ino_ptr;
 
         using FuseLFS::inode_nlookup_map;
 
@@ -91,6 +94,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         using FuseLFS::determine_log_ptr;
 
         using FuseLFS::get_inode_entry;
+        using FuseLFS::create_inode;
     };
 
     struct qemucsd::fuse_lfs::data_position NULL_POS = {0};
@@ -1075,7 +1079,25 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
     BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_create_inode,
                             TestFuseLFSFixture)
     {
+        fuse_ino_t ino;
 
+        TestFuseLFS::ino_ptr = 3;
+        TestFuseLFS::path_inode_map.insert(
+            std::make_pair(1, new qemucsd::fuse_lfs::path_map_t()));
+
+        // Create a file in the root directory
+        BOOST_CHECK(TestFuseLFS::create_inode(1, "testfile1",
+            qemucsd::fuse_lfs::INO_T_FILE, ino) == qemucsd::fuse_lfs::FLFS_RET_NONE);
+
+        // Create a directory and add a file to it
+        BOOST_CHECK(TestFuseLFS::create_inode(1, "testdir1",
+            qemucsd::fuse_lfs::INO_T_DIR, ino) == qemucsd::fuse_lfs::FLFS_RET_NONE);
+        BOOST_CHECK(TestFuseLFS::create_inode(ino, "testfile2",
+            qemucsd::fuse_lfs::INO_T_FILE, ino) == qemucsd::fuse_lfs::FLFS_RET_NONE);
+
+        // This should fail as the parent inode does not exist
+        BOOST_CHECK(TestFuseLFS::create_inode(13373, "testfile1",
+            qemucsd::fuse_lfs::INO_T_FILE, ino) == qemucsd::fuse_lfs::FLFS_RET_ERR);
     }
 
     /**

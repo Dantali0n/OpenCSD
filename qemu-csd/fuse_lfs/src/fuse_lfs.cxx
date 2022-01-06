@@ -1418,9 +1418,18 @@ namespace qemucsd::fuse_lfs {
      *         FLFS_RET_LOGZ_FULL if the log zone is full
      *         (LOGZ_FULL only when FLFS_INODE_FLUSH_IMMEDIATE is defined).
      */
-    int FuseLFS::create_inode(fuse_entry_param *e, fuse_ino_t parent,
-        const char *name, enum inode_type type)
+    int FuseLFS::create_inode(fuse_ino_t parent, const char *name,
+        enum inode_type type, fuse_ino_t &ino)
     {
+        #if QEMUCSD_DEBUG
+        struct stat stbuf = {0};
+        if(ino_stat(parent, &stbuf) == FLFS_RET_ENOENT)
+            return FLFS_RET_ERR;
+
+        if(!(stbuf.st_mode & S_IFDIR))
+            return FLFS_RET_ERR;
+        #endif
+
         struct inode_entry entry = {0};
         entry.parent = parent;
         entry.type = type;
@@ -1432,6 +1441,8 @@ namespace qemucsd::fuse_lfs {
             return FLFS_RET_MAX_INO;
         ino_ptr += 1;
 
+        // TODO(Dantali0n): Insert or assign makes no sense here, create_inode
+        //                  will always use a new inode due to the ino_ptr.
         inode_entries.insert_or_assign(
             entry.inode, std::make_pair(entry, std::string(name)));
 
@@ -1448,11 +1459,8 @@ namespace qemucsd::fuse_lfs {
             path_inode_map.insert(std::make_pair(entry_inode,
                                                  new path_map_t()));
 
-        // Communicate new inode information to caller through fuse_entry_param
-        e->ino = entry.inode;
-        if(type == INO_T_FILE) e->attr.st_mode = S_IFREG;
-        else e->attr.st_mode = S_IFDIR;
-        e->attr.st_size = 0;
+        // Communicate new inode information to caller
+        ino = entry.inode;
 
         #ifdef FLFS_INODE_FLUSH_IMMEDIATE
         return flush_inodes(true);
@@ -1511,7 +1519,7 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Flush inodes to drive either unconditionally or when an entire block can
-     * be filled. Notice; flush_inodes_if_fill flushes a single block at most.
+     * be filled. Notice; flush_inodes_if_full flushes a single block at most.
      * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon error and
      *         FLFS_RET_LOGZ_FULL if log zone full.
      */
@@ -1785,13 +1793,13 @@ namespace qemucsd::fuse_lfs {
 
         // Create directory
         if(mode & S_IFDIR) {
-            create_inode(&e, parent, name, INO_T_DIR);
+            create_inode(parent, name, INO_T_DIR, e.ino);
             ino_stat(e.ino, &e.attr);
             fuse_reply_entry_nlookup(req, &e);
         }
         // Create file
         else if(mode & S_IFREG) {
-            create_inode(&e, parent, name, INO_T_FILE);
+            create_inode(parent, name, INO_T_FILE, e.ino);
             ino_stat(e.ino, &e.attr);
             create_file_handle(req, e.ino, fi);
             fuse_reply_create_nlookup(req, &e, fi);
