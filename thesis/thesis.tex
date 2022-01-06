@@ -225,6 +225,9 @@ info@dantalion.nl}
 \addcontentsline{toc}{section}{\protect\numberline{}INTRODUCTION}
 \section*{INTRODUCTION}
 
+% We have a separate previous work section we will ignore most of the different
+% related literature in the introduction.
+
 % Problem
 
 The amount of data being generated and processed worldwide is growing rapidly.
@@ -247,7 +250,7 @@ as \textit{"Programmable Storage"} and \textit{"Computational Storage"} among
 other terms. The concept is not new however, as it has been previously
 explored in database mainframes\cite{database-computer} as well as for
 conventional HDDs\cite{active-disk-pillar, active-disks-tech, intelligent-disk}.
-With rise of Non-Volatile Memory (NVMe) technologies offering signifcantly more 
+With rise of Non-Volatile Memory Express (NVMe) technologies offering signifcantly more 
 device-internal bandwidth this concept is being revisted. What makes NVMe SSDs
 even more suited is that they already contain capable processing units often
 boasting even multiple cores. This requirement comes from the internal
@@ -290,29 +293,73 @@ offloading access (hybrid). We introduce each of the solutions briefly before
 describing their complete case. Firstly, we circumvent the complexity of
 complete vertical integration by creating a simulation platform on top of
 QEMU\cite{qemu}. Secondly, We eliminate potential incompatibities across vendors
-by using eBPF\cite{what-ebpf} as compute kernel language. Third, We bridge the
-semantic gap by using Zoned Namespaces (ZNS)\cite{zns} SSDs which move the FTL
-to the host operating system (host-managed). Lastly, we allow for concurrent
-multi-user tenancy in a \textit{hybrid filesystem} context by developing a
-specialized \textit{Log-Structured Filesystem} (LFS)\cite{Rosenblum1992TheDA}
-with an in-memory snapshot consistency model\cite{Viotti2016ConsistencyIN}. We
-present this complete solution as \textit{OpenCSD} an open-source Apache 2
-licensed CSx simulation framework with accompanying filesystem\cite{qemu-csd}.
+by using \textit{Extended Berkely Packet Filer} (eBPF)\cite{what-ebpf} as
+compute kernel language. Third, We bridge the semantic gap by using Zoned
+Namespaces (ZNS)\cite{zns} SSDs which move the FTL to the host operating
+system (host-managed). Lastly, we allow for concurrent multi-user tenancy in
+a \textit{Hybrid Filesystem} context by developing a specialized
+\textit{Log-Structured Filesystem} (LFS)\cite{Rosenblum1992TheDA} with an
+in-memory snapshot consistency model\cite{Viotti2016ConsistencyIN}. We present
+this complete solution as \textit{OpenCSD} an open-source Apache 2 licensed CSx
+simulation framework with accompanying filesystem\cite{qemu-csd}.
 
 \subsection*{A Case for CSx Simulation}
 
 The lack of a standardized design has lead to a large variety of different
 hardware architectures being explored including using embedded CPUs or
-\textit{Field Programmable Gate Arrays}(FPGA)s. Moreover, closed-source
+\textit{Field-Programmable Gate Arrays} (FPGA)s. Moreover, closed-source
 devices have even become commercially available. Still there is a lot of
 uncertainty about the right computational hardware models, interconnects and
-interconnects their interfaces. Even though the PCIe interconnect and the NVMe
-storage interface currently dominate modern storage devices it is unclear if
-their current capabilities are sufficient to support CSxs.
+interconnects their interfaces. Even though the \textit{Peripheral Component
+Interconnect Express} (PCIe) interconnect and the NVMe storage interface
+currently dominate modern storage devices it is unclear if their current
+capabilities are sufficient to support CSxs. Meanwhile existing technologies
+such as QEMU allow rapid development of new simulated hardware.
+
+The lack of a clear standardized design combined with the ease of prototyping
+designs in simulation clearly shows that choosing simulation over an actual
+hardware prototype is the current logical choice.
 
 \subsection*{A Case for eBPF Programmability}
 
-\subsection*{A Case for ZNS CSxs}
+The concept of programmability provides end users the capability to run their
+own provided code. With the introduction of modern \textit{Operating Systems}
+(OS)s this is expected to happen in safe and dynamic manner. Programmability
+can be achieved in different manners such as through the kernel in kernel
+modules, with filesystems through \textit{Virtual File System} (VFS) or FUSE and
+with language runtimes such as those in Python. In addition programmability can
+also target a peripheral instead of the host directly such as is prevelant in
+\textit{General-Purpose computing on Graphics Processing Units} (GPGPU)
+programming through \textit{Application Programming Interfaces} (API)s like
+OpenCL\cite{opencl} and CUDA\cite{cuda}. Through similar mechanisms
+programmability in CSxs can be achieved.
+
+The uncertainty of the hardware design makes it unclear exactly how close to the
+hardware and through which method of programmability CSxs will be effective.
+Although, naturally, the closer to the actual storage the better
+(Near-Data Processing). Therefor, our programmability must not be restricted or
+favor a particular type.
+
+Introducing eBPF an ISA and API with a large collection of toolchains and
+wideranging implementations\cite{what-ebpf, McCanne1993TheBP}. These
+implementations range from complex such as the one found in the Linux kernel to
+simple such as the one found in uBPF\cite{ubpf}, with the key difference in
+complexity being the supported API. Effectively, the implementation running
+(runtime) eBPF code decides the API by tying special eBPF syscall instructions
+to predefined code. In addition, this allows the user program and runtime to
+exchange important information such as prominently done in Linux through eBPF
+maps\cite{bpf-man}.
+
+The benefits of eBPF are four fold. First, the ISA is not tailored to any
+specific domain and it has been used in networking\cite{xdp},
+tracing\cite{enhanced-ebpf} and security\cite{seccomp} applications. Second,
+the simple nature of the eBPF ISA allows for verification and bounded execution
+checking such as perform by the Linux kernel\cite{kern-analysis}. Third, eBPF
+supports efficient code generation through jitting achieving close to bare-metal
+performance. Lastly, eBPF has been positioned as the unified ISA for
+heteregenous computing\cite{Brunella2020hXDPES, bpf-uapi}.
+
+\subsection*{A Case for ZNS}
 
 \subsection*{A Case for LFS}
 
@@ -321,6 +368,11 @@ their current capabilities are sufficient to support CSxs.
 % Introduce early working prototypes
 
 % Demonstrate different hardware platforms, embedded CPU, vs FPGA.
+
+% List of BPF using storage literature (Blockndp:, Extos: Data-centric
+%extensible os, Ex-tension framework for file systems in user space, 
+%  Safe and efficient remote application code execu-tion on disaggregated NVM,
+% BPF for storage: an exokernel-inspired approach )
 
 \section{Research Questions}
 
@@ -348,45 +400,45 @@ their CSD compute kernel?
 % 	\end{figure}
 % \end{center}
 
-\begin{table}[h!]
-	\caption{BPF resources and their relevance}
-	\label{table:bpfresources}
-	\centering
-	\begin{adjustbox}{width=0.5\textwidth}
-		\begin{threeparttable}[]
-			\begin{tabular}{lllll}
-				\toprule
-				\textbf{Resource} & \textbf{Category} & \textbf{Value} &
-				\textbf{Length} & \textbf{Age} \\
-				\midrule
-				\href{https://www.man7.org/linux/man-pages/man2/bpf.2.html}{Linux bpf manpage}\cite{bpfman} &
-				Linux Kernel & medium & short & timeless \\
-				\href{https://www.kernel.org/doc/Documentation/networking/filter.txt}{BPF kernel documentation}\cite{Linuxbpf} &
-				Linux Kernel & low & long & outdated \\
-				\href{https://www.kernel.org/doc/html/latest/bpf/btf.html}{Linux BTF documentation}\cite{Linuxbtf} &
-				Linux Kernel \& BTF & low & medium & timeless \\
-				\href{https://facebookmicrosites.github.io/bpf/blog/2020/02/19/bpf-portability-and-co-re.html}{BPF portability and CO-RE}\cite{bpfport} &
-				BPF CO-RE \& BTF & high & medium & relevant \\
-				\href{https://nakryiko.com/posts/libbpf-bootstrap/}{BPF applications with libbpf-bootstrap}\cite{bpfapplications} &
-				libbpf - libbpf-bootstrap & high & short & relevant \\
-				\href{https://www.oreilly.com/library/view/linux-observability-with/9781492050193/}{Linux Observability with BPF}\cite{observabilityoreilly} &
-				libbpf - bpf\_load & medium & book & outdated \\
-				\href{https://facebookmicrosites.github.io/bpf/blog/2020/02/19/bpf-portability-and-co-re.html}{Cilium BPF + XDP reference guide}\cite{ciliumbpf} &
-				libbpf & high & long & relevant \\
-				\href{https://facebookmicrosites.github.io/bpf/blog/2020/02/20/bcc-to-libbpf-howto-guide.html}{BCC to libbpf conversion}\cite{libbpfconversion} &
-				libbpf & low & long & relevant \\
-				\href{https://github.com/iovisor/ubpf}{uBPF}\cite{ubpf} &
-				execution / interpretation & medium & short & relevant \\
-				\href{https://github.com/generic-ebpf/generic-ebpf}{generic-ebpf}\cite{generic-ebpf} &
-				execution / interpretation & medium & short & relevant \\
-				\bottomrule
-			\end{tabular}
-			\begin{tablenotes}[para,flushleft]
-				\centering List of resources on BPF and its various elements.
-			\end{tablenotes}
-		\end{threeparttable}
-	\end{adjustbox}
-\end{table}
+% \begin{table}[h!]
+% 	\caption{BPF resources and their relevance}
+% 	\label{table:bpfresources}
+% 	\centering
+% 	\begin{adjustbox}{width=0.5\textwidth}
+% 		\begin{threeparttable}[]
+% 			\begin{tabular}{lllll}
+% 				\toprule
+% 				\textbf{Resource} & \textbf{Category} & \textbf{Value} &
+% 				\textbf{Length} & \textbf{Age} \\
+% 				\midrule
+% 				\href{https://www.man7.org/linux/man-pages/man2/bpf.2.html}{Linux bpf manpage}\cite{bpfman} &
+% 				Linux Kernel & medium & short & timeless \\
+% 				\href{https://www.kernel.org/doc/Documentation/networking/filter.txt}{BPF kernel documentation}\cite{Linuxbpf} &
+% 				Linux Kernel & low & long & outdated \\
+% 				\href{https://www.kernel.org/doc/html/latest/bpf/btf.html}{Linux BTF documentation}\cite{Linuxbtf} &
+% 				Linux Kernel \& BTF & low & medium & timeless \\
+% 				\href{https://facebookmicrosites.github.io/bpf/blog/2020/02/19/bpf-portability-and-co-re.html}{BPF portability and CO-RE}\cite{bpfport} &
+% 				BPF CO-RE \& BTF & high & medium & relevant \\
+% 				\href{https://nakryiko.com/posts/libbpf-bootstrap/}{BPF applications with libbpf-bootstrap}\cite{bpfapplications} &
+% 				libbpf - libbpf-bootstrap & high & short & relevant \\
+% 				\href{https://www.oreilly.com/library/view/linux-observability-with/9781492050193/}{Linux Observability with BPF}\cite{observabilityoreilly} &
+% 				libbpf - bpf\_load & medium & book & outdated \\
+% 				\href{https://facebookmicrosites.github.io/bpf/blog/2020/02/19/bpf-portability-and-co-re.html}{Cilium BPF + XDP reference guide}\cite{ciliumbpf} &
+% 				libbpf & high & long & relevant \\
+% 				\href{https://facebookmicrosites.github.io/bpf/blog/2020/02/20/bcc-to-libbpf-howto-guide.html}{BCC to libbpf conversion}\cite{libbpfconversion} &
+% 				libbpf & low & long & relevant \\
+% 				\href{https://github.com/iovisor/ubpf}{uBPF}\cite{ubpf} &
+% 				execution / interpretation & medium & short & relevant \\
+% 				\href{https://github.com/generic-ebpf/generic-ebpf}{generic-ebpf}\cite{generic-ebpf} &
+% 				execution / interpretation & medium & short & relevant \\
+% 				\bottomrule
+% 			\end{tabular}
+% 			\begin{tablenotes}[para,flushleft]
+% 				\centering List of resources on BPF and its various elements.
+% 			\end{tablenotes}
+% 		\end{threeparttable}
+% 	\end{adjustbox}
+% \end{table}
 
 \section{Future Work} \label{future}
 
@@ -421,10 +473,6 @@ their CSD compute kernel?
 \addcontentsline{toc}{section}{\protect\numberline{}TERMINOLOGY}
 \section*{TERMINOLOGY} \label{term}
 
-This section hopes to define some common terminology as well as clearly detail
-how some of these terms are interpreted. Mainly, this section serves to avoid
-confusion.
-
 % \begin{tabularx}{\textwidth}{@{}l<{ -}@{\ }X@{}}
 % 	ZNS & Zoned Namespace \\
 % 	CSD & Computational Storage Device \\
@@ -433,7 +481,25 @@ confusion.
 % \end{tabularx}
 
 \begin{enumerate}
-	\item ACR - A C R
+	\item HDD - hard-disk drive % 233
+	\item SSD - solid state drive % 234
+	\item Programmable Storage % 246
+	\item Computational Storage % 246
+	\item NVMe - Non-Volatile Memory Express % 250
+	\item FTL - Flash Translation Layer % 255
+	\item CSx - Computational Storage Device % 257
+	\item ISA - Instruction Set Architecture % 274
+	\item eBPF - Extended Berkely Packet Filter %293
+	\item ZNS - Zoned NameSpaces % 294
+	\item Host Managed %296
+	\item Hybrid Filesystem % 296
+	\item LFS - Log-Structured Filesystem % 297
+	\item FPGA - Field-Programmable Gat Array % 306
+	\item PCIe - Peripheral Component Interconnect Express % 310
+	\item OS - Operating System %324
+	\item VFS - Virtual File System % 326
+	\item GPGPU - General-Purpose computing on Graphics Processing Units % 329
+	\item API - Application Programming Interface %330
 \end{enumerate}
 
 \addcontentsline{toc}{section}{\protect\numberline{}REFERENCES}
