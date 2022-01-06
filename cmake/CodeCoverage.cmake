@@ -142,27 +142,27 @@ FUNCTION(SETUP_TARGET_FOR_COVERAGE _targetname _testrunner _outputname)
     # Setup target
     ADD_CUSTOM_TARGET(${_targetname}
 
-            # Cleanup lcov
-            ${LCOV_PATH} --directory . --zerocounters
+        # Cleanup lcov
+        ${LCOV_PATH} --directory . --zerocounters
 
-            # Run tests
-            COMMAND ${test_command} ${ARGV3}
+        # Run tests
+        COMMAND ${test_command} ${ARGV3}
 
-            # Capturing lcov counters and generating report
-            COMMAND ${LCOV_PATH} --directory . --capture --output-file ${coverage_info}
-            COMMAND ${LCOV_PATH} --remove ${coverage_info} '${CMAKE_BINARY_DIR}/qemu-csd/include/*' '${CMAKE_SOURCE_DIR}/tests/*' '/usr/*' --output-file ${coverage_cleaned}
-            COMMAND ${GENHTML_PATH} -o ${_outputname} ${coverage_cleaned}
-            COMMAND ${CMAKE_COMMAND} -E remove ${coverage_info} ${coverage_cleaned}
+        # Capturing lcov counters and generating report
+        COMMAND ${LCOV_PATH} --directory . --capture --output-file ${coverage_info}
+        COMMAND ${LCOV_PATH} --remove ${coverage_info} '${CMAKE_BINARY_DIR}/qemu-csd/include/*' '${CMAKE_SOURCE_DIR}/tests/*' '/usr/*' --output-file ${coverage_cleaned}
+        COMMAND ${GENHTML_PATH} -o ${_outputname} ${coverage_cleaned}
+        COMMAND ${CMAKE_COMMAND} -E remove ${coverage_info} ${coverage_cleaned}
 
-            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-            COMMENT "Resetting code coverage counters to zero.\nProcessing code coverage counters and generating report."
-            )
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Resetting code coverage counters to zero.\n Processing code coverage counters and generating report."
+    )
 
     # Show info where to find the report
     ADD_CUSTOM_COMMAND(TARGET ${_targetname} POST_BUILD
-            COMMAND ;
-            COMMENT "Open ./${_outputname}/index.html in your browser to view the coverage report."
-            )
+        COMMAND ;
+        COMMENT "Open ./${_outputname}/index.html in your browser to view the coverage report."
+    )
 
 ENDFUNCTION() # SETUP_TARGET_FOR_COVERAGE
 
@@ -171,7 +171,7 @@ ENDFUNCTION() # SETUP_TARGET_FOR_COVERAGE
 # Param _outputname     cobertura output is generated as _outputname.xml
 # Optional fourth parameter is passed as arguments to _testrunner
 #   Pass them in list form, e.g.: "-j;2" for -j 2
-FUNCTION(SETUP_TARGET_FOR_COVERAGE_COBERTURA _targetname _testrunner _outputname)
+FUNCTION(SETUP_TARGET_FOR_COVERAGE_LCOV _targetname _testrunner _outputname)
 
     IF(NOT Python_EXECUTABLE)
         MESSAGE(FATAL_ERROR "Python not found! Aborting...")
@@ -203,7 +203,7 @@ FUNCTION(SETUP_TARGET_FOR_COVERAGE_COBERTURA _targetname _testrunner _outputname
         COMMAND ${LCOV_PATH} -i --directory . --capture --output-file ${coverage_base}
         COMMAND ${LCOV_PATH} --directory . --capture --output-file ${coverage_info}
         COMMAND ${LCOV_PATH} -a ${coverage_base} -a ${coverage_info} -o ${coverage_total}
-        COMMAND ${LCOV_PATH} --remove ${coverage_total} '${CMAKE_BINARY_DIR}/qemu-csd/include/*' '${CMAKE_SOURCE_DIR}/tests/*' '/usr/*' --output-file ${coverage_cleaned}
+        COMMAND ${LCOV_PATH} --remove ${coverage_total} '${CMAKE_BINARY_DIR}/qemu-csd/include/*' '${CMAKE_SOURCE_DIR}/dependencies/*' '${CMAKE_SOURCE_DIR}/tests/*' '/usr/*' --output-file ${coverage_cleaned}
         COMMAND ${GENHTML_PATH} -o ${_outputname} ${coverage_cleaned}
         COMMAND ${CMAKE_SOURCE_DIR}/python/lcov-to-cobertura/lcov_cobertura/lcov_cobertura.py ${coverage_cleaned}
         COMMAND ${CMAKE_COMMAND} -E remove ${coverage_info} ${coverage_cleaned}
@@ -214,7 +214,7 @@ FUNCTION(SETUP_TARGET_FOR_COVERAGE_COBERTURA _targetname _testrunner _outputname
     # Show info where to find the report
     ADD_CUSTOM_COMMAND(TARGET ${_targetname} POST_BUILD
         COMMAND ;
-        COMMENT "Cobertura code coverage report saved in coverage.xml."
+        COMMENT "LCOV code coverage report saved in ${CMAKE_BINARY_DIR}/coverage/index.html"
     )
 
 ENDFUNCTION() # SETUP_TARGET_FOR_COVERAGE_COBERTURA

@@ -219,16 +219,12 @@ endif()
 # unit tests have been defined.
 if(ENABLE_CODECOV)
 	include(CodeCoverage)
-	get_property(local_modules GLOBAL PROPERTY module_list)
 
 	# Need custom target using ctest to combine all test binaries
 	include(CTest)
 	add_custom_target(ctest COMMAND ${CMAKE_CTEST_COMMAND})
 
-	message(${local_modules})
-#	setup_target_for_coverage(${PRJ_PRX}_coverage ctest ${local_modules})
-	setup_target_for_coverage_cobertura(${PRJ_PRX}_coverage ctest coverage)
-#	SETUP_TARGET_FOR_COVERAGE_COBERTURA(${PRJ_PRX}_coverage ctest ${local_modules})
+	setup_target_for_coverage_lcov(${PRJ_PRX}_coverage ctest coverage)
 endif(ENABLE_CODECOV)
 
 # Project documentation and report
