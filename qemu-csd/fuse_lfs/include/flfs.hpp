@@ -207,13 +207,13 @@ namespace qemucsd::fuse_lfs {
 
         static data_blocks_t data_blocks;
 
-        static void compute_block_num(uint64_t num_lbas, uint64_t &blocks);
+        static void compute_data_block_num(uint64_t num_lbas, uint64_t &blocks);
 
-        static int create_data_blocks(fuse_ino_t ino,
-            std::vector<uint64_t> *data_lbas, std::vector<data_block> *blocks);
+        static int create_data_blocks(fuse_ino_t ino, uint64_t start_blk,
+            std::vector<uint64_t> *data_lbas); //, std::vector<data_block> *blocks);
 
-        static void create_data_block(fuse_ino_t ino,
-            std::vector<uint64_t> *data_lbas, struct data_block *blk);
+        static int create_data_block(fuse_ino_t ino, uint64_t block_num,
+            std::vector<uint64_t> *data_lbas); //, struct data_block *blk);
 
         static int get_data_block(inode_entry entry, uint64_t block_num,
                                   struct data_block *blk);
@@ -224,8 +224,6 @@ namespace qemucsd::fuse_lfs {
         static int get_data_block_linked(
             struct data_position pos, uint64_t block_num,
             struct data_block *blk);
-
-        static int update_data_block();
 
         // TODO(Dantali0n): Move inode block methods to separate interface
 

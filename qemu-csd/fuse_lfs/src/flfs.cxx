@@ -1339,6 +1339,7 @@ namespace qemucsd::fuse_lfs {
 
         compute_inode_block_full:
         memcpy(blck, buffer, INODE_BLOCK_SIZE);
+        free(buffer);
         return FLFS_RET_INO_BLK_FULL;
     }
 
@@ -1406,6 +1407,8 @@ namespace qemucsd::fuse_lfs {
         entry->first = *ino_entry;
         entry->second = std::string((const char *)ino_blk_ptr + offset +
             INODE_ENTRY_SIZE);
+
+        free(ino_blk_ptr);
 
         return FLFS_RET_NONE;
     }
@@ -1517,24 +1520,52 @@ namespace qemucsd::fuse_lfs {
         return advance_log_ptr(&log_ptr);
     }
 
-    void FuseLFS::compute_block_num(uint64_t num_lbas, uint64_t &blocks) {
+    /**
+     * Determine how many data_blocks are required based on the number of
+     * occupied lbas.
+     */
+    void FuseLFS::compute_data_block_num(uint64_t num_lbas, uint64_t &blocks) {
         blocks = num_lbas / DATA_BLK_LBA_NUM;
         blocks += num_lbas % DATA_BLK_LBA_NUM != 0 ? 1 : 0;
     }
 
-    int FuseLFS::create_data_blocks(fuse_ino_t ino,
-        std::vector<uint64_t> *data_lbas, std::vector<data_block> *blocks)
+    /**
+     * Can only be called when data_lba is 0 / size is 0. Otherwise
+     * update_data_block and get_data_block needs to be used!
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
+     */
+    int FuseLFS::create_data_blocks(fuse_ino_t ino, uint64_t start_blk,
+        std::vector<uint64_t> *data_lbas) //, std::vector<data_block> *blocks)
     {
+        uint64_t num_blocks = 0;
+        compute_data_block_num(data_lbas->size(), num_blocks);
 
+        uint64_t remaining_lbas;
+        for(uint64_t i = 0; i < num_blocks; i++) {
+            remaining_lbas = data_lbas->size() < DATA_BLK_LBA_NUM ?
+                data_lbas->size() : DATA_BLK_LBA_NUM;
+
+            std::vector<uint64_t> current_data_lbas(
+                data_lbas->begin(), data_lbas->begin() + remaining_lbas);
+            data_lbas->erase(
+                data_lbas->begin(), data_lbas->begin() + remaining_lbas);
+
+            if(create_data_block(ino, start_blk + i, &current_data_lbas) !=
+                FLFS_RET_NONE) //, &blocks->at(i));
+                return FLFS_RET_ERR;
+        }
+
+        return FLFS_RET_NONE;
     }
 
     /**
-     * Fill a data_block
-     * @return
+     * Fill a data_block and add it to the data_blocks
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
      */
-    void FuseLFS::create_data_block(fuse_ino_t ino,
-        std::vector<uint64_t> *data_lbas, struct data_block *blk)
+    int FuseLFS::create_data_block(fuse_ino_t ino, uint64_t block_num,
+        std::vector<uint64_t> *data_lbas) //, struct data_block *blk)
     {
+        auto d_blk = (struct data_block *) malloc(sizeof(data_block));
         uint64_t limit = data_lbas->size();
 
         #ifdef QEMUCSD_DEBUG
@@ -1544,13 +1575,27 @@ namespace qemucsd::fuse_lfs {
         }
         #endif
 
+        // The contents of the data_block does not have to account for
+        // next_block as flush_data_blocks will take care of that field.
+        // TODO(Dantali0n): Change into raw memcpy for performance improvement
         for(uint64_t i = 0; i < limit; i++) {
-            blk->data_lbas[i] = data_lbas->at(i);
+            d_blk->data_lbas[i] = data_lbas->at(i);
         }
 
+        // See if the inode already exists in data_blocks otherwise create it
         auto lookup = data_blocks.find(ino);
         if(lookup == data_blocks.end())
             data_blocks.insert(std::make_pair(ino, new data_map_t()));
+
+        // Get the data_map from the data_blocks
+        auto data_block_map = data_blocks.find(ino)->second;
+
+        // Now insert the new block ready for flush to drive
+        data_block_map->insert_or_assign(block_num, *d_blk);
+
+        free(d_blk);
+
+        return FLFS_RET_NONE;
     }
 
     /**
