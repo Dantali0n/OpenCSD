@@ -209,10 +209,10 @@ namespace qemucsd::fuse_lfs {
 
         static void compute_data_block_num(uint64_t num_lbas, uint64_t &blocks);
 
-        static int create_data_blocks(fuse_ino_t ino, uint64_t start_blk,
+        static int assign_data_blocks(fuse_ino_t ino, uint64_t start_blk,
             std::vector<uint64_t> *data_lbas); //, std::vector<data_block> *blocks);
 
-        static int create_data_block(fuse_ino_t ino, uint64_t block_num,
+        static int assign_data_block(fuse_ino_t ino, uint64_t block_num,
             std::vector<uint64_t> *data_lbas); //, struct data_block *blk);
 
         static int get_data_block(inode_entry entry, uint64_t block_num,

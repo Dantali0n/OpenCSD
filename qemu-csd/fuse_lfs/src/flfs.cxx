@@ -1335,6 +1335,7 @@ namespace qemucsd::fuse_lfs {
             goto compute_inode_block_full;
 
         // Block is not full so return none
+        free(buffer);
         return FLFS_RET_NONE;
 
         compute_inode_block_full:
@@ -1530,11 +1531,12 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
-     * Can only be called when data_lba is 0 / size is 0. Otherwise
-     * update_data_block and get_data_block needs to be used!
+     * Create or update the data_blocks. The number of data_blocks depends on
+     * the size of data_lbas vector while the data_block numbers depends on
+     * start_blk.
      * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
      */
-    int FuseLFS::create_data_blocks(fuse_ino_t ino, uint64_t start_blk,
+    int FuseLFS::assign_data_blocks(fuse_ino_t ino, uint64_t start_blk,
         std::vector<uint64_t> *data_lbas) //, std::vector<data_block> *blocks)
     {
         uint64_t num_blocks = 0;
@@ -1550,8 +1552,8 @@ namespace qemucsd::fuse_lfs {
             data_lbas->erase(
                 data_lbas->begin(), data_lbas->begin() + remaining_lbas);
 
-            if(create_data_block(ino, start_blk + i, &current_data_lbas) !=
-                FLFS_RET_NONE) //, &blocks->at(i));
+            if(assign_data_block(ino, start_blk + i, &current_data_lbas) !=
+               FLFS_RET_NONE) //, &blocks->at(i));
                 return FLFS_RET_ERR;
         }
 
@@ -1559,10 +1561,10 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
-     * Fill a data_block and add it to the data_blocks
+     * Fill a data_block and insert or update the data_blocks
      * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
      */
-    int FuseLFS::create_data_block(fuse_ino_t ino, uint64_t block_num,
+    int FuseLFS::assign_data_block(fuse_ino_t ino, uint64_t block_num,
         std::vector<uint64_t> *data_lbas) //, struct data_block *blk)
     {
         auto d_blk = (struct data_block *) malloc(sizeof(data_block));

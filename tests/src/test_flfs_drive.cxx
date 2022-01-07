@@ -65,6 +65,8 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
         using FuseLFS::inode_entries;
 
+        using FuseLFS::data_blocks;
+
         using FuseLFS::inode_nlookup_increment;
         using FuseLFS::inode_nlookup_decrement;
 
@@ -139,6 +141,16 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
         BOOST_CHECK(TestFuseLFS::determine_random_ptr() == 0);
         BOOST_CHECK(TestFuseLFS::random_ptr == TestFuseLFS::random_pos);
+    }
+
+    void free_data_structure_heap_memory() {
+        for(auto &entry : TestFuseLFS::path_inode_map) {
+            delete entry.second;
+        }
+
+        for(auto &entry : TestFuseLFS::data_blocks) {
+            delete entry.second;
+        }
     }
 
     BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_mkfs, TestFuseLFSFixture) {
@@ -1040,6 +1052,10 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         memcpy(ino_blk_ptr + (off * 2) + filename.size() + 1, filename.c_str(),
            filename.size() + 1);
 
+        uint64_t final_offset = (off * 2) + (filename.size() *2 ) + 2;
+        memset(ino_blk_ptr + final_offset, 0,
+               sizeof(qemucsd::fuse_lfs::inode_block) - final_offset);
+
         uint64_t result_sector = 0;
         struct qemucsd::fuse_lfs::data_position cpy_log_ptr =
             TestFuseLFS::log_ptr;
@@ -1071,6 +1087,9 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         // Failing to find this entry now should return an error
         BOOST_CHECK(TestFuseLFS::get_inode_entry(5, &inode_entry) ==
                 qemucsd::fuse_lfs::FLFS_RET_ERR);
+
+        free(ino_blk_ptr);
+        free_data_structure_heap_memory();
     }
 
     /**
@@ -1098,6 +1117,8 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         // This should fail as the parent inode does not exist
         BOOST_CHECK(TestFuseLFS::create_inode(13373, "testfile1",
             qemucsd::fuse_lfs::INO_T_FILE, ino) == qemucsd::fuse_lfs::FLFS_RET_ERR);
+
+        free_data_structure_heap_memory();
     }
 
     /**
