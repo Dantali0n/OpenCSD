@@ -361,9 +361,13 @@ including:
 * [libnvme presentation](https://www.usenix.org/sites/default/files/conference/protected-files/vault20_slides_busch.pdf)
 * Filesystems
   * [Linux Inode](https://man7.org/linux/man-pages/man7/inode.7.html)
+  * Filesystem Benchmarks
+    * [Filebench](https://github.com/filebench/filebench)
+    * [Filebench Tutorial](http://www.nfsv4bat.org/Documents/nasconf/2005/mcdougall.pdf)
 * FUSE
   * [To FUSE or Not to FUSE: Performance of User-Space File Systems](http://libfuse.github.io/doxygen/fast17-vangoor.pdf)
   * [FUSE kermel documentation](https://www.kernel.org/doc/html/latest/filesystems/fuse.html)
+  * [FUSE forget](https://fuse-devel.narkive.com/SMANJULN/when-does-fuse-forget)
 * LFS
   * [f2fs usenix paper](https://www.usenix.org/system/files/conference/fast15/fast15-paper-lee.pdf)
   * [f2fs kernel documentation](https://www.kernel.org/doc/html/latest/filesystems/f2fs.html)
@@ -474,6 +478,47 @@ including:
   - [ ] Run filesystem benchmarks with strace
     - [ ] RocksDB DBBench
     - [ ] Filebench
+- Week 10 -> FUSE LFS Filesystem
+  - [X] Write inode block to drive
+  - [X] Inode create / update / append
+  - [X] Decide location of size and filename fields on disc
+  - [ ] Read file data from drive
+  - [ ] Write file data to drive
+  - [ ] SIT block management for determining used sectors (use bitfields)
+  - [ ] log_pos to artificially move the start of the log zone
+        (same as random_pos)
+  - [ ] Garbage collection & compaction
+  - [ ] rename, unlink and rmdir
+    - [ ] Callback interface using nlookup / forget to prevent premature firing
+    - [ ] Temporary file duplication? for renamed files and directories
+      - [ ] What if an open handle deletes the file / directory that has been
+            renamed??
+- Week 12 -> FUSE LFS Filesystem
+  - [ ] Implement statfs
+  - [ ] Implement truncate
+  - [ ] Implement CSD state management using extended attributes
+  - [ ] Implement in-memory snapshots
+    - [ ] In-memory snapshots with write changes become persistent after the
+          kernel finishes execution. The files use special filenames that are
+          reserved to the filesystem (use filename + filehandle).
+- Week 14 -> FUSE LFS Filesystem
+  - [ ] Run DBBench & Filebench early benchmarks
+- Week 16 -> FUSE LFS Filesystem
+  - [ ] Optimizations, parallelism and queue depth > 1
+    - [ ] Wrap all critical datastructures in wrapper classes that intrinsically
+          manages locks (mutexes)
+    - [ ] Figure out how SPDK can notify the caller of where the data was
+          written
+- Week 18
+- Week 20
+- Week 22
+- Week 24
+- Week 26
+- Week 28
+- Week 30
+- Week 32
+- Week 34
+- Week 36
 
 ### Logbook
 
