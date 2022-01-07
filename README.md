@@ -16,8 +16,8 @@
 # OpenCSD
 
 OpenCSD is an improved version of ZCSD achieving snapshot consistency
-log-structured filesystem (LFS) integration on Zoned Namespaces (ZNS)
-Computational Storage Devices (CSD). Below is a diagram of the overall
+log-structured filesystem (LFS) (FluffleFS) integration on Zoned Namespaces
+(ZNS) Computational Storage Devices (CSD). Below is a diagram of the overall
 architecture as presented to the end user. However, the actual implementation
 differs due to the use of emulation using technologies such as QEMU, uBPF and
 SPDK.
