@@ -120,7 +120,7 @@ qemucsd_target_postprocess(testarguments)
 # -------------- #
 
 set(TEST_FUSE_LFS_SOURCE
-	src/test_fuse_lfs.cxx
+	src/test_flfs.cxx
 	src/tests.cxx
 )
 
@@ -145,7 +145,7 @@ qemucsd_target_postprocess(testfuse-lfs)
 # -------------------- #
 
 set(TEST_FUSE_LFS_SOURCE
-	src/test_fuse_lfs_drive.cxx
+	src/test_flfs_drive.cxx
 	src/tests.cxx
 )
 

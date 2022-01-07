@@ -30,7 +30,7 @@
 
 #include "tests.hpp"
 
-#include "fuse_lfs.hpp"
+#include "flfs.hpp"
 
 
 BOOST_AUTO_TEST_SUITE(Test_FuseLfs)

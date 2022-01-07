@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-#include "fuse_lfs.hpp"
+#include "flfs.hpp"
 
 namespace qemucsd::fuse_lfs{
 

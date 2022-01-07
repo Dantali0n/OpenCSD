@@ -40,7 +40,7 @@ void segfault_handler(int signal, siginfo_t *si, void *arg) {
 }
 
 #include "arguments.hpp"
-#include "fuse_lfs.hpp"
+#include "flfs.hpp"
 #include "spdk_init.hpp"
 #include "nvme_zns_memory.hpp"
 

@@ -22,8 +22,8 @@
  * SOFTWARE.
  */
 
-#ifndef QEMU_CSD_FUSE_LFS_CONSTANTS_HPP
-#define QEMU_CSD_FUSE_LFS_CONSTANTS_HPP
+#ifndef QEMU_CSD_FLFS_CONSTANTS_HPP
+#define QEMU_CSD_FLFS_CONSTANTS_HPP
 
 #define FUSE_USE_VERSION	36
 
@@ -235,4 +235,4 @@ namespace qemucsd::fuse_lfs {
      */
 }
 
-#endif // QEMU_CSD_FUSE_LFS_CONSTANTS_HPP
+#endif // QEMU_CSD_FLFS_CONSTANTS_HPP

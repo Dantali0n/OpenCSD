@@ -30,7 +30,7 @@
 
 #include "tests.hpp"
 
-#include "fuse_lfs.hpp"
+#include "flfs.hpp"
 #include "nvme_zns_memory.hpp"
 
 /**

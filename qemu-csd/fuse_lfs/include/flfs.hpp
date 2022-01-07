@@ -22,8 +22,8 @@
  * SOFTWARE.
  */
 
-#ifndef QEMU_CSD_FUSE_LFS_HPP
-#define QEMU_CSD_FUSE_LFS_HPP
+#ifndef QEMU_CSD_FLFS_HPP
+#define QEMU_CSD_FLFS_HPP
 
 #define FUSE_USE_VERSION	36
 
@@ -39,9 +39,9 @@ extern "C" {
 #include <string>
 
 #include "output.hpp"
-#include "fuse_lfs_constants.hpp"
-#include "fuse_lfs_disc.hpp"
-#include "fuse_lfs_memory.hpp"
+#include "flfs_constants.hpp"
+#include "flfs_disc.hpp"
+#include "flfs_memory.hpp"
 #include "nvme_zns_backend.hpp"
 
 namespace qemucsd::fuse_lfs {
@@ -207,9 +207,23 @@ namespace qemucsd::fuse_lfs {
 
         static data_blocks_t data_blocks;
 
-        static int create_data_block();
+        static void compute_block_num(uint64_t num_lbas, uint64_t &blocks);
 
-        static int get_data_block();
+        static int create_data_blocks(fuse_ino_t ino,
+            std::vector<uint64_t> *data_lbas, std::vector<data_block> *blocks);
+
+        static void create_data_block(fuse_ino_t ino,
+            std::vector<uint64_t> *data_lbas, struct data_block *blk);
+
+        static int get_data_block(inode_entry entry, uint64_t block_num,
+                                  struct data_block *blk);
+
+        static int get_data_block_immediate(
+            struct data_position pos, struct data_block *blk);
+
+        static int get_data_block_linked(
+            struct data_position pos, uint64_t block_num,
+            struct data_block *blk);
 
         static int update_data_block();
 
@@ -221,6 +235,9 @@ namespace qemucsd::fuse_lfs {
         // files and directories. The ino_ptr indicates the next possible ino
         // for new files and directories (similar to write pointers)
         static fuse_ino_t ino_ptr;
+
+        // TODO(Dantali0n): Create and keep track of ino_pos for log zone linear
+        //                  continuity.
 
 //        static int build_path_inode_map();
 
@@ -236,11 +253,16 @@ namespace qemucsd::fuse_lfs {
         static int create_inode(fuse_ino_t parent, const char *name,
                                 enum inode_type type, fuse_ino_t &ino);
 
-        static int update_inode(inode_entry *entry, const char *name);
+        static int update_inode_entry(inode_entry *entry, const char *name);
 
         // TODO(Dantali0n): Move synchronization / flush methods to separate
         //                  interface. (These exclude those of the NAT / SIT
         //                  RANDOM ZONE).
+
+        /** NOTICE; Flush methods are high level functions they will have side
+         *          effects such as calling add_nat_update_set_entries or
+         *          update_inode_entry
+         */
 
         static int flush_inodes(bool only_if_full);
 
@@ -303,4 +325,4 @@ namespace qemucsd::fuse_lfs {
     };
 }
 
-#endif //QEMU_CSD_FUSE_LFS_HPP
+#endif //QEMU_CSD_FLFS_HPP

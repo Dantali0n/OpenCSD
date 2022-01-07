@@ -22,12 +22,12 @@
  * SOFTWARE.
  */
 
-#ifndef QEMU_CSD_FUSE_LFS_MEMORY_HPP
-#define QEMU_CSD_FUSE_LFS_MEMORY_HPP
+#ifndef QEMU_CSD_FLFS_MEMORY_HPP
+#define QEMU_CSD_FLFS_MEMORY_HPP
 
 #include <set>
 
-#include "fuse_lfs_constants.hpp"
+#include "flfs_constants.hpp"
 
 namespace qemucsd::fuse_lfs {
 
@@ -63,6 +63,7 @@ namespace qemucsd::fuse_lfs {
 
     // Unique file handles corresponding to open inodes their inode and pid
     // TODO(Dantali0n): Extend this to prevent additional lookups for open files
+    // TODO(Dantali0n): Extend this to keep track of read/write/readwrite mode
     typedef std::map<uint64_t , std::pair<fuse_ino_t, pid_t>> open_inode_map_t;
 
     /**
@@ -79,8 +80,11 @@ namespace qemucsd::fuse_lfs {
     // A map of inode_entry and name that must be flushed to drive
     typedef std::map<fuse_ino_t, inode_entry_t> inode_entries_t;
 
+    // A map of the block number and its corresponding data_block
+    typedef std::map<uint64_t, struct data_block> data_map_t;
+
     // A map of data_blocks that must be flushed to drive
-    typedef std::map<fuse_ino_t, std::vector<struct data_block>> data_blocks_t;
+    typedef std::map<fuse_ino_t, data_map_t*> data_blocks_t;
 }
 
-#endif //QEMU_CSD_FUSE_LFS_MEMORY_HPP
+#endif //QEMU_CSD_FLFS_MEMORY_HPP

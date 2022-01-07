@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-#include "fuse_lfs.hpp"
+#include "flfs.hpp"
 #include "nvme_zns_memory.hpp"
 
 namespace qemucsd::fuse_lfs {
@@ -1476,7 +1476,7 @@ namespace qemucsd::fuse_lfs {
      *         FLFS_RET_LOGZ_FULL if the log zone is full
      *         (LOGZ_FULL only when FLFS_INODE_FLUSH_IMMEDIATE is defined).
      */
-    int FuseLFS::update_inode(inode_entry *entry, const char *name) {
+    int FuseLFS::update_inode_entry(inode_entry *entry, const char *name) {
 
         // This overrides the inode_entry in case the previous one hadn't
         // flushed to drive yet.
@@ -1515,6 +1515,113 @@ namespace qemucsd::fuse_lfs {
         position_to_lba(log_ptr, lba);
 
         return advance_log_ptr(&log_ptr);
+    }
+
+    void FuseLFS::compute_block_num(uint64_t num_lbas, uint64_t &blocks) {
+        blocks = num_lbas / DATA_BLK_LBA_NUM;
+        blocks += num_lbas % DATA_BLK_LBA_NUM != 0 ? 1 : 0;
+    }
+
+    int FuseLFS::create_data_blocks(fuse_ino_t ino,
+        std::vector<uint64_t> *data_lbas, std::vector<data_block> *blocks)
+    {
+
+    }
+
+    /**
+     * Fill a data_block
+     * @return
+     */
+    void FuseLFS::create_data_block(fuse_ino_t ino,
+        std::vector<uint64_t> *data_lbas, struct data_block *blk)
+    {
+        uint64_t limit = data_lbas->size();
+
+        #ifdef QEMUCSD_DEBUG
+        if(data_lbas->size() > DATA_BLK_LBA_NUM) {
+            output.error("data_lbas vector to large for single data_block!");
+            limit = DATA_BLK_LBA_NUM;
+        }
+        #endif
+
+        for(uint64_t i = 0; i < limit; i++) {
+            blk->data_lbas[i] = data_lbas->at(i);
+        }
+
+        auto lookup = data_blocks.find(ino);
+        if(lookup == data_blocks.end())
+            data_blocks.insert(std::make_pair(ino, new data_map_t()));
+    }
+
+    /**
+     * Get the data block for the given inode
+     * @param block_num zero indexed data_block block number
+     * @return FLFS_RET_NONE upon success and FLFS_RET_ERR upon failure
+     */
+    int FuseLFS::get_data_block(inode_entry entry, uint64_t block_num,
+                                struct data_block *blk)
+    {
+        auto lookup = data_blocks.find(entry.inode);
+
+        // Found data blocks in synchronization data structure
+        if(lookup != data_blocks.end()) {
+            // Lookup if block_num is in data_blocks for the given inode
+            auto block_num_lookup = lookup->second->find(block_num);
+            if(block_num_lookup != lookup->second->end()) {
+                // If so no need to fetch data from drive can return immediately
+                *blk = block_num_lookup->second;
+                return FLFS_RET_NONE;
+            }
+        }
+
+        // Data blocks information not in memory must be retrieved from drive
+        struct data_position pos = {0};
+        lba_to_position(entry.data_lba, pos);
+
+        // It might be faster just to call get_data_block_linked due to
+        // the pipeline stalls from branch mis predictions. Then again tight
+        // loop optimizations likely don't really apply to event based systems
+        // such as filesystems. Suppose we could do a couple of benchmarks with
+        // one or the other and see if it influences the results
+        if(block_num == 0) return get_data_block_immediate(pos, blk);
+        else return get_data_block_linked(pos, block_num, blk);
+    }
+
+    /**
+     * Get the immediate data_block by reading from the position
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
+     */
+    int FuseLFS::get_data_block_immediate(
+        struct data_position pos, struct data_block *blk)
+    {
+        if(nvme->read(pos.zone, pos.sector, pos.offset, blk,
+                      sizeof(data_block)) != 0)
+            return FLFS_RET_ERR;
+
+        return FLFS_RET_NONE;
+    }
+
+    /**
+     * Iterate through the chain of linked data_blocks until the requested one
+     * is found. When found fill blk buffer with the data by calling
+     * get_data_block_immediate
+     * @param block_num is zero indexed
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
+     */
+    int FuseLFS::get_data_block_linked(
+        struct data_position pos, uint64_t block_num, struct data_block *blk)
+    {
+        auto buffer = (struct data_block *) malloc(sizeof(data_block));
+        for(uint64_t i = 0; i < block_num; i ++) {
+            if(nvme->read(pos.zone, pos.sector, pos.offset, buffer,
+                          sizeof(data_block)) != 0)
+                return FLFS_RET_ERR;
+            // Update the pos with the next block
+            lba_to_position(buffer->next_block, pos);
+        }
+        free(buffer);
+
+        return get_data_block_immediate(pos, blk);
     }
 
     /**
@@ -1585,17 +1692,30 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
+     * Flush all data_blocks to drive in the correct order
+     * @return
+     */
+    int FuseLFS::flush_data_blocks() {
+        // These inodes will need to be updates
+        std::vector<fuse_ino_t> inodes;
+
+        for(auto &block : data_blocks) {
+            inodes.push_back(block.first);
+        }
+    }
+
+    /**
      * Create a uniquely identifying file handle for the inode and calling pid.
      * These are necessary for state management such as CSD operations and in
      * memory snapshots.
      */
     void FuseLFS::create_file_handle(
-            fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
+        fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
     {
         const fuse_ctx *context = fuse_req_ctx(req);
 
         open_inode_map.insert(
-                std::make_pair(fh_ptr, std::make_pair(ino, context->pid)));
+            std::make_pair(fh_ptr, std::make_pair(ino, context->pid)));
 
         fi->fh = fh_ptr;
 
@@ -1624,6 +1744,8 @@ namespace qemucsd::fuse_lfs {
 
     void FuseLFS::destroy(void *userdata) {
         output.info("Tearing down filesystem");
+
+        //TODO(Dantali0n): flush all pending datastructures to drive.
 
         if(remove_dirtyblock() != FLFS_RET_NONE) {
             output.error("Failed to remove dirty block from drive",
@@ -1733,10 +1855,10 @@ namespace qemucsd::fuse_lfs {
 
         // Can only read files in this demo
         // TODO(Dantali0n): Support opening files in write mode
-        if ((fi->flags & O_ACCMODE) != O_RDONLY) {
-            fuse_reply_err(req, EACCES);
-            return;
-        }
+//        if ((fi->flags & O_ACCMODE) != O_RDONLY) {
+//            fuse_reply_err(req, EACCES);
+//            return;
+//        }
 
         create_file_handle(req, ino, fi);
 
@@ -1878,8 +2000,18 @@ namespace qemucsd::fuse_lfs {
         uint64_t num_lbas = size / SECTOR_SIZE;
         if(size % SECTOR_SIZE != 0) num_lbas += 1;
 
+        // Compute offsets
         uint64_t lba_index = off / SECTOR_SIZE;
         uint64_t offset = off % SECTOR_SIZE;
+
+        // Read and pad the data if offset not zero
+        if(offset != 0) {
+
+        }
+
+        for(uint64_t i = 0; i < num_lbas; i++) {
+//            log_append()
+        }
 
 //        fuse_reply_write();
     }

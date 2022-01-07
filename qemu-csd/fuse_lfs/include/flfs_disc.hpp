@@ -22,10 +22,10 @@
  * SOFTWARE.
  */
 
-#ifndef QEMU_CSD_FUSE_LFS_DISC_HPP
-#define QEMU_CSD_FUSE_LFS_DISC_HPP
+#ifndef QEMU_CSD_FLFS_DISC_HPP
+#define QEMU_CSD_FLFS_DISC_HPP
 
-#include "fuse_lfs_constants.hpp"
+#include "flfs_constants.hpp"
 
 namespace qemucsd::fuse_lfs {
 
@@ -174,8 +174,10 @@ namespace qemucsd::fuse_lfs {
     static constexpr size_t INO_BLK_READ_LIM =
         INODE_BLOCK_SIZE - INODE_ENTRY_SIZE;
 
+    static constexpr size_t DATA_BLK_LBA_NUM = 63;
+
     struct __attribute__((packed)) data_block {
-        uint64_t data_lbas[63]; // LBAs of data blocks linearly for size
+        uint64_t data_lbas[DATA_BLK_LBA_NUM]; // LBAs of data blocks linearly
         uint64_t next_block;    // LBA for next data block or zero if none
     };
     static_assert(sizeof(data_block) == SECTOR_SIZE);
@@ -183,4 +185,4 @@ namespace qemucsd::fuse_lfs {
 
 }
 
-#endif // QEMU_CSD_FUSE_LFS_DISC_HPP
+#endif // QEMU_CSD_FLFS_DISC_HPP
