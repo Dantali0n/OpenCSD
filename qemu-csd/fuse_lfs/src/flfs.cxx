@@ -1955,7 +1955,7 @@ namespace qemucsd::fuse_lfs {
             fi->flush ? 1 : 0, " nonseekable ", fi->nonseekable ? 1 : 0,
             " flock_release ", fi->flock_release ? 1 : 0);
 
-        // fuse_reply_none(req);
+        fuse_reply_err(req, 0);
     }
 
     void FuseLFS::create(fuse_req_t req, fuse_ino_t parent, const char *name,
@@ -2030,7 +2030,7 @@ namespace qemucsd::fuse_lfs {
         mode &= ~(S_IFREG);
         // Set S_IFDIR
         mode |= S_IFDIR;
-        
+
         create(req, parent, name, mode, nullptr);
     }
 

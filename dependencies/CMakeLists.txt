@@ -209,8 +209,8 @@ add_custom_command(OUTPUT libfuse-compile PRE_BUILD
 )
 
 add_custom_command(OUTPUT libfuse-configure PRE_BUILD
-    COMMAND meson setup --wipe
-    COMMAND meson --prefix ${PRJ_ROOT} --reconfigure .. -Duseroot=false -Dudevrulesdir=${PRJ_ROOT}/etc/udev/rules.d
+    COMMAND meson setup --wipe || exit 0
+    COMMAND meson --prefix ${PRJ_ROOT} --reconfigure .. -Duseroot=false -Dudevrulesdir=${PRJ_ROOT}/etc/udev/rules.d || exit 0
     COMMAND meson --prefix ${PRJ_ROOT} .. -Duseroot=false
     DEPENDS libfuse-directory
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libfuse/build
