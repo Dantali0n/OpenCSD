@@ -209,14 +209,13 @@ namespace qemucsd::fuse_lfs {
 
         static void compute_data_block_num(uint64_t num_lbas, uint64_t &blocks);
 
-        static int assign_data_blocks(fuse_ino_t ino, uint64_t start_blk,
-            std::vector<uint64_t> *data_lbas); //, std::vector<data_block> *blocks);
+        static void assign_data_blocks(fuse_ino_t ino, data_map_t *blocks); //, std::vector<data_block> *blocks);
 
-        static int assign_data_block(fuse_ino_t ino, uint64_t block_num,
-            std::vector<uint64_t> *data_lbas); //, struct data_block *blk);
+        static void assign_data_block(fuse_ino_t ino, uint64_t block_num,
+            struct data_block *blk); //, struct data_block *blk);
 
         static int get_data_block(inode_entry entry, uint64_t block_num,
-                                  struct data_block *blk);
+            struct data_block *blk);
 
         static int get_data_block_immediate(
             struct data_position pos, struct data_block *blk);
@@ -246,12 +245,12 @@ namespace qemucsd::fuse_lfs {
         static void erase_inode_entries(
             std::vector<fuse_ino_t> *ino_remove, inode_entries_t *entries);
 
-        static int get_inode_entry(fuse_ino_t ino, inode_entry_t *entry);
+        static int get_inode_entry_t(fuse_ino_t ino, inode_entry_t *entry);
 
         static int create_inode(fuse_ino_t parent, const char *name,
                                 enum inode_type type, fuse_ino_t &ino);
 
-        static int update_inode_entry(inode_entry *entry, const char *name);
+        static int update_inode_entry_t(inode_entry_t *entry);
 
         // TODO(Dantali0n): Move synchronization / flush methods to separate
         //                  interface. (These exclude those of the NAT / SIT

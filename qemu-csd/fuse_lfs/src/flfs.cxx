@@ -437,7 +437,7 @@ namespace qemucsd::fuse_lfs {
 
         // Read the inode entry from drive or inode_entries synchronization
         // structure.
-        if(get_inode_entry(ino, &entry) == FLFS_RET_ENOENT)
+        if(get_inode_entry_t(ino, &entry) == FLFS_RET_ENOENT)
             return FLFS_RET_ENOENT;
 
         stbuf->st_size = entry.first.size;
@@ -446,7 +446,7 @@ namespace qemucsd::fuse_lfs {
         else if(entry.first.type == INO_T_DIR)
             goto ino_stat_dir;
         else {
-            output.error("get_inode_entry returned entry with type INO_T_NONE");
+            output.error("get_inode_entry_t returned entry with type INO_T_NONE");
             goto ino_stat_enoent;
         }
 
@@ -470,10 +470,9 @@ namespace qemucsd::fuse_lfs {
                                    size_t bufsize, off_t off, size_t maxsize)
     {
         if (off < bufsize)
-            return fuse_reply_buf(req, buf + off,
-                                  flfs_min(bufsize - off, maxsize));
+            return fuse_reply_buf(req, buf, flfs_min(bufsize, maxsize));
         else
-            return fuse_reply_buf(req, NULL, 0);
+            return fuse_reply_buf(req, nullptr, 0);
     }
 
     void FuseLFS::dir_buf_add(fuse_req_t req, struct dir_buf* buf,
@@ -1361,7 +1360,7 @@ namespace qemucsd::fuse_lfs {
      * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon error or
      *         FLFS_RET_ENOENT if the inode_entry could not be found
      */
-    int FuseLFS::get_inode_entry(fuse_ino_t ino, inode_entry_t *entry) {
+    int FuseLFS::get_inode_entry_t(fuse_ino_t ino, inode_entry_t *entry) {
         struct data_position ino_pos = {0};
 
         // Verify the inode exists, inode_lba_map should always be complete
@@ -1480,12 +1479,12 @@ namespace qemucsd::fuse_lfs {
      *         FLFS_RET_LOGZ_FULL if the log zone is full
      *         (LOGZ_FULL only when FLFS_INODE_FLUSH_IMMEDIATE is defined).
      */
-    int FuseLFS::update_inode_entry(inode_entry *entry, const char *name) {
+    int FuseLFS::update_inode_entry_t(inode_entry_t *entry) {
 
         // This overrides the inode_entry in case the previous one hadn't
         // flushed to drive yet.
         inode_entries.insert_or_assign(
-            entry->inode, std::make_pair(*entry, name));
+            entry->first.inode, std::make_pair(entry->first, entry->second));
 
         #ifdef FLFS_INODE_FLUSH_IMMEDIATE
         return flush_inodes(true);
@@ -1534,56 +1533,20 @@ namespace qemucsd::fuse_lfs {
      * Create or update the data_blocks. The number of data_blocks depends on
      * the size of data_lbas vector while the data_block numbers depends on
      * start_blk.
-     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
      */
-    int FuseLFS::assign_data_blocks(fuse_ino_t ino, uint64_t start_blk,
-        std::vector<uint64_t> *data_lbas) //, std::vector<data_block> *blocks)
+    void FuseLFS::assign_data_blocks(fuse_ino_t ino, data_map_t *blocks) //, std::vector<data_block> *blocks)
     {
-        uint64_t num_blocks = 0;
-        compute_data_block_num(data_lbas->size(), num_blocks);
-
-        uint64_t remaining_lbas;
-        for(uint64_t i = 0; i < num_blocks; i++) {
-            remaining_lbas = data_lbas->size() < DATA_BLK_LBA_NUM ?
-                data_lbas->size() : DATA_BLK_LBA_NUM;
-
-            std::vector<uint64_t> current_data_lbas(
-                data_lbas->begin(), data_lbas->begin() + remaining_lbas);
-            data_lbas->erase(
-                data_lbas->begin(), data_lbas->begin() + remaining_lbas);
-
-            if(assign_data_block(ino, start_blk + i, &current_data_lbas) !=
-               FLFS_RET_NONE) //, &blocks->at(i));
-                return FLFS_RET_ERR;
+        for(auto &block : *blocks) {
+            assign_data_block(ino, block.first, &block.second);
         }
-
-        return FLFS_RET_NONE;
     }
 
     /**
      * Fill a data_block and insert or update the data_blocks
-     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
      */
-    int FuseLFS::assign_data_block(fuse_ino_t ino, uint64_t block_num,
-        std::vector<uint64_t> *data_lbas) //, struct data_block *blk)
+    void FuseLFS::assign_data_block(fuse_ino_t ino, uint64_t block_num,
+        struct data_block *blk) //, struct data_block *blk)
     {
-        auto d_blk = (struct data_block *) malloc(sizeof(data_block));
-        uint64_t limit = data_lbas->size();
-
-        #ifdef QEMUCSD_DEBUG
-        if(data_lbas->size() > DATA_BLK_LBA_NUM) {
-            output.error("data_lbas vector to large for single data_block!");
-            limit = DATA_BLK_LBA_NUM;
-        }
-        #endif
-
-        // The contents of the data_block does not have to account for
-        // next_block as flush_data_blocks will take care of that field.
-        // TODO(Dantali0n): Change into raw memcpy for performance improvement
-        for(uint64_t i = 0; i < limit; i++) {
-            d_blk->data_lbas[i] = data_lbas->at(i);
-        }
-
         // See if the inode already exists in data_blocks otherwise create it
         auto lookup = data_blocks.find(ino);
         if(lookup == data_blocks.end())
@@ -1593,11 +1556,7 @@ namespace qemucsd::fuse_lfs {
         auto data_block_map = data_blocks.find(ino)->second;
 
         // Now insert the new block ready for flush to drive
-        data_block_map->insert_or_assign(block_num, *d_blk);
-
-        free(d_blk);
-
-        return FLFS_RET_NONE;
+        data_block_map->insert_or_assign(block_num, *blk);
     }
 
     /**
@@ -2001,27 +1960,111 @@ namespace qemucsd::fuse_lfs {
         const fuse_ctx* context = fuse_req_ctx(req);
 
         // Check if inode exists
-        if(ino_stat(ino, &e.attr) == FLFS_RET_ENOENT)
+        if(ino_stat(ino, &e.attr) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENOENT);
+            return;
+        }
 
         #ifdef QEMUCSD_DEBUG
         // Verify inode is regular file
-        if(!(e.attr.st_mode & S_IFREG))
+        if(!(e.attr.st_mode & S_IFREG)) {
             fuse_reply_err(req, EISDIR);
+            return;
+        }
 
         // Verify file handle (session) exists
         if(open_inode_map.find(fi->fh) == open_inode_map.end()) {
             output.error("File handle ", fi->fh, " not found in open_inode_map!");
             fuse_reply_err(req, EIO);
+            return;
         }
         #endif
 
-        std::string buffer = "Je moeder!\n";
-        int check = reply_buf_limited(req, buffer.c_str(), buffer.size(), offset, size);
+        // Hardcoded data
+        if(ino == 2) {
+            std::string buffer = "Je moeder!\n";
+            reply_buf_limited(req, buffer.c_str(), buffer.size(), offset, size);
+            return;
+        }
 
+        // Inode is of size 0
+        if(e.attr.st_size == 0) {
+            reply_buf_limited(req, nullptr, 0, offset, size);
+            return;
+        }
+
+        // Actual read starts here
+        inode_entry_t entry;
+        get_inode_entry_t(ino, &entry);
+
+        // Variables corresponding to initial data_block
+        uint64_t db_block_num;
+        uint64_t db_num_lbas = offset / SECTOR_SIZE;
+        compute_data_block_num(db_num_lbas, db_block_num);
+
+        auto *blk = (struct data_block *) malloc(sizeof(data_block));
+        if(get_data_block(entry.first, db_block_num, blk) != FLFS_RET_NONE) {
+            uint64_t error_lba = entry.first.data_lba;
+            output.error(
+                "Failed to get data_block at lba ", error_lba,
+                " for inode ", ino, " in read");
+            free(blk);
+            return;
+        }
+
+        uint64_t data_limit = flfs_min(size, e.attr.st_size);
+        // Initial lba index in the data_block
+        uint64_t db_lba_index = db_num_lbas % DATA_BLK_LBA_NUM;
+        // "Read should send exactly the number of bytes requested except
+        //	on EOF or error".
+        auto buffer = (uint8_t*) malloc(SECTOR_SIZE);
+
+        // Loop through the data until the buffer is filled to the required size
+        uint64_t buffer_offset = 0;
+        struct data_position data_pos = {0};
+        while(buffer_offset < data_limit) {
+
+            // Detect db_lba_index overflow and fetch next data_block
+            if(db_lba_index >= DATA_BLK_LBA_NUM) {
+                db_lba_index = 0;
+                db_block_num += 1;
+                if(get_data_block(entry.first, db_block_num, blk) != FLFS_RET_NONE) {
+                    uint64_t error_lba = entry.first.data_lba;
+                    output.error(
+                            "Failed to get data_block at lba ", error_lba,
+                            " for inode ", ino, " in read");
+                    free(blk);
+                    return;
+                }
+            }
+
+            // Convert the data_block lba at the current index to a position
+            lba_to_position(blk->data_lbas[db_lba_index], data_pos);
+
+            // Read the data from this position into the buffer given the
+            // currently accumulated offset
+            if(nvme->read(data_pos.zone, data_pos.sector, data_pos.offset,
+                          buffer + buffer_offset, SECTOR_SIZE) != 0) {
+                uint64_t data_lba = blk->data_lbas[db_lba_index];
+                output.error(
+                    "Failed to retrieve data at at data_block index ",
+                    db_lba_index, " with lba ", data_lba, " for inode ", ino);
+                fuse_reply_err(req, EIO);
+                free(buffer);
+                return;
+            }
+
+            buffer_offset += SECTOR_SIZE;
+            db_lba_index += 1;
+        }
+
+        reply_buf_limited(req, (const char*)buffer, data_limit, offset, size);
+
+        free(buffer);
+        free(blk);
     }
 
-    void FuseLFS::write(fuse_req_t req, fuse_ino_t ino, const char *buf,
+    void FuseLFS::write(fuse_req_t req, fuse_ino_t ino, const char *buffer,
                        size_t size, off_t off, struct fuse_file_info *fi)
     {
         struct fuse_entry_param e = {0};
@@ -2043,24 +2086,98 @@ namespace qemucsd::fuse_lfs {
         }
         #endif
 
-        // Compute size requirements
-        uint64_t num_lbas = size / SECTOR_SIZE;
-        if(size % SECTOR_SIZE != 0) num_lbas += 1;
+        inode_entry_t entry;
+        get_inode_entry_t(ino, &entry);
 
-        // Compute offsets
-        uint64_t lba_index = off / SECTOR_SIZE;
-        uint64_t offset = off % SECTOR_SIZE;
+        // Create data_map for data_blocks management
+        data_map_t data_map;
 
-        // Read and pad the data if offset not zero
-        if(offset != 0) {
+        // Compute total size requirements
+        uint64_t  num_dblocks;
+        uint64_t num_lbas = (off + size) / SECTOR_SIZE;
+        if((off + size) % SECTOR_SIZE != 0) num_lbas += 1;
+        compute_data_block_num(num_lbas, num_dblocks);
 
+        // Compute initial data_block and index
+        uint64_t initial_db_block;
+        uint64_t initial_db_lba_index = (off / SECTOR_SIZE) % DATA_BLK_LBA_NUM;
+        compute_data_block_num(off / SECTOR_SIZE, initial_db_block);
+
+        // Compute first lba and final lba offsets (if any, can be zero)
+        uint64_t start_offset = off % SECTOR_SIZE;
+        uint64_t end_offset = SECTOR_SIZE - ((size + start_offset) % SECTOR_SIZE);
+
+        auto internal_buf = (uint8_t*) malloc(SECTOR_SIZE);
+
+        // Get the current data_block if it exists
+        struct data_block cur_db_blk = {0};
+
+        // Zero size has no data_block yet
+        if(e.attr.st_size == 0) {
+            // Pad the data if start_offset not zero
+            memset(internal_buf, 0, start_offset);
+        }
+        // If getting the data_block fails return error
+        else if(get_data_block(entry.first, initial_db_block, &cur_db_blk) !=
+            FLFS_RET_NONE) {
+            output.error("Failed to get data_block ", initial_db_block, " for ",
+                         "inode", ino);
+            fuse_reply_err(req, EIO);
+            return;
+        }
+        // Got the data_block and has data no apply data in current sector
+        else if(start_offset != 0) {
+            auto cur_offset_data = (uint8_t*) malloc(SECTOR_SIZE);
+            struct data_position c_off_d_pos = {0};
+            lba_to_position(cur_db_blk.data_lbas[initial_db_lba_index],
+                            c_off_d_pos);
+
+            if(nvme->read(
+                c_off_d_pos.zone, c_off_d_pos.sector, c_off_d_pos.offset,
+                cur_offset_data, SECTOR_SIZE) != 0) {
+                output.error("Failed to read already existing data occupied ",
+                             "in offset of existing sector ");
+                free(cur_offset_data);
+                fuse_reply_err(req, EIO);
+                return;
+            }
+
+            memcpy(internal_buf, cur_offset_data, start_offset);
+            free(cur_offset_data);
         }
 
-        for(uint64_t i = 0; i < num_lbas; i++) {
+        // Copy the data into the buffer
+        memcpy(internal_buf + start_offset, buffer,
+               flfs_min(SECTOR_SIZE - start_offset, size));
+
+        // Pad the end of data if write occupies single sector
+        if(size + start_offset < SECTOR_SIZE) {
+            memset(internal_buf + start_offset + size, 0, end_offset);
+        }
+
+        uint64_t result_lba;
+        log_append(internal_buf, SECTOR_SIZE, result_lba);
+        cur_db_blk.data_lbas[initial_db_lba_index] = result_lba;
+
+        // Loop through all lbas of data in the middle so not the first and
+        // not the last
+        for(uint64_t i = 1; i < num_lbas - 1; i++) {
 //            log_append()
         }
 
-//        fuse_reply_write();
+        // Perform the last sector write if any
+        if(size + start_offset > SECTOR_SIZE) {
+
+        }
+
+        assign_data_block(ino, initial_db_block, &cur_db_blk);
+
+        entry.first.size =
+            entry.first.size > off + size ? entry.first.size : off + size;
+
+        update_inode_entry_t(&entry);
+
+        fuse_reply_write(req, size);
     }
 
     /**
