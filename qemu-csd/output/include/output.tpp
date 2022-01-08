@@ -63,7 +63,7 @@ void Output::debug(D &&t) {
 
 template<typename HeadD, typename... TailD>
 void Output::debug(HeadD &&head, TailD&&... tail) {
-    output(std::cout, DEBUG, std::forward<TailD>(tail)...);
+    output(std::cout, DEBUG, head, std::forward<TailD>(tail)...);
 }
 
 template<typename T>

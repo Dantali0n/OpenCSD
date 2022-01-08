@@ -340,7 +340,7 @@ namespace qemucsd::fuse_lfs {
         fuse_req_t req, struct fuse_entry_param *e)
     {
         inode_nlookup_increment(e->ino);
-        e->attr.st_nlink = inode_nlookup_map.find(e->ino)->second;
+        //e->attr.st_nlink = inode_nlookup_map.find(e->ino)->second;
         fuse_reply_entry(req, e);
     }
 
@@ -353,7 +353,7 @@ namespace qemucsd::fuse_lfs {
         const struct fuse_file_info *f)
     {
         inode_nlookup_increment(e->ino);
-        e->attr.st_nlink = inode_nlookup_map.find(e->ino)->second;
+        //e->attr.st_nlink = inode_nlookup_map.find(e->ino)->second;
         fuse_reply_create(req, e, f);
     }
 
@@ -416,6 +416,15 @@ namespace qemucsd::fuse_lfs {
      */
     int FuseLFS::ino_stat(fuse_ino_t ino, struct stat *stbuf) {
         inode_entry_t entry;
+        stbuf->st_dev = 0;
+        stbuf->st_rdev = 0;
+        stbuf->st_blocks = 0;
+        stbuf->st_blksize = SECTOR_SIZE;
+
+        stbuf->st_atime = time(nullptr);
+        stbuf->st_mtime = time(nullptr);;
+        stbuf->st_ctime = time(nullptr);;
+
         stbuf->st_ino = ino;
 
         // 0 is invalid inode
@@ -1746,6 +1755,21 @@ namespace qemucsd::fuse_lfs {
 
     void FuseLFS::init(void *userdata, struct fuse_conn_info *conn) {
         connection = conn;
+
+        // Disable all these 'reasonable' defaults
+        conn->want &= ~(FUSE_CAP_ASYNC_READ);
+        conn->want &= ~(FUSE_CAP_POSIX_LOCKS);
+        conn->want &= ~(FUSE_CAP_FLOCK_LOCKS);
+        conn->want &= ~(FUSE_CAP_ATOMIC_O_TRUNC);
+        conn->want &= ~(FUSE_CAP_IOCTL_DIR);
+        conn->want &= ~(FUSE_CAP_READDIRPLUS);
+        conn->want &= ~(FUSE_CAP_READDIRPLUS_AUTO);
+        conn->want &= ~(FUSE_CAP_ASYNC_DIO);
+        conn->want &= ~(FUSE_CAP_PARALLEL_DIROPS);
+        conn->want &= ~(FUSE_CAP_HANDLE_KILLPRIV);
+
+        conn->want &= ~(FUSE_CAP_SPLICE_READ);
+        conn->want &= ~(FUSE_CAP_AUTO_INVAL_DATA);
     }
 
     void FuseLFS::destroy(void *userdata) {
@@ -1769,8 +1793,6 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::lookup(fuse_req_t req, fuse_ino_t parent, const char *name) {
         struct fuse_entry_param e = {0};
         e.ino = parent;
-        e.attr_timeout = 1.0;
-        e.entry_timeout = 1.0;
 
         // Check if parent exists
         if(ino_stat(e.ino, &e.attr) == FLFS_RET_ENOENT) {
@@ -1791,8 +1813,8 @@ namespace qemucsd::fuse_lfs {
         memset(&e, 0, sizeof(e));
 
         e.ino = result->second;
-        e.attr_timeout = 1.0;
-        e.entry_timeout = 1.0;
+        e.attr_timeout = 60.0;
+        e.entry_timeout = 60.0;
         if(ino_stat(e.ino, &e.attr) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENOENT);
             return;
@@ -1813,7 +1835,7 @@ namespace qemucsd::fuse_lfs {
         if (ino_stat(ino, &stbuf) == FLFS_RET_ENOENT)
             fuse_reply_err(req, ENOENT);
         else
-            fuse_reply_attr(req, &stbuf, 1.0);
+            fuse_reply_attr(req, &stbuf, 90.0);
     }
 
     void FuseLFS::readdir(fuse_req_t req, fuse_ino_t ino, size_t size,
@@ -1859,12 +1881,54 @@ namespace qemucsd::fuse_lfs {
             return;
         }
 
+        // TODO(Dantali0n): Check O_APPEND
+        if (stbuf.st_mode & O_APPEND) {
+            output.error("Attempt to open file with append not supported!");
+            fuse_reply_err(req, EOPNOTSUPP);
+            return;
+        }
+
+        // TODO(Dantali0n): Check O_NONBLOCK
+        if (stbuf.st_mode & O_NONBLOCK) {
+            output.error("Attempt to open file with O_NONBLOCK not supported!");
+            fuse_reply_err(req, EOPNOTSUPP);
+            return;
+        }
+
+        // TODO(Dantali0n): Check O_NDELAY
+        if (stbuf.st_mode & O_NDELAY) {
+            output.error("Attempt to open file with O_NDELAY not supported!");
+            fuse_reply_err(req, EOPNOTSUPP);
+            return;
+        }
+
+        // TODO(Dantali0n): Check O_SYNC
+        if (stbuf.st_mode & O_SYNC) {
+            output.error("Attempt to open file with O_SYNC not supported!");
+            fuse_reply_err(req, EOPNOTSUPP);
+            return;
+        }
+
+        // TODO(Dantali0n): Check O_ASYNC
+        if (stbuf.st_mode & O_ASYNC) {
+            output.error("Attempt to open file with O_ASYNC not supported!");
+            fuse_reply_err(req, EOPNOTSUPP);
+            return;
+        }
+
         // Can only read files in this demo
         // TODO(Dantali0n): Support opening files in write mode
 //        if ((fi->flags & O_ACCMODE) != O_RDONLY) {
 //            fuse_reply_err(req, EACCES);
 //            return;
 //        }
+
+        output.debug(
+            "[open] cache_readdir ", fi->cache_readdir ? 1 : 0, " writepage ",
+            fi->writepage ? 1 : 0, " direct_io ", fi->direct_io ? 1 : 0,
+            " keep_cache ", fi->keep_cache ? 1 : 0, " flush ",
+            fi->flush ? 1 : 0, " nonseekable ", fi->nonseekable ? 1 : 0,
+            " flock_release ", fi->flock_release ? 1 : 0);
 
         create_file_handle(req, ino, fi);
 
@@ -1883,6 +1947,15 @@ namespace qemucsd::fuse_lfs {
         // Release file handle if not directory
         if(e.attr.st_mode & S_IFREG)
             release_file_handle(fi);
+
+        output.debug(
+            "[release] cache_readdir ", fi->cache_readdir ? 1 : 0, " writepage ",
+            fi->writepage ? 1 : 0, " direct_io ", fi->direct_io ? 1 : 0,
+            " keep_cache ", fi->keep_cache ? 1 : 0, " flush ",
+            fi->flush ? 1 : 0, " nonseekable ", fi->nonseekable ? 1 : 0,
+            " flock_release ", fi->flock_release ? 1 : 0);
+
+        // fuse_reply_none(req);
     }
 
     void FuseLFS::create(fuse_req_t req, fuse_ino_t parent, const char *name,
@@ -1919,6 +1992,14 @@ namespace qemucsd::fuse_lfs {
 
         // TODO(Dantali0n): Check create_inode return code and handle these
 
+        if(fi)
+            output.debug(
+            "[create] cache_readdir ", fi->cache_readdir ? 1 : 0, " writepage ",
+            fi->writepage ? 1 : 0, " direct_io ", fi->direct_io ? 1 : 0,
+            " keep_cache ", fi->keep_cache ? 1 : 0, " flush ",
+            fi->flush ? 1 : 0, " nonseekable ", fi->nonseekable ? 1 : 0,
+            " flock_release ", fi->flock_release ? 1 : 0);
+
         // Create directory
         if(mode & S_IFDIR) {
             create_inode(parent, name, INO_T_DIR, e.ino);
@@ -1949,7 +2030,7 @@ namespace qemucsd::fuse_lfs {
         mode &= ~(S_IFREG);
         // Set S_IFDIR
         mode |= S_IFDIR;
-
+        
         create(req, parent, name, mode, nullptr);
     }
 
@@ -1979,6 +2060,13 @@ namespace qemucsd::fuse_lfs {
             return;
         }
         #endif
+
+        output.debug(
+            "[read] cache_readdir ", fi->cache_readdir ? 1 : 0, " writepage ",
+            fi->writepage ? 1 : 0, " direct_io ", fi->direct_io ? 1 : 0,
+            " keep_cache ", fi->keep_cache ? 1 : 0, " flush ",
+            fi->flush ? 1 : 0, " nonseekable ", fi->nonseekable ? 1 : 0,
+            " flock_release ", fi->flock_release ? 1 : 0);
 
         // Hardcoded data
         if(ino == 2) {
@@ -2033,6 +2121,7 @@ namespace qemucsd::fuse_lfs {
                     output.error(
                             "Failed to get data_block at lba ", error_lba,
                             " for inode ", ino, " in read");
+                    free(buffer);
                     free(blk);
                     return;
                 }
@@ -2051,6 +2140,7 @@ namespace qemucsd::fuse_lfs {
                     db_lba_index, " with lba ", data_lba, " for inode ", ino);
                 fuse_reply_err(req, EIO);
                 free(buffer);
+                free(blk);
                 return;
             }
 
@@ -2085,6 +2175,13 @@ namespace qemucsd::fuse_lfs {
             fuse_reply_err(req, EIO);
         }
         #endif
+
+        output.debug(
+            "[write] cache_readdir ", fi->cache_readdir ? 1 : 0, " writepage ",
+            fi->writepage ? 1 : 0, " direct_io ", fi->direct_io ? 1 : 0,
+            " keep_cache ", fi->keep_cache ? 1 : 0, " flush ",
+            fi->flush ? 1 : 0, " nonseekable ", fi->nonseekable ? 1 : 0,
+            " flock_release ", fi->flock_release ? 1 : 0);
 
         inode_entry_t entry;
         get_inode_entry_t(ino, &entry);
