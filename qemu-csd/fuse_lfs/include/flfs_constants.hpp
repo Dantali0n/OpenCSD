@@ -71,6 +71,12 @@ namespace qemucsd::fuse_lfs {
      */
     #define FLFS_INODE_FLUSH_IMMEDIATE
 
+    /**
+     * Decide to output fuse_file_info fi debug info to the console upon FUSE
+     * calls. output level will be debug
+     */
+//    #define FLFS_DBG_FI
+
     #define flfs_min(x, y) ((x) < (y) ? (x) : (y))
 
     enum FLFS_RETURN_CODES {

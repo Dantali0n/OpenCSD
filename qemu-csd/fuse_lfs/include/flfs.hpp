@@ -101,6 +101,9 @@ namespace qemucsd::fuse_lfs {
 
         static void advance_position(struct data_position &position);
 
+        /** Debug helper functions */
+        static void output_fi(const char *name, struct fuse_file_info *fi);
+
         /** FUSE helper functions */
 
         static int ino_stat(fuse_ino_t ino, struct stat *stbuf);

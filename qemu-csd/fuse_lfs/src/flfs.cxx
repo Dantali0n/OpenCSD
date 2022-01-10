@@ -91,6 +91,7 @@ namespace qemucsd::fuse_lfs {
         .read       = FuseLFS::read,
         .write      = FuseLFS::write,
         .release    = FuseLFS::release,
+        .fsync      = FuseLFS::fsync,
         .readdir    = FuseLFS::readdir,
         .create     = FuseLFS::create,
     };
@@ -406,6 +407,20 @@ namespace qemucsd::fuse_lfs {
      */
     void FuseLFS::advance_position(struct data_position &position) {
 
+    }
+
+    /**
+     * Output information from the current fuse_file_info struct to stdout
+     * using output level debug.
+     */
+    void FuseLFS::output_fi(const char *name, struct fuse_file_info *fi) {
+        output.debug(
+            "[", name, "] cache_readdir ", fi->cache_readdir ? 1 : 0,
+            " writepage ", fi->writepage ? 1 : 0, " direct_io ",
+            fi->direct_io ? 1 : 0, " keep_cache ", fi->keep_cache ? 1 : 0,
+            " flush ", fi->flush ? 1 : 0, " nonseekable ",
+            fi->nonseekable ? 1 : 0, " flock_release ",
+            fi->flock_release ? 1 : 0);
     }
 
     /**
@@ -1531,7 +1546,7 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Determine how many data_blocks are required based on the number of
-     * occupied lbas.
+     * occupied lbas. This number is rounded to the nearest highest value.
      */
     void FuseLFS::compute_data_block_num(uint64_t num_lbas, uint64_t &blocks) {
         blocks = num_lbas / DATA_BLK_LBA_NUM;
@@ -1708,7 +1723,7 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Flush all data_blocks to drive in the correct order
-     * @return
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
      */
     int FuseLFS::flush_data_blocks() {
         // These inodes will need to be updates
@@ -1717,6 +1732,8 @@ namespace qemucsd::fuse_lfs {
         for(auto &block : data_blocks) {
             inodes.push_back(block.first);
         }
+
+        return FLFS_RET_NONE;
     }
 
     /**
@@ -1888,6 +1905,7 @@ namespace qemucsd::fuse_lfs {
             return;
         }
 
+        #ifdef QEMUCSD_DEBUG
         // TODO(Dantali0n): Check O_NONBLOCK
         if (stbuf.st_mode & O_NONBLOCK) {
             output.error("Attempt to open file with O_NONBLOCK not supported!");
@@ -1915,6 +1933,7 @@ namespace qemucsd::fuse_lfs {
             fuse_reply_err(req, EOPNOTSUPP);
             return;
         }
+        #endif
 
         // Can only read files in this demo
         // TODO(Dantali0n): Support opening files in write mode
@@ -1923,12 +1942,9 @@ namespace qemucsd::fuse_lfs {
 //            return;
 //        }
 
-        output.debug(
-            "[open] cache_readdir ", fi->cache_readdir ? 1 : 0, " writepage ",
-            fi->writepage ? 1 : 0, " direct_io ", fi->direct_io ? 1 : 0,
-            " keep_cache ", fi->keep_cache ? 1 : 0, " flush ",
-            fi->flush ? 1 : 0, " nonseekable ", fi->nonseekable ? 1 : 0,
-            " flock_release ", fi->flock_release ? 1 : 0);
+        #ifdef FLFS_DBG_FI
+        output_fi("open", fi);
+        #endif
 
         create_file_handle(req, ino, fi);
 
@@ -1948,12 +1964,9 @@ namespace qemucsd::fuse_lfs {
         if(e.attr.st_mode & S_IFREG)
             release_file_handle(fi);
 
-        output.debug(
-            "[release] cache_readdir ", fi->cache_readdir ? 1 : 0, " writepage ",
-            fi->writepage ? 1 : 0, " direct_io ", fi->direct_io ? 1 : 0,
-            " keep_cache ", fi->keep_cache ? 1 : 0, " flush ",
-            fi->flush ? 1 : 0, " nonseekable ", fi->nonseekable ? 1 : 0,
-            " flock_release ", fi->flock_release ? 1 : 0);
+        #ifdef FLFS_DBG_FI
+        output_fi("release", fi);
+        #endif
 
         fuse_reply_err(req, 0);
     }
@@ -1992,13 +2005,10 @@ namespace qemucsd::fuse_lfs {
 
         // TODO(Dantali0n): Check create_inode return code and handle these
 
+        #ifdef FLFS_DBG_FI
         if(fi)
-            output.debug(
-            "[create] cache_readdir ", fi->cache_readdir ? 1 : 0, " writepage ",
-            fi->writepage ? 1 : 0, " direct_io ", fi->direct_io ? 1 : 0,
-            " keep_cache ", fi->keep_cache ? 1 : 0, " flush ",
-            fi->flush ? 1 : 0, " nonseekable ", fi->nonseekable ? 1 : 0,
-            " flock_release ", fi->flock_release ? 1 : 0);
+            output_fi("create", fi);
+        #endif
 
         // Create directory
         if(mode & S_IFDIR) {
@@ -2061,12 +2071,9 @@ namespace qemucsd::fuse_lfs {
         }
         #endif
 
-        output.debug(
-            "[read] cache_readdir ", fi->cache_readdir ? 1 : 0, " writepage ",
-            fi->writepage ? 1 : 0, " direct_io ", fi->direct_io ? 1 : 0,
-            " keep_cache ", fi->keep_cache ? 1 : 0, " flush ",
-            fi->flush ? 1 : 0, " nonseekable ", fi->nonseekable ? 1 : 0,
-            " flock_release ", fi->flock_release ? 1 : 0);
+        #ifdef FLFS_DBG_FI
+        output_fi("read", fi);
+        #endif
 
         // Hardcoded data
         if(ino == 2) {
@@ -2155,7 +2162,7 @@ namespace qemucsd::fuse_lfs {
     }
 
     void FuseLFS::write(fuse_req_t req, fuse_ino_t ino, const char *buffer,
-                       size_t size, off_t off, struct fuse_file_info *fi)
+        size_t size, off_t off, struct fuse_file_info *fi)
     {
         struct fuse_entry_param e = {0};
         const fuse_ctx* context = fuse_req_ctx(req);
@@ -2176,34 +2183,30 @@ namespace qemucsd::fuse_lfs {
         }
         #endif
 
-        output.debug(
-            "[write] cache_readdir ", fi->cache_readdir ? 1 : 0, " writepage ",
-            fi->writepage ? 1 : 0, " direct_io ", fi->direct_io ? 1 : 0,
-            " keep_cache ", fi->keep_cache ? 1 : 0, " flush ",
-            fi->flush ? 1 : 0, " nonseekable ", fi->nonseekable ? 1 : 0,
-            " flock_release ", fi->flock_release ? 1 : 0);
+        #ifdef FLFS_DBG_FI
+        output_fi("write", fi);
+        #endif
 
         inode_entry_t entry;
         get_inode_entry_t(ino, &entry);
 
-        // Create data_map for data_blocks management
-        data_map_t data_map;
-
-        // Compute total size requirements
-        uint64_t  num_dblocks;
-        uint64_t num_lbas = (off + size) / SECTOR_SIZE;
-        if((off + size) % SECTOR_SIZE != 0) num_lbas += 1;
-        compute_data_block_num(num_lbas, num_dblocks);
+        // Compute total number of sectors that will be (re)written due to this
+        // request
+        uint64_t write_lbas = size / SECTOR_SIZE;
+        if((off + size) % SECTOR_SIZE != 0) write_lbas += 1;
 
         // Compute initial data_block and index
-        uint64_t initial_db_block;
-        uint64_t initial_db_lba_index = (off / SECTOR_SIZE) % DATA_BLK_LBA_NUM;
-        compute_data_block_num(off / SECTOR_SIZE, initial_db_block);
+        uint64_t cur_db_blk_num = (off / SECTOR_SIZE) / DATA_BLK_LBA_NUM;
+        uint64_t cur_db_lba_index = (off / SECTOR_SIZE) % DATA_BLK_LBA_NUM;
 
         // Compute first lba and final lba offsets (if any, can be zero)
         uint64_t start_offset = off % SECTOR_SIZE;
         uint64_t end_offset = SECTOR_SIZE - ((size + start_offset) % SECTOR_SIZE);
 
+        // keep track of the amount of data copied
+        uint64_t cur_buf_off = 0;
+
+        // Temporary buffer to store single sector data
         auto internal_buf = (uint8_t*) malloc(SECTOR_SIZE);
 
         // Get the current data_block if it exists
@@ -2215,23 +2218,24 @@ namespace qemucsd::fuse_lfs {
             memset(internal_buf, 0, start_offset);
         }
         // If getting the data_block fails return error
-        else if(get_data_block(entry.first, initial_db_block, &cur_db_blk) !=
-            FLFS_RET_NONE) {
-            output.error("Failed to get data_block ", initial_db_block, " for ",
+        else if(get_data_block(entry.first, cur_db_blk_num, &cur_db_blk) !=
+            FLFS_RET_NONE)
+        {
+            output.error("Failed to get data_block ", cur_db_blk_num, " for ",
                          "inode", ino);
             fuse_reply_err(req, EIO);
             return;
         }
-        // Got the data_block and has data no apply data in current sector
+        // Got the data_block and has data now apply data in current sector
         else if(start_offset != 0) {
             auto cur_offset_data = (uint8_t*) malloc(SECTOR_SIZE);
             struct data_position c_off_d_pos = {0};
-            lba_to_position(cur_db_blk.data_lbas[initial_db_lba_index],
+            lba_to_position(cur_db_blk.data_lbas[cur_db_lba_index],
                             c_off_d_pos);
 
-            if(nvme->read(
-                c_off_d_pos.zone, c_off_d_pos.sector, c_off_d_pos.offset,
-                cur_offset_data, SECTOR_SIZE) != 0) {
+            if(nvme->read(c_off_d_pos.zone, c_off_d_pos.sector,
+                c_off_d_pos.offset, cur_offset_data, SECTOR_SIZE) != 0)
+            {
                 output.error("Failed to read already existing data occupied ",
                              "in offset of existing sector ");
                 free(cur_offset_data);
@@ -2243,43 +2247,82 @@ namespace qemucsd::fuse_lfs {
             free(cur_offset_data);
         }
 
-        // Copy the data into the buffer
-        memcpy(internal_buf + start_offset, buffer,
-               flfs_min(SECTOR_SIZE - start_offset, size));
+        // Keep track of offset in copied data for write
+        cur_buf_off = flfs_min(SECTOR_SIZE - start_offset, size);
+
+        // Copy first sector data
+        memcpy(internal_buf + start_offset, buffer, cur_buf_off);
 
         // Pad the end of data if write occupies single sector
         if(size + start_offset < SECTOR_SIZE) {
             memset(internal_buf + start_offset + size, 0, end_offset);
         }
 
+        // Store the data of first sector on drive
         uint64_t result_lba;
         log_append(internal_buf, SECTOR_SIZE, result_lba);
-        cur_db_blk.data_lbas[initial_db_lba_index] = result_lba;
+        cur_db_blk.data_lbas[cur_db_lba_index] = result_lba;
 
         // Loop through all lbas of data in the middle so not the first and
         // not the last
-        for(uint64_t i = 1; i < num_lbas - 1; i++) {
+        for(uint64_t i = 1; i < write_lbas; i++) {
 //            log_append()
         }
 
         // Perform the last sector write if any
-        if(size + start_offset > SECTOR_SIZE) {
+        if(write_lbas > 1 && size + off % ) {
+            // Move to next sector in data block
+            cur_db_lba_index += 1;
 
+            // If overflowed store current data_block and get or prepare next
+            // one
+            if(cur_db_lba_index == DATA_BLK_LBA_NUM) {
+                assign_data_block(ino, cur_db_blk_num, &cur_db_blk);
+
+                cur_db_lba_index = 0;
+                cur_db_blk_num += 1;
+
+                // Reset the block regardless
+                memset(&cur_db_blk, 0, sizeof(data_block));
+
+                // Check if next data block should already exist
+                if(e.attr.st_size > DATA_BLK_LBA_NUM * SECTOR_SIZE *
+                    cur_db_blk_num)
+                {
+                    if(get_data_block(entry.first, cur_db_blk_num, &cur_db_blk)
+                        != FLFS_RET_NONE)
+                    {
+                        output.error("Failed to get data_block ", cur_db_blk_num,
+                                     " for ", "inode", ino);
+                        fuse_reply_err(req, EIO);
+                        return;
+                    }
+                }
+            }
+
+            uint64_t ls_size = (start_offset + size) % SECTOR_SIZE;
+            memcpy(internal_buf, buffer + cur_buf_off, ls_size);
+            memset(internal_buf + ls_size, 0, end_offset);
+
+            log_append(internal_buf, SECTOR_SIZE, result_lba);
+            cur_db_blk.data_lbas[cur_db_lba_index] = result_lba;
         }
 
-        assign_data_block(ino, initial_db_block, &cur_db_blk);
+        assign_data_block(ino, cur_db_blk_num, &cur_db_blk);
 
         entry.first.size =
             entry.first.size > off + size ? entry.first.size : off + size;
 
         update_inode_entry_t(&entry);
 
+        free(internal_buf);
+
         fuse_reply_write(req, size);
     }
 
     /**
-     * Flush data to drive. Flush order is always 1. raw data 2. data_blocks
-     * 3. inode_blocks. 4. NAT blocks. data blocks contain raw data LBAs,
+     * Flush data to drive. Flush order is always 1. data_blocks
+     * 2. inode_blocks. 3. NAT blocks. data blocks contain raw data LBAs,
      * inode_blocks contain data_blocks LBAs and NAT blocks contain inode LBAs.
      */
     void FuseLFS::fsync(fuse_req_t req, fuse_ino_t ino, int datasync,
@@ -2287,7 +2330,21 @@ namespace qemucsd::fuse_lfs {
     {
         int result;
 
-        /** 3 Update the inode blocks */
+        /** 1. Update the data blocks */
+        result = flush_data_blocks();
+        if(result == FLFS_RET_LOGZ_FULL) {
+            if(log_garbage_collect() != FLFS_RET_NONE) {
+                fuse_reply_err(req, EIO);
+                return;
+            }
+
+            if(flush_data_blocks() != FLFS_RET_NONE) {
+                fuse_reply_err(req, EIO);
+                return;
+            }
+        }
+
+        /** 2. Update the inode blocks */
         result = flush_inodes();
         if(result == FLFS_RET_LOGZ_FULL) {
             if(log_garbage_collect() != FLFS_RET_NONE) {
@@ -2305,7 +2362,7 @@ namespace qemucsd::fuse_lfs {
             return;
         }
 
-        /** 4. Update NAT Blocks */
+        /** 3. Update NAT Blocks */
         result = update_nat_blocks();
         if(result == FLFS_RET_RANDZ_FULL) {
             if(rewrite_random_blocks() != FLFS_RET_NONE) {
