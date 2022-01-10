@@ -291,6 +291,12 @@ namespace qemucsd::fuse_lfs {
 
         static int log_garbage_collect();
 
+        // TODO(Dantali0n): Move FUSE internal wrapper functions to separate
+        //                  interface
+
+        static int write_sector(size_t size, off_t offset, uint64_t cur_lba,
+            const char *data, uint64_t &result_lba);
+
     public:
         FuseLFS() = delete;
         ~FuseLFS() = delete;
