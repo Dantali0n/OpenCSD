@@ -294,6 +294,12 @@ namespace qemucsd::fuse_lfs {
         // TODO(Dantali0n): Move FUSE internal wrapper functions to separate
         //                  interface
 
+        static int flfs_ret_to_fuse_reply(int flfs_ret);
+
+        static void ino_fake_permissions(fuse_req_t req, struct stat *stbuf);
+
+        static int ftruncate(fuse_ino_t ino, size_t size);
+
         static int write_sector(size_t size, off_t offset, uint64_t cur_lba,
             const char *data, uint64_t &result_lba);
 
@@ -310,6 +316,8 @@ namespace qemucsd::fuse_lfs {
         static void forget(fuse_req_t req, fuse_ino_t ino, uint64_t nlookup);
         static void getattr(fuse_req_t req, fuse_ino_t ino,
                            struct fuse_file_info *fi);
+        static void setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
+                                      int to_set, struct fuse_file_info *fi);
         static void readdir(
             fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
             struct fuse_file_info *fi);

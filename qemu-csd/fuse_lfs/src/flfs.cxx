@@ -85,13 +85,14 @@ namespace qemucsd::fuse_lfs {
         .lookup     = FuseLFS::lookup,
         .forget     = FuseLFS::forget,
         .getattr    = FuseLFS::getattr,
+        .setattr    = FuseLFS::setattr,
         .mkdir      = FuseLFS::mkdir,
         .unlink     = FuseLFS::unlink,
         .open	    = FuseLFS::open,
         .read       = FuseLFS::read,
         .write      = FuseLFS::write,
         .release    = FuseLFS::release,
-        .fsync      = FuseLFS::fsync,
+//        .fsync      = FuseLFS::fsync,
         .readdir    = FuseLFS::readdir,
         .create     = FuseLFS::create,
     };
@@ -476,7 +477,7 @@ namespace qemucsd::fuse_lfs {
         }
 
         ino_stat_file:
-            stbuf->st_mode = S_IFREG | 0644;
+            stbuf->st_mode = S_IFREG | 0777;
             stbuf->st_nlink = 1;
             return FLFS_RET_NONE;
         ino_stat_dir:
@@ -1772,6 +1773,69 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
+     * Convert flfs internal return codes to fuse reply codes
+     */
+    int FuseLFS::flfs_ret_to_fuse_reply(int flfs_ret) {
+        switch (flfs_ret) {
+            case FLFS_RET_NONE:
+                return 0;
+            case FLFS_RET_ENOENT:
+                return ENOENT;
+            case FLFS_RET_EISDIR:
+                return EISDIR;
+            default:
+                return EIO;
+        }
+    }
+
+    /**
+     * Convince the caller that the files are owned by him by modifying the
+     * gid & uid in stbuf.
+     */
+    void FuseLFS::ino_fake_permissions(fuse_req_t req, struct stat *stbuf) {
+        const struct fuse_ctx *context = fuse_req_ctx(req);
+        stbuf->st_gid = context->gid;
+        stbuf->st_uid = context->uid;
+    }
+
+    /**
+     * Truncate the inode changing its size to what was requested. Can be
+     * used to increase and decrease file size.
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure,
+     *         FLFS_RET_ENOENT if the inode could not be found,
+     *         FLFS_RET_EISDIR if the inode is a directory and
+     *         FLFS_RET_LOGZ_FULL if the log zone is full but only when
+     *         FLFS_INODE_FLUSH_IMMEDIATE is defined.
+     */
+    int FuseLFS::ftruncate(fuse_ino_t ino, size_t size) {
+        inode_entry_t entry;
+
+        int result = get_inode_entry_t(ino, &entry);
+        if(result != FLFS_RET_NONE)
+            return result;
+
+        if(entry.first.type != INO_T_FILE)
+            return FLFS_RET_EISDIR;
+
+        // Update inode size
+        entry.first.size = size;
+
+        // Reduce size
+        if(entry.first.size > size) {
+            // TODO(Dantali0n): Invalidate already occupied SIT blocks
+        }
+        // Increase size
+        else if(entry.first.size < size) {
+        }
+
+        result = update_inode_entry_t(&entry);
+        if(result != FLFS_RET_NONE)
+            return result;
+
+        return FLFS_RET_NONE;
+    }
+
+    /**
      *
      * @return
      */
@@ -1868,6 +1932,10 @@ namespace qemucsd::fuse_lfs {
             return;
         }
 
+        #ifdef FLFS_FAKE_PERMS
+        ino_fake_permissions(req, &e.attr);
+        #endif
+
         fuse_reply_entry_nlookup(req, &e);
     }
 
@@ -1882,8 +1950,41 @@ namespace qemucsd::fuse_lfs {
         struct stat stbuf = {0};
         if (ino_stat(ino, &stbuf) == FLFS_RET_ENOENT)
             fuse_reply_err(req, ENOENT);
-        else
+        else {
+            #ifdef FLFS_FAKE_PERMS
+            ino_fake_permissions(req, &stbuf);
+            #endif
+
             fuse_reply_attr(req, &stbuf, 90.0);
+        }
+    }
+
+    void FuseLFS::setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
+        int to_set, struct fuse_file_info *fi) {
+        int result;
+
+        // Change permissions (chmod)
+        if(to_set & FUSE_SET_ATTR_MODE) {
+
+        }
+        // Change owner (chown)
+        if(to_set & FUSE_SET_ATTR_UID) {
+
+        }
+        // Change group (chgrp)
+        if(to_set & FUSE_SET_ATTR_GID) {
+
+        }
+        // Change size of file (truncate / ftruncate)
+        if(to_set & FUSE_SET_ATTR_SIZE) {
+            result = ftruncate(ino, attr->st_size);
+            if(result != FLFS_RET_NONE) {
+                fuse_reply_err(req, flfs_ret_to_fuse_reply(result));
+                return;
+            }
+        }
+
+        getattr(req, ino, fi);
     }
 
     void FuseLFS::readdir(fuse_req_t req, fuse_ino_t ino, size_t size,
@@ -2293,10 +2394,8 @@ namespace qemucsd::fuse_lfs {
 
             // Compute offset into provided data buffer
             b_off += SECTOR_SIZE - s_off;
-
             // Reduce remaining size to be written
             s_size -= SECTOR_SIZE - s_off;
-
             // Only first write has sector offset.
             if(i == 0) s_off = 0;
         }

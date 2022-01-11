@@ -133,6 +133,22 @@ namespace qemucsd::fuse_lfs {
     static_assert(sizeof(nat_block) == SECTOR_SIZE);
     static_assert(std::is_trivially_copyable<nat_block>::value);
 
+    static constexpr uint32_t SIT_BLK_INO_LBA_NUM = SECTOR_SIZE-16;
+
+    /**
+     * The highest lba occurrence of a particular start_lba identifies the
+     * valid data. The start LBA is determined from the checkpoint block
+     * randz_lba. Therefor; start_lba values must be deterministic otherwise
+     * overlapping regions might both be considered valid!
+     */
+    struct __attribute__((packed)) sit_block : rand_block_base {
+        // Set type to to RANDZ_SIT_BLK
+        uint64_t start_lba;
+        bool bitmap[SIT_BLK_INO_LBA_NUM];
+    };
+    static_assert(sizeof(sit_block) == SECTOR_SIZE);
+    static_assert(std::is_trivially_copyable<sit_block>::value);
+
     /**
      * LOG WRITE ZONE, the following datastructures will be linearly written to
      * the drive.

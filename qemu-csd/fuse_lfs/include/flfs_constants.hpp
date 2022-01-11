@@ -77,6 +77,13 @@ namespace qemucsd::fuse_lfs {
      */
 //    #define FLFS_DBG_FI
 
+    /**
+     * Fake group and owner ids so that every file and directory appears to
+     * belong to the caller. This is to prevent some sensitive / complaining
+     * application from trying to chown / chgrp everything before writing.
+     */
+    #define FLFS_FAKE_PERMS
+
     #define flfs_min(x, y) ((x) < (y) ? (x) : (y))
 
     enum FLFS_RETURN_CODES {
@@ -103,6 +110,9 @@ namespace qemucsd::fuse_lfs {
 
         // Indicate the requested inode was not found
         FLFS_RET_ENOENT             =  6,
+
+        // Indicate the requested inode is a directory
+        FLFS_RET_EISDIR             =  7,
     };
 
     /**
