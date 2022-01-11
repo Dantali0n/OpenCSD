@@ -94,6 +94,7 @@ namespace qemucsd::fuse_lfs {
         .release    = FuseLFS::release,
 //        .fsync      = FuseLFS::fsync,
         .readdir    = FuseLFS::readdir,
+        .statfs     = FuseLFS::statfs,
         .create     = FuseLFS::create,
     };
 
@@ -1470,10 +1471,9 @@ namespace qemucsd::fuse_lfs {
             return FLFS_RET_MAX_INO;
         ino_ptr += 1;
 
-        // TODO(Dantali0n): Insert or assign makes no sense here, create_inode
-        //                  will always use a new inode due to the ino_ptr.
-        inode_entries.insert_or_assign(
-            entry.inode, std::make_pair(entry, std::string(name)));
+        // Use insert_or_assign to prevent having to unpack packed field entry
+        inode_entries.insert_or_assign(entry.inode,
+            std::make_pair(entry, std::string(name)));
 
         uint64_t entry_inode = entry.inode;
         inode_lba_map.insert(std::make_pair(entry_inode, 0));
@@ -2111,7 +2111,7 @@ namespace qemucsd::fuse_lfs {
 
         // Maximum length of file / directory name is dominated by sector and
         // inode_entry size.
-        if(strlen(name) > SECTOR_SIZE - sizeof(inode_entry)) {
+        if(strlen(name) > MAX_NAME_SIZE) {
             fuse_reply_err(req, ENAMETOOLONG);
         }
 
@@ -2242,9 +2242,10 @@ namespace qemucsd::fuse_lfs {
         uint64_t data_limit = flfs_min(size, e.attr.st_size);
         // Initial lba index in the data_block
         uint64_t db_lba_index = db_num_lbas % DATA_BLK_LBA_NUM;
-        // "Read should send exactly the number of bytes requested except
-        //	on EOF or error".
-        auto buffer = (uint8_t*) malloc(data_limit + (data_limit % SECTOR_SIZE));
+
+        // Round buffer size to nearest higher multiple of SECTOR_SIZE
+        auto buffer = (uint8_t*) malloc(
+            data_limit + (SECTOR_SIZE-1) & (-SECTOR_SIZE));
 
         // Loop through the data until the buffer is filled to the required size
         uint64_t buffer_offset = 0;
@@ -2406,6 +2407,29 @@ namespace qemucsd::fuse_lfs {
             entry.first.size > off + size ? entry.first.size : off + size;
         update_inode_entry_t(&entry);
         fuse_reply_write(req, size);
+    }
+
+    void FuseLFS::statfs(fuse_req_t req, fuse_ino_t ino) {
+        struct statvfs statbuf = {0};
+        statbuf.f_bsize = nvme_info.sector_size;
+        statbuf.f_frsize = SECTOR_SIZE;
+
+        // TODO(Dantali0n): Use rollover from log_pos to compute
+        statbuf.f_bfree = ((nvme_info.num_zones - N_LOG_BUFF_ZONES -
+            log_ptr.zone) * nvme_info.zone_capacity) - log_ptr.sector;
+
+        // TODO(Dantali0n): Compute based on occupation from SIT blocks
+        statbuf.f_bavail = 0;
+
+        statbuf.f_blocks = ((nvme_info.num_zones - N_LOG_BUFF_ZONES -
+            LOGZ_POS.zone) * nvme_info.zone_capacity);
+
+        // Number of inodes used, don't ask why its called f_files
+        statbuf.f_files = inode_lba_map.size();
+        statbuf.f_ffree = (SECTOR_SIZE / INODE_ENTRY_SIZE) * statbuf.f_bfree;
+
+        statbuf.f_namemax = MAX_NAME_SIZE;
+        fuse_reply_statfs(req, &statbuf);
     }
 
     /**

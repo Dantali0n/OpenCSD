@@ -190,6 +190,8 @@ namespace qemucsd::fuse_lfs {
     static constexpr size_t INO_BLK_READ_LIM =
         INODE_BLOCK_SIZE - INODE_ENTRY_SIZE;
 
+    static constexpr size_t MAX_NAME_SIZE = SECTOR_SIZE - INODE_ENTRY_SIZE;
+
     static constexpr size_t DATA_BLK_LBA_NUM = 63;
 
     struct __attribute__((packed)) data_block {

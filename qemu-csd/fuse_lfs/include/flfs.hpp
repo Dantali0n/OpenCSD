@@ -333,6 +333,7 @@ namespace qemucsd::fuse_lfs {
                         struct fuse_file_info *fi);
         static void write(fuse_req_t req, fuse_ino_t ino, const char *buf,
                          size_t size, off_t off, struct fuse_file_info *fi);
+        static void statfs(fuse_req_t req, fuse_ino_t ino);
         static void fsync(fuse_req_t req, fuse_ino_t ino, int datasync,
                           struct fuse_file_info *fi);
         static void unlink(fuse_req_t req, fuse_ino_t parent, const char *name);
