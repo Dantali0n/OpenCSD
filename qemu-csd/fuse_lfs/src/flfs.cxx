@@ -2244,7 +2244,7 @@ namespace qemucsd::fuse_lfs {
         uint64_t db_lba_index = db_num_lbas % DATA_BLK_LBA_NUM;
         // "Read should send exactly the number of bytes requested except
         //	on EOF or error".
-        auto buffer = (uint8_t*) malloc(SECTOR_SIZE);
+        auto buffer = (uint8_t*) malloc(data_limit + (data_limit % SECTOR_SIZE));
 
         // Loop through the data until the buffer is filled to the required size
         uint64_t buffer_offset = 0;
