@@ -174,8 +174,8 @@ namespace qemucsd::fuse_lfs {
         /** Verify that sector are of the minimally required size */
         if(SECTOR_SIZE > nvme_info.sector_size) {
             output(std::cerr, "Sector size (", nvme_info.sector_size,
-                   ") is to small, minimal is ", SECTOR_SIZE,
-                   " bytes, aborting\n");
+                ") is to small, minimal is ", SECTOR_SIZE,
+                " bytes, aborting\n");
             ret = 1;
             goto err_out1;
         }

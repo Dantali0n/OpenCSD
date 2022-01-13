@@ -120,7 +120,7 @@ namespace qemucsd::fuse_lfs {
      * fuse_lfs
      */
 
-    static const uint32_t SECTOR_SIZE = 512;
+    static const uint32_t SECTOR_SIZE = 4096;
     static const uint64_t MAGIC_COOKIE = 0x10ADEDB00BDEC0DE;
 
     /**
