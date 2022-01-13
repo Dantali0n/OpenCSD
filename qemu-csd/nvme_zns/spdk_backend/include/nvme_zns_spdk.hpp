@@ -36,7 +36,7 @@ using qemucsd::spdk_init::ns_entry;
 
 namespace qemucsd::nvme_zns {
 
-    class NvmeZnsMemorySpdk : public NvmeZnsBackend {
+    class NvmeZnsSpdkBackend : public NvmeZnsBackend {
     protected:
         // Write pointers for each zone have to be maintained in memory as it is
         // extremely costly to query this at runtime from SPDK
@@ -49,11 +49,11 @@ namespace qemucsd::nvme_zns {
 //        int compute_sector(uint64_t zone, uint64_t sector, uint64_t offset,
 //            uint64_t size, uint64_t& result_sector);
     public:
-        NvmeZnsMemorySpdk(struct ns_entry* entry);
+        NvmeZnsSpdkBackend(struct ns_entry* entry);
 
         // Destructors must always be virtual so they are still called in
         // super classes.
-        virtual ~NvmeZnsMemorySpdk();
+        virtual ~NvmeZnsSpdkBackend();
 
         void get_nvme_zns_info(struct nvme_zns_info* info) override;
 

@@ -28,7 +28,7 @@ using qemucsd::spdk_init::ns_entry;
 
 namespace qemucsd::nvme_zns {
 
-    NvmeZnsMemorySpdk::NvmeZnsMemorySpdk(struct ns_entry* entry) :
+    NvmeZnsSpdkBackend::NvmeZnsSpdkBackend(struct ns_entry* entry) :
         NvmeZnsBackend(entry->device_size, entry->zone_size,
                        entry->zone_capacity, entry->lba_size, entry->max_open)
     {
@@ -69,16 +69,16 @@ namespace qemucsd::nvme_zns {
         }
     }
 
-    NvmeZnsMemorySpdk::~NvmeZnsMemorySpdk() {
+    NvmeZnsSpdkBackend::~NvmeZnsSpdkBackend() {
         if(entry->ctrlr != nullptr) spdk_nvme_detach(entry->ctrlr);
         if(entry->buffer != nullptr) spdk_free(entry->buffer);
     }
 
-    void NvmeZnsMemorySpdk::get_nvme_zns_info(struct nvme_zns_info* info) {
+    void NvmeZnsSpdkBackend::get_nvme_zns_info(struct nvme_zns_info* info) {
         NvmeZnsBackend::get_nvme_zns_info(info);
     }
 
-    int NvmeZnsMemorySpdk::read(
+    int NvmeZnsSpdkBackend::read(
         uint64_t zone, uint64_t sector, uint64_t offset, void *buffer,
         uint64_t size)
     {
@@ -108,7 +108,7 @@ namespace qemucsd::nvme_zns {
         return 0;
     }
 
-    int NvmeZnsMemorySpdk::append(
+    int NvmeZnsSpdkBackend::append(
         uint64_t zone, uint64_t &sector, uint64_t offset, void *buffer,
         uint64_t size)
     {
@@ -143,7 +143,7 @@ namespace qemucsd::nvme_zns {
         return 0;
     }
 
-    int NvmeZnsMemorySpdk::reset(uint64_t zone) {
+    int NvmeZnsSpdkBackend::reset(uint64_t zone) {
         uint64_t lba;
         struct ns_entry entry = *this->entry;
 

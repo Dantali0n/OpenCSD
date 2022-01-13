@@ -75,3 +75,21 @@ target_link_libraries(
 add_dependencies(fuse-entry libfuse-build)
 
 qemucsd_target_postprocess(fuse-entry)
+
+
+set(FUSE_ENTRY_SPDK_SOURCE
+    fuse_entry_spdk.cxx
+)
+
+message("${PRJ_PRX}: fuse-entry-spdk cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(fuse-entry-spdk ${FUSE_ENTRY_SPDK_SOURCE})
+
+target_link_libraries(
+    fuse-entry-spdk
+    ${local_modules}
+    ${${PRJ_PRX}_LIBRARIES}
+)
+
+add_dependencies(fuse-entry-spdk libfuse-build)
+
+qemucsd_target_postprocess(fuse-entry-spdk)
