@@ -44,6 +44,20 @@ namespace qemucsd::fuse_lfs {
         size_t size;
     };
 
+
+    /**
+     * Keep track of open files and their state, including CSD state such as
+     * if kernels are enabled and which ones.
+     */
+    struct open_file_entry {
+        uint64_t fh;
+        fuse_ino_t ino;
+        pid_t pid;
+        int flags;
+        fuse_ino_t csd_read_kernel;
+        fuse_ino_t csd_write_kernel;
+    };
+
     // Keep track of the number of nlookups per inode.
     // Increases by one for every call to fuse_reply_entry & fuse_reply_create
     // Decreases by calls to forget.
@@ -61,10 +75,12 @@ namespace qemucsd::fuse_lfs {
     // Map corresponding inodes to the lba storing the inode_block
     typedef std::map<fuse_ino_t, uint64_t> inode_lba_map_t;
 
-    // Unique file handles corresponding to open inodes their inode and pid
+    // Pair of data that is interpreted as unique for the CSD context
+    typedef std::pair<fuse_ino_t, pid_t> csd_unique_t;
+
+    // Unique handles corresponding to open file entries
     // TODO(Dantali0n): Extend this to prevent additional lookups for open files
-    // TODO(Dantali0n): Extend this to keep track of read/write/readwrite mode
-    typedef std::map<uint64_t , std::pair<fuse_ino_t, pid_t>> open_inode_map_t;
+    typedef std::vector<struct open_file_entry> open_inode_vect_t;
 
     /**
      * In memory datastructures for synchronizing between memory and drive. That
@@ -75,6 +91,7 @@ namespace qemucsd::fuse_lfs {
     // A set of inodes that have been updated since flush and must be written
     typedef std::set<fuse_ino_t> nat_update_set_t;
 
+    // An inode_entry combined with its name into a pair as inode_entry_t
     typedef std::pair<inode_entry, std::string> inode_entry_t;
 
     // A map of inode_entry and name that must be flushed to drive

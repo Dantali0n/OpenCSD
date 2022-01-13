@@ -282,10 +282,19 @@ namespace qemucsd::fuse_lfs {
 
         // Keep track of open files and directories using unique handles for
         // respective inodes and caller pids.
-        static open_inode_map_t open_inode_map;
+        static open_inode_vect_t open_inode_vect;
 
         static void create_file_handle(
             fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi);
+
+        static int get_file_handle(csd_unique_t *uni_t,
+                                   struct open_file_entry *entry);
+
+        static int find_file_handle(csd_unique_t *uni_t,
+                                     open_inode_vect_t::iterator *it);
+
+        static int find_file_handle(struct fuse_file_info *fi,
+                                     open_inode_vect_t::iterator *it);
 
         static void release_file_handle(struct fuse_file_info *fi);
 
@@ -298,6 +307,8 @@ namespace qemucsd::fuse_lfs {
         //                  interface
 
         static int flfs_ret_to_fuse_reply(int flfs_ret);
+
+        static int check_flags(int flags);
 
         static void ino_fake_permissions(fuse_req_t req, struct stat *stbuf);
 
@@ -339,7 +350,18 @@ namespace qemucsd::fuse_lfs {
         static void statfs(fuse_req_t req, fuse_ino_t ino);
         static void fsync(fuse_req_t req, fuse_ino_t ino, int datasync,
                           struct fuse_file_info *fi);
+        static void rename(fuse_req_t req, fuse_ino_t parent, const char *name,
+                           fuse_ino_t newparent, const char *newname,
+                           unsigned int flags);
         static void unlink(fuse_req_t req, fuse_ino_t parent, const char *name);
+        static void rmdir(fuse_req_t req, fuse_ino_t parent, const char *name);
+        static void getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
+                             size_t size);
+        static void setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
+                             const char *value, size_t size, int flags);
+        static void listxattr(fuse_req_t req, fuse_ino_t ino, size_t size);
+        static void removexattr(fuse_req_t req, fuse_ino_t ino,
+                                const char *name);
     };
 }
 

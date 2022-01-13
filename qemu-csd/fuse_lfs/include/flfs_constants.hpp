@@ -86,7 +86,7 @@ namespace qemucsd::fuse_lfs {
 
     #define flfs_min(x, y) ((x) < (y) ? (x) : (y))
 
-    enum FLFS_RETURN_CODES {
+    enum flfs_return_codes {
         // Generic error not otherwise specified
         FLFS_RET_ERR                = -1,
 
@@ -120,8 +120,11 @@ namespace qemucsd::fuse_lfs {
      * fuse_lfs
      */
 
-    static const uint32_t SECTOR_SIZE = 4096;
-    static const uint64_t MAGIC_COOKIE = 0x10ADEDB00BDEC0DE;
+    static constexpr uint32_t SECTOR_SIZE = 4096;
+    static constexpr uint64_t MAGIC_COOKIE = 0x10ADEDB00BDEC0DE;
+
+    static const std::string CSD_READ_KEY = "user.process.csd_read";
+    static const std::string CSD_WRITE_KEY = "user.process.csd_write";
 
     /**
      * Non dependent structs that should only be used for constant data

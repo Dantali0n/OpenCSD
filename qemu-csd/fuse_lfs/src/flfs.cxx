@@ -50,7 +50,7 @@ namespace qemucsd::fuse_lfs {
 
     inode_entries_t FuseLFS::inode_entries = inode_entries_t();
 
-    open_inode_map_t FuseLFS::open_inode_map = open_inode_map_t();
+    open_inode_vect_t FuseLFS::open_inode_vect = open_inode_vect_t();
 
     // Current checkpoint position on drive
     struct data_position FuseLFS::cblock_pos = {
@@ -1761,10 +1761,15 @@ namespace qemucsd::fuse_lfs {
     {
         const fuse_ctx *context = fuse_req_ctx(req);
 
-        open_inode_map.insert(
-            std::make_pair(fh_ptr, std::make_pair(ino, context->pid)));
+        struct open_file_entry file_entry = {0};
 
         fi->fh = fh_ptr;
+
+        file_entry.fh = fi->fh;
+        file_entry.ino = ino;
+        file_entry.pid = context->pid;
+        file_entry.flags = fi->flags;
+        open_inode_vect.push_back(file_entry);
 
         if(fh_ptr == UINT64_MAX)
             output.fatal("Exhausted all possible file handles!");
@@ -1772,10 +1777,65 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
+     *
+     * @return 1 if the file handle was found, 0 otherwise
+     */
+    int FuseLFS::find_file_handle(csd_unique_t *uni_t,
+        open_inode_vect_t::iterator *it)
+    {
+        *it = std::find_if(
+            open_inode_vect.begin(), open_inode_vect.end(),
+            [&uni_t](const struct open_file_entry& entry)
+        {
+            return uni_t->first == entry.ino && uni_t->second == entry.pid;
+        });
+
+        return *it == open_inode_vect.end() ? 0 : 1;
+    }
+
+    /**
+     *
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
+     */
+    int FuseLFS::get_file_handle(csd_unique_t *uni_t,
+        struct open_file_entry *entry)
+    {
+        for(auto &f_entry : open_inode_vect) {
+            if(uni_t->first == f_entry.ino && uni_t->second == f_entry.pid) {
+                *entry = f_entry;
+                return FLFS_RET_NONE;
+            }
+        }
+
+        return FLFS_RET_ERR;
+    }
+
+    /**
+     *
+     * @return 1 if the file handle was found, 0 otherwise
+     */
+    int FuseLFS::find_file_handle(struct fuse_file_info *fi,
+        open_inode_vect_t::iterator *it)
+    {
+        *it = std::find_if(
+            open_inode_vect.begin(), open_inode_vect.end(),
+            [&fi](const struct open_file_entry& entry)
+        {
+            return fi->fh == entry.fh;
+        });
+
+        return *it == open_inode_vect.end() ? 0 : 1;
+    }
+
+    /**
      * Called be release to remove the session for a file handle
      */
     void FuseLFS::release_file_handle(struct fuse_file_info *fi) {
-        open_inode_map.erase(fi->fh);
+        open_inode_vect_t::iterator del_key;
+        find_file_handle(fi, &del_key);
+
+        if(del_key != open_inode_vect.end())
+            open_inode_vect.erase(del_key);
     }
 
     /**
@@ -1799,6 +1859,22 @@ namespace qemucsd::fuse_lfs {
             default:
                 return EIO;
         }
+    }
+
+    /**
+     * Verify inode flags are supported by filesystem and pass sanity checks.
+     * Sanity checks only performed when QEMUCSD_DEBUG is defined
+     * @return Linux error codes to be directly used with fuse_reply_err or 0 if
+     *         no errors.
+     */
+    int FuseLFS::check_flags(int flags) {
+        #ifdef QEMUCSD_DEBUG
+        if (flags & O_ASYNC) {
+            return EOPNOTSUPP;
+        }
+        #endif
+
+        return 0;
     }
 
     /**
@@ -2043,49 +2119,12 @@ namespace qemucsd::fuse_lfs {
             return;
         }
 
-        // TODO(Dantali0n): Check O_APPEND
-        if (stbuf.st_mode & O_APPEND) {
-            output.error("Attempt to open file with append not supported!");
-            fuse_reply_err(req, EOPNOTSUPP);
+        // Verify flags are sane and operations are supported
+        int flag_result = check_flags(fi->flags);
+        if(flag_result != 0) {
+            fuse_reply_err(req, flag_result);
             return;
         }
-
-        #ifdef QEMUCSD_DEBUG
-        // TODO(Dantali0n): Check O_NONBLOCK
-        if (stbuf.st_mode & O_NONBLOCK) {
-            output.error("Attempt to open file with O_NONBLOCK not supported!");
-            fuse_reply_err(req, EOPNOTSUPP);
-            return;
-        }
-
-        // TODO(Dantali0n): Check O_NDELAY
-        if (stbuf.st_mode & O_NDELAY) {
-            output.error("Attempt to open file with O_NDELAY not supported!");
-            fuse_reply_err(req, EOPNOTSUPP);
-            return;
-        }
-
-        // TODO(Dantali0n): Check O_SYNC
-        if (stbuf.st_mode & O_SYNC) {
-            output.error("Attempt to open file with O_SYNC not supported!");
-            fuse_reply_err(req, EOPNOTSUPP);
-            return;
-        }
-
-        // TODO(Dantali0n): Check O_ASYNC
-        if (stbuf.st_mode & O_ASYNC) {
-            output.error("Attempt to open file with O_ASYNC not supported!");
-            fuse_reply_err(req, EOPNOTSUPP);
-            return;
-        }
-        #endif
-
-        // Can only read files in this demo
-        // TODO(Dantali0n): Support opening files in write mode
-//        if ((fi->flags & O_ACCMODE) != O_RDONLY) {
-//            fuse_reply_err(req, EACCES);
-//            return;
-//        }
 
         #ifdef FLFS_DBG_FI
         output_fi("open", fi);
@@ -2139,6 +2178,13 @@ namespace qemucsd::fuse_lfs {
             fuse_reply_err(req, ENOTDIR);
         #endif
 
+        // Verify flags are sane and operations are supported
+        int flag_result = check_flags(fi->flags);
+        if(flag_result != 0) {
+            fuse_reply_err(req, flag_result);
+            return;
+        }
+
         // Check if file exists
         // TODO(Dantali0n): Fix this once path_inode_map becomes partial
         if(path_inode_map.find(parent)->second->find(name) !=
@@ -2148,12 +2194,12 @@ namespace qemucsd::fuse_lfs {
         // Clear parent data from e
         memset(&e, 0, sizeof(fuse_entry_param));
 
-        // TODO(Dantali0n): Check create_inode return code and handle these
-
         #ifdef FLFS_DBG_FI
         if(fi)
             output_fi("create", fi);
         #endif
+
+        // TODO(Dantali0n): Check create_inode return code and handle these
 
         // Create directory
         if(mode & S_IFDIR) {
@@ -2209,7 +2255,9 @@ namespace qemucsd::fuse_lfs {
         }
 
         // Verify file handle (session) exists
-        if(open_inode_map.find(fi->fh) == open_inode_map.end()) {
+        open_inode_vect_t::iterator open_ino_it;
+        find_file_handle(fi, &open_ino_it);
+        if(open_ino_it == open_inode_vect.end()) {
             output.error("File handle ", fi->fh, " not found in open_inode_map!");
             fuse_reply_err(req, EIO);
             return;
@@ -2327,13 +2375,21 @@ namespace qemucsd::fuse_lfs {
         }
 
         // Verify file handle (session) exists
-        if(open_inode_map.find(fi->fh) == open_inode_map.end()) {
+        open_inode_vect_t::iterator open_ino_it;
+        find_file_handle(fi, &open_ino_it);
+        if(open_ino_it == open_inode_vect.end()) {
             output.error("File handle ", fi->fh, " not found in",
                          "open_inode_map!");
             fuse_reply_err(req, EIO);
             return;
         }
         #endif
+
+        if(fi->flags & O_APPEND && off != e.attr.st_size) {
+            output.warning("External call requested O_APPEND with offset ",
+                           "different from size! fixing offset..");
+            off = e.attr.st_size;
+        }
 
         inode_entry_t entry;
         if(get_inode_entry_t(ino, &entry) != FLFS_RET_NONE) {
@@ -2501,8 +2557,88 @@ namespace qemucsd::fuse_lfs {
         }
     }
 
-    void FuseLFS::unlink(fuse_req_t req, fuse_ino_t parent, const char *name) {
-        return;
+    void FuseLFS::rename(fuse_req_t req, fuse_ino_t parent, const char *name,
+       fuse_ino_t newparent, const char *newname, unsigned int flags)
+    {
+        fuse_reply_err(req, ENOSYS);
     }
 
+    void FuseLFS::unlink(fuse_req_t req, fuse_ino_t parent, const char *name) {
+        fuse_reply_err(req, ENOSYS);
+    }
+
+    void FuseLFS::rmdir(fuse_req_t req, fuse_ino_t parent, const char *name) {
+        fuse_reply_err(req, ENOSYS);
+    }
+
+    void FuseLFS::getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
+        size_t size)
+    {
+        const fuse_ctx *context = fuse_req_ctx(req);
+        struct open_file_entry entry;
+        csd_unique_t csd_info = std::make_pair(ino, context->pid);
+
+        // Check if file is open in CSD context (ino + pid) otherwise no data
+        if(get_file_handle(&csd_info, &entry) != FLFS_RET_NONE) {
+            fuse_reply_err(req, ENODATA);
+            return;
+        }
+
+        inode_entry_t ino_entry;
+
+        if(strcmp(CSD_READ_KEY.c_str(), name) == 0) {
+            if(entry.csd_read_kernel == 0) {
+                fuse_reply_err(req, ENODATA);
+                return;
+            }
+
+            if(get_inode_entry_t(entry.csd_read_kernel, &ino_entry) !=
+                FLFS_RET_NONE)
+            {
+                output.error("Failed to find configured read kernel inode ",
+                             entry.csd_read_kernel, " for inode ", ino);
+                fuse_reply_err(req, EIO);
+                return;
+            }
+
+            fuse_reply_xattr(req, ino_entry.second.size());
+            return;
+        }
+        else if(strcmp(CSD_WRITE_KEY.c_str(), name) == 0) {
+            if(entry.csd_write_kernel == 0) {
+                fuse_reply_err(req, ENODATA);
+                return;
+            }
+
+            if(get_inode_entry_t(entry.csd_write_kernel, &ino_entry) !=
+               FLFS_RET_NONE)
+            {
+                output.error("Failed to find configured write kernel inode ",
+                             entry.csd_read_kernel, " for inode ", ino);
+                fuse_reply_err(req, EIO);
+                return;
+            }
+
+            fuse_reply_xattr(req, ino_entry.second.size());
+            return;
+        }
+
+        fuse_reply_err(req, ENODATA);
+    }
+
+    void FuseLFS::setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
+        const char *value, size_t size, int flags)
+    {
+        fuse_reply_err(req, ENOSYS);
+    }
+
+    void FuseLFS::listxattr(fuse_req_t req, fuse_ino_t ino, size_t size) {
+        fuse_reply_err(req, ENOSYS);
+    }
+
+    void FuseLFS::removexattr(fuse_req_t req, fuse_ino_t ino,
+        const char *name)
+    {
+        fuse_reply_err(req, ENOSYS);
+    }
 }
