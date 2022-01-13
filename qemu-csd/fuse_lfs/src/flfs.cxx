@@ -67,6 +67,11 @@ namespace qemucsd::fuse_lfs {
         0, 0, 0, 0
     };
 
+    // Current start of the log zone on drive
+    struct data_position FuseLFS::log_pos = {
+        0, 0, 0, 0
+    };
+
     // Current write pointer into the log zone
     struct data_position FuseLFS::log_ptr = {
         0, 0, 0, 0
@@ -157,6 +162,14 @@ namespace qemucsd::fuse_lfs {
 
         /** Fill nvme_info struct */
         nvme->get_nvme_zns_info(&nvme_info);
+
+        /** Check compiled sector size matches device sector size */
+        if(SECTOR_SIZE != nvme_info.sector_size) {
+            output.error("Compiled sector size ", SECTOR_SIZE, " does not ",
+                         "match device sector size ", nvme_info.sector_size);
+            ret = 1;
+            goto err_out1;
+        }
 
         /** Verify that sector are of the minimally required size */
         if(SECTOR_SIZE > nvme_info.sector_size) {
@@ -2259,8 +2272,8 @@ namespace qemucsd::fuse_lfs {
                 if(get_data_block(entry.first, db_block_num, blk) != FLFS_RET_NONE) {
                     uint64_t error_lba = entry.first.data_lba;
                     output.error(
-                            "Failed to get data_block at lba ", error_lba,
-                            " for inode ", ino, " in read");
+                        "Failed to get data_block at lba ", error_lba,
+                        " for inode ", ino, " in read");
                     free(buffer);
                     free(blk);
                     return;

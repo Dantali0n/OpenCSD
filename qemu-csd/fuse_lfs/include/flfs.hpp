@@ -197,6 +197,9 @@ namespace qemucsd::fuse_lfs {
 
         // TODO(Dantali0n): Move log management methods to separate interface
 
+        // Current start of the log zone
+        static struct data_position log_pos;
+
         // Write pointer within the log zone
         static struct data_position log_ptr;
 

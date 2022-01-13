@@ -117,7 +117,7 @@ namespace qemucsd::fuse_lfs {
     static_assert(sizeof(none_block) == SECTOR_SIZE);
     static_assert(std::is_trivially_copyable<none_block>::value);
 
-    static constexpr uint32_t NAT_BLK_INO_LBA_NUM = 31;
+    static constexpr uint32_t NAT_BLK_INO_LBA_NUM = (SECTOR_SIZE-8)/16;
 
     /**
      * The highest lba occurrence of a particular inode identifies the valid
@@ -192,7 +192,7 @@ namespace qemucsd::fuse_lfs {
 
     static constexpr size_t MAX_NAME_SIZE = SECTOR_SIZE - INODE_ENTRY_SIZE;
 
-    static constexpr size_t DATA_BLK_LBA_NUM = 63;
+    static constexpr size_t DATA_BLK_LBA_NUM = (SECTOR_SIZE-8)/8;
 
     struct __attribute__((packed)) data_block {
         uint64_t data_lbas[DATA_BLK_LBA_NUM]; // LBAs of data blocks linearly
