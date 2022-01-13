@@ -317,6 +317,14 @@ namespace qemucsd::fuse_lfs {
         static int write_sector(size_t size, off_t offset, uint64_t cur_lba,
             const char *data, uint64_t &result_lba);
 
+        static void get_csd_xattr(fuse_req_t req, fuse_ino_t ino, size_t size);
+
+        static void set_csd_xattr(fuse_req_t req, fuse_ino_t ino,
+                                  const char *value, bool write);
+
+        static void xattr(fuse_req_t req, fuse_ino_t ino, const char *name,
+            const char *value, size_t size, int flags, bool set);
+
     public:
         FuseLFS() = delete;
         ~FuseLFS() = delete;

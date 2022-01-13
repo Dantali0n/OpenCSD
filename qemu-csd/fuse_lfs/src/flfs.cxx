@@ -85,22 +85,26 @@ namespace qemucsd::fuse_lfs {
     uint64_t FuseLFS::fh_ptr = 1;
 
     const struct fuse_lowlevel_ops FuseLFS::operations = {
-        .init       = FuseLFS::init,
-        .destroy    = FuseLFS::destroy,
-        .lookup     = FuseLFS::lookup,
-        .forget     = FuseLFS::forget,
-        .getattr    = FuseLFS::getattr,
-        .setattr    = FuseLFS::setattr,
-        .mkdir      = FuseLFS::mkdir,
-        .unlink     = FuseLFS::unlink,
-        .open	    = FuseLFS::open,
-        .read       = FuseLFS::read,
-        .write      = FuseLFS::write,
-        .release    = FuseLFS::release,
+        .init        = FuseLFS::init,
+        .destroy     = FuseLFS::destroy,
+        .lookup      = FuseLFS::lookup,
+        .forget      = FuseLFS::forget,
+        .getattr     = FuseLFS::getattr,
+        .setattr     = FuseLFS::setattr,
+        .mkdir       = FuseLFS::mkdir,
+        .unlink      = FuseLFS::unlink,
+        .open	     = FuseLFS::open,
+        .read        = FuseLFS::read,
+        .write       = FuseLFS::write,
+        .release     = FuseLFS::release,
 //        .fsync      = FuseLFS::fsync,
-        .readdir    = FuseLFS::readdir,
-        .statfs     = FuseLFS::statfs,
-        .create     = FuseLFS::create,
+        .readdir     = FuseLFS::readdir,
+        .statfs      = FuseLFS::statfs,
+        .setxattr    = FuseLFS::setxattr,
+        .getxattr    = FuseLFS::getxattr,
+        .listxattr   = FuseLFS::listxattr,
+        .removexattr = FuseLFS::removexattr,
+        .create      = FuseLFS::create,
     };
 
     /**
@@ -1954,6 +1958,80 @@ namespace qemucsd::fuse_lfs {
         return result;
     }
 
+    /**
+     *
+     *
+     */
+    void FuseLFS::get_csd_xattr(fuse_req_t req, fuse_ino_t ino, size_t size) {
+        inode_entry_t ino_entry;
+
+        if(ino == 0) {
+            fuse_reply_err(req, ENODATA);
+            return;
+        }
+
+        if(get_inode_entry_t(ino, &ino_entry) != FLFS_RET_NONE) {
+            output.error("Failed to find configured read kernel inode ", ino);
+            fuse_reply_err(req, EIO);
+            return;
+        }
+
+        if(size == 0)
+            fuse_reply_xattr(req, ino_entry.second.size());
+        else if(size < ino_entry.second.size())
+            fuse_reply_err(req, ERANGE);
+        else
+            reply_buf_limited(req, ino_entry.second.c_str(),
+                              ino_entry.second.size(), 0, size);
+    }
+
+    /**
+     *
+     *
+     */
+    void FuseLFS::set_csd_xattr(fuse_req_t req, fuse_ino_t ino,
+        const char *value, bool write = false)
+    {
+
+    }
+
+    /**
+     * setxattr and getxattr are extremely similar so they share the same method
+     * minimal differences handled by setting the set bool.
+     */
+    void FuseLFS::xattr(fuse_req_t req, fuse_ino_t ino, const char *name,
+        const char *value, size_t size, int flags, bool set = false)
+    {
+        struct stat stbuf = {0};
+        if(ino_stat(ino, &stbuf) == FLFS_RET_ENOENT) {
+            fuse_reply_err(req, ENOENT);
+            return;
+        }
+
+        const fuse_ctx *context = fuse_req_ctx(req);
+        csd_unique_t csd_info = std::make_pair(ino, context->pid);
+        struct open_file_entry entry = {0};
+
+        // Check if file is open in CSD context (ino + pid) otherwise no data
+        if(get_file_handle(&csd_info, &entry) != FLFS_RET_NONE) {
+            fuse_reply_err(req, ENODATA);
+            return;
+        }
+
+        if(strcmp(CSD_READ_KEY.c_str(), name) == 0) {
+            if(set)
+                set_csd_xattr(req, ino, value, false);
+            else
+                get_csd_xattr(req, entry.csd_read_kernel, size);
+        }
+        else if(strcmp(CSD_WRITE_KEY.c_str(), name) == 0) {
+            if(set)
+                set_csd_xattr(req, ino, value, true);
+            else
+                get_csd_xattr(req, entry.csd_write_kernel, size);
+        }
+    }
+
     void FuseLFS::init(void *userdata, struct fuse_conn_info *conn) {
         connection = conn;
 
@@ -2574,62 +2652,13 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
         size_t size)
     {
-        const fuse_ctx *context = fuse_req_ctx(req);
-        struct open_file_entry entry;
-        csd_unique_t csd_info = std::make_pair(ino, context->pid);
-
-        // Check if file is open in CSD context (ino + pid) otherwise no data
-        if(get_file_handle(&csd_info, &entry) != FLFS_RET_NONE) {
-            fuse_reply_err(req, ENODATA);
-            return;
-        }
-
-        inode_entry_t ino_entry;
-
-        if(strcmp(CSD_READ_KEY.c_str(), name) == 0) {
-            if(entry.csd_read_kernel == 0) {
-                fuse_reply_err(req, ENODATA);
-                return;
-            }
-
-            if(get_inode_entry_t(entry.csd_read_kernel, &ino_entry) !=
-                FLFS_RET_NONE)
-            {
-                output.error("Failed to find configured read kernel inode ",
-                             entry.csd_read_kernel, " for inode ", ino);
-                fuse_reply_err(req, EIO);
-                return;
-            }
-
-            fuse_reply_xattr(req, ino_entry.second.size());
-            return;
-        }
-        else if(strcmp(CSD_WRITE_KEY.c_str(), name) == 0) {
-            if(entry.csd_write_kernel == 0) {
-                fuse_reply_err(req, ENODATA);
-                return;
-            }
-
-            if(get_inode_entry_t(entry.csd_write_kernel, &ino_entry) !=
-               FLFS_RET_NONE)
-            {
-                output.error("Failed to find configured write kernel inode ",
-                             entry.csd_read_kernel, " for inode ", ino);
-                fuse_reply_err(req, EIO);
-                return;
-            }
-
-            fuse_reply_xattr(req, ino_entry.second.size());
-            return;
-        }
-
-        fuse_reply_err(req, ENODATA);
+        xattr(req, ino, name, nullptr, size, 0);
     }
 
     void FuseLFS::setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
         const char *value, size_t size, int flags)
     {
-        fuse_reply_err(req, ENOSYS);
+        xattr(req, ino, name, value, size, flags);
     }
 
     void FuseLFS::listxattr(fuse_req_t req, fuse_ino_t ino, size_t size) {
