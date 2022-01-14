@@ -43,6 +43,7 @@ extern "C" {
 #include "flfs_constants.hpp"
 #include "flfs_disc.hpp"
 #include "flfs_memory.hpp"
+#include "flfs_superblock.hpp"
 #include "nvme_zns_backend.hpp"
 
 namespace qemucsd::fuse_lfs {
@@ -50,7 +51,7 @@ namespace qemucsd::fuse_lfs {
     /**
      * Static wrapper class around FUSE LFS filesystem.
      */
-    class FuseLFS {
+    class FuseLFS : public FuseLFSSuperBlock {
     protected:
         static output::Output output;
 
@@ -68,8 +69,6 @@ namespace qemucsd::fuse_lfs {
         static const std::string FUSE_LFS_NAME_PREFIX;
         static const std::string FUSE_SEQUENTIAL_PARAM;
 
-        static const struct fuse_lowlevel_ops operations;
-
         /** nlookup helpers */
 
         // Keep track of nlookup count per inode
@@ -78,40 +77,39 @@ namespace qemucsd::fuse_lfs {
         // TODO(Dantali0n): Use nlookup count to drive path_inode_map caching
         //                  and response to memory pressure
 
-        static void inode_nlookup_increment(fuse_ino_t ino);
-        static void inode_nlookup_decrement(fuse_ino_t ino, uint64_t count);
+        void inode_nlookup_increment(fuse_ino_t ino);
+        void inode_nlookup_decrement(fuse_ino_t ino, uint64_t count);
 
-        static void fuse_reply_entry_nlookup(
+        void fuse_reply_entry_nlookup(
             fuse_req_t req, struct fuse_entry_param *e);
 
-        static void fuse_reply_create_nlookup(
+        void fuse_reply_create_nlookup(
             fuse_req_t req, struct fuse_entry_param *e,
             const struct fuse_file_info *f);
 
         /** Inode, path and data position helper functions */
 
-        static void lba_to_position(
+        void lba_to_position(
             uint64_t lba, struct data_position &position);
 
-        static void position_to_lba(
+        void position_to_lba(
             struct data_position position, uint64_t &lba);
 
-        static void update_inode_lba_map(
+        void update_inode_lba_map(
             std::vector<fuse_ino_t> *inodes, uint64_t lba,
             inode_lba_map_t *lba_map);
 
-        static void advance_position(struct data_position &position);
-
         /** Debug helper functions */
-        static void output_fi(const char *name, struct fuse_file_info *fi);
+
+        void output_fi(const char *name, struct fuse_file_info *fi);
 
         /** FUSE helper functions */
 
-        static int ino_stat(fuse_ino_t ino, struct stat *stbuf);
+        int ino_stat(fuse_ino_t ino, struct stat *stbuf);
 
-        static int reply_buf_limited(fuse_req_t req, const char *buf,
+        int reply_buf_limited(fuse_req_t req, const char *buf,
                                      size_t bufsize, off_t off, size_t maxsize);
-        static void dir_buf_add(fuse_req_t req, struct dir_buf* buf,
+        void dir_buf_add(fuse_req_t req, struct dir_buf* buf,
                                 const char *name, fuse_ino_t ino);
 
         // TODO(Dantali0n): Move filesystem initialization methods to separate
@@ -122,30 +120,26 @@ namespace qemucsd::fuse_lfs {
         // TODO(Dantali0n): Move filesystem creation methods to separate
         //                  interface
 
-        static int mkfs();
-
-        // TODO(Dantali0n): Move superblock methods to separate interface
-
-        static int verify_superblock();
-
-        static int write_superblock();
+        int mkfs();
 
         // TODO(Dantali0n): Move dirtyblock methods to separate interface
 
-        static int verify_dirtyblock();
+        int verify_dirtyblock();
 
-        static int write_dirtyblock();
+        int write_dirtyblock();
 
-        static int remove_dirtyblock();
+        int remove_dirtyblock();
 
         // TODO(Dantali0n): Move checkpointblock methods to separate interface
+
         static struct data_position cblock_pos;
 
-        static int update_checkpointblock(uint64_t randz_lba);
+        int update_checkpointblock(uint64_t randz_lba,
+                                          uint64_t logz_lba);
 
-        static int get_checkpointblock(struct checkpoint_block &cblock);
+        int get_checkpointblock(struct checkpoint_block &cblock);
 
-        static int get_checkpointblock_locate(struct checkpoint_block &cblock);
+        int get_checkpointblock_locate(struct checkpoint_block &cblock);
 
         // TODO(Dantali0n): Move random block methods to separate interface
 
@@ -166,35 +160,35 @@ namespace qemucsd::fuse_lfs {
         //
         static struct data_position random_ptr;
 
-        static void add_nat_update_set_entries(std::vector<fuse_ino_t> *inodes);
+        void add_nat_update_set_entries(std::vector<fuse_ino_t> *inodes);
 
-        static int determine_random_ptr();
+        int determine_random_ptr();
 
-        static void random_zone_distance(
+        void random_zone_distance(
             struct data_position lhs, struct data_position rhs,
             uint32_t &distance);
 
-        static void read_random_zone(inode_lba_map_t *inode_map);
+        void read_random_zone(inode_lba_map_t *inode_map);
 
-        static void fill_nat_block(nat_update_set_t *nat_set,
+        void fill_nat_block(nat_update_set_t *nat_set,
                                   struct nat_block &nt_blk);
 
-        static int append_random_block(struct rand_block_base &block);
+        int append_random_block(struct rand_block_base &block);
 
-        static void compute_nat_blocks(nat_update_set_t *nat_set,
+        void compute_nat_blocks(nat_update_set_t *nat_set,
                                       uint64_t &num_blocks);
 
-        static int update_nat_blocks(nat_update_set_t *nat_set);
+        int update_nat_blocks(nat_update_set_t *nat_set);
 
-        static int buffer_random_blocks(const uint64_t zones[2],
+        int buffer_random_blocks(const uint64_t zones[2],
             struct data_position limit);
-        static int process_random_buffer(
+        int process_random_buffer(
             nat_update_set_t *nat_set, inode_lba_map_t *inodes);
-        static int erase_random_buffer();
+        int erase_random_buffer();
 
-        static int rewrite_random_blocks();
-        static int rewrite_random_blocks_partial();
-        static int rewrite_random_blocks_full();
+        int rewrite_random_blocks();
+        int rewrite_random_blocks_partial();
+        int rewrite_random_blocks_full();
 
         // TODO(Dantali0n): Move log management methods to separate interface
 
@@ -204,30 +198,30 @@ namespace qemucsd::fuse_lfs {
         // Write pointer within the log zone
         static struct data_position log_ptr;
 
-        static int advance_log_ptr(struct data_position *log_ptr);
+        int advance_log_ptr(struct data_position *log_ptr);
 
-        static void determine_log_ptr();
+        void determine_log_ptr();
 
-        static int log_append(void *data, size_t size, uint64_t &lba);
+        int log_append(void *data, size_t size, uint64_t &lba);
 
         // TODO(Dantali0n): Move data block methods to separate interface
 
         static data_blocks_t data_blocks;
 
-        static void compute_data_block_num(uint64_t num_lbas, uint64_t &blocks);
+        void compute_data_block_num(uint64_t num_lbas, uint64_t &blocks);
 
-        static void assign_data_blocks(fuse_ino_t ino, data_map_t *blocks); //, std::vector<data_block> *blocks);
+        void assign_data_blocks(fuse_ino_t ino, data_map_t *blocks); //, std::vector<data_block> *blocks);
 
-        static void assign_data_block(fuse_ino_t ino, uint64_t block_num,
+        void assign_data_block(fuse_ino_t ino, uint64_t block_num,
             struct data_block *blk); //, struct data_block *blk);
 
-        static int get_data_block(inode_entry entry, uint64_t block_num,
+        int get_data_block(inode_entry entry, uint64_t block_num,
             struct data_block *blk);
 
-        static int get_data_block_immediate(
+        int get_data_block_immediate(
             struct data_position pos, struct data_block *blk);
 
-        static int get_data_block_linked(
+        int get_data_block_linked(
             struct data_position pos, uint64_t block_num,
             struct data_block *blk);
 
@@ -245,19 +239,19 @@ namespace qemucsd::fuse_lfs {
 
 //        static int build_path_inode_map();
 
-        static int fill_inode_block(
+        int fill_inode_block(
             struct inode_block *blck, std::vector<fuse_ino_t> *ino_remove,
             inode_entries_t *entries);
 
-        static void erase_inode_entries(
+        void erase_inode_entries(
             std::vector<fuse_ino_t> *ino_remove, inode_entries_t *entries);
 
-        static int get_inode_entry_t(fuse_ino_t ino, inode_entry_t *entry);
+        int get_inode_entry_t(fuse_ino_t ino, inode_entry_t *entry);
 
-        static int create_inode(fuse_ino_t parent, const char *name,
+        int create_inode(fuse_ino_t parent, const char *name,
                                 enum inode_type type, fuse_ino_t &ino);
 
-        static int update_inode_entry_t(inode_entry_t *entry);
+        int update_inode_entry_t(inode_entry_t *entry);
 
         // TODO(Dantali0n): Move synchronization / flush methods to separate
         //                  interface. (These exclude those of the NAT / SIT
@@ -268,15 +262,17 @@ namespace qemucsd::fuse_lfs {
          *          update_inode_entry
          */
 
-        static int flush_inodes(bool only_if_full);
+        int flush_inodes(bool only_if_full);
 
-        static int flush_inodes_always();
+        int flush_inodes_always();
 
-        static int flush_inodes_if_full();
+        int flush_inodes_if_full();
 
-        static int flush_data_blocks();
+        int flush_data_blocks();
 
         // TODO(Dantali0n): Move CSD / snapshot methods to separate interface
+
+        // TODO(Dantali0n): Move open file handle methods to separate interface
 
         // File handle pointer for open files
         static uint64_t fh_ptr;
@@ -285,94 +281,94 @@ namespace qemucsd::fuse_lfs {
         // respective inodes and caller pids.
         static open_inode_vect_t open_inode_vect;
 
-        static void create_file_handle(
+        void create_file_handle(
             fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi);
 
-        static int get_file_handle(csd_unique_t *uni_t,
+        int get_file_handle(csd_unique_t *uni_t,
                                    struct open_file_entry *entry);
 
-        static int update_file_handle(uint64_t fh,
+        int update_file_handle(uint64_t fh,
                                       struct open_file_entry *entry);
 
-        static int find_file_handle(csd_unique_t *uni_t,
+        int find_file_handle(csd_unique_t *uni_t,
                                      open_inode_vect_t::iterator *it);
 
-        static int find_file_handle(uint64_t fh,
+        int find_file_handle(uint64_t fh,
                                     open_inode_vect_t::iterator *it);
 
-        static void release_file_handle(uint64_t fh);
+        void release_file_handle(uint64_t fh);
 
         // TODO(Dantali0n): Move Garbage Collection methods to separate
         //                  interface
 
-        static int log_garbage_collect();
+        int log_garbage_collect();
 
         // TODO(Dantali0n): Move FUSE internal wrapper functions to separate
         //                  interface
 
-        static int flfs_ret_to_fuse_reply(int flfs_ret);
+        int flfs_ret_to_fuse_reply(int flfs_ret);
 
-        static int check_flags(int flags);
+        int check_flags(int flags);
 
-        static void ino_fake_permissions(fuse_req_t req, struct stat *stbuf);
+        void ino_fake_permissions(fuse_req_t req, struct stat *stbuf);
 
-        static int ftruncate(fuse_ino_t ino, size_t size);
+        int ftruncate(fuse_ino_t ino, size_t size);
 
-        static int write_sector(size_t size, off_t offset, uint64_t cur_lba,
+        int write_sector(size_t size, off_t offset, uint64_t cur_lba,
             const char *data, uint64_t &result_lba);
 
-        static void get_csd_xattr(fuse_req_t req, fuse_ino_t ino, size_t size);
+        void get_csd_xattr(fuse_req_t req, fuse_ino_t ino, size_t size);
 
-        static void set_csd_xattr(fuse_req_t req, struct open_file_entry *entry,
+        void set_csd_xattr(fuse_req_t req, struct open_file_entry *entry,
                                   const char *value, int flags, bool write);
 
-        static void xattr(fuse_req_t req, fuse_ino_t ino, const char *name,
+        void xattr(fuse_req_t req, fuse_ino_t ino, const char *name,
             const char *value, size_t size, int flags, bool set);
 
+    protected:
+        // This constructor is for unit tests, do not call
+        FuseLFS(nvme_zns::NvmeZnsBackend* nvme);
     public:
-        FuseLFS() = delete;
-        ~FuseLFS() = delete;
+        FuseLFS(int argc, char* argv[], nvme_zns::NvmeZnsBackend* nvme,
+            const struct fuse_lowlevel_ops *operations);
 
-        static int initialize(
-            int argc, char* argv[], nvme_zns::NvmeZnsBackend* nvme);
-
-        static void init(void *userdata, struct fuse_conn_info *conn);
-        static void destroy(void *userdata);
-        static void lookup(fuse_req_t req, fuse_ino_t parent, const char *name);
-        static void forget(fuse_req_t req, fuse_ino_t ino, uint64_t nlookup);
-        static void getattr(fuse_req_t req, fuse_ino_t ino,
+        void init(void *userdata, struct fuse_conn_info *conn);
+        void destroy(void *userdata);
+        void lookup(fuse_req_t req, fuse_ino_t parent, const char *name);
+        void forget(fuse_req_t req, fuse_ino_t ino, uint64_t nlookup);
+        void getattr(fuse_req_t req, fuse_ino_t ino,
                            struct fuse_file_info *fi);
-        static void setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
+        void setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
                                       int to_set, struct fuse_file_info *fi);
-        static void readdir(
+        void readdir(
             fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
             struct fuse_file_info *fi);
-        static void open(fuse_req_t req, fuse_ino_t ino,
+        void open(fuse_req_t req, fuse_ino_t ino,
                          struct fuse_file_info *fi);
-        static void release(fuse_req_t req, fuse_ino_t ino,
+        void release(fuse_req_t req, fuse_ino_t ino,
                             struct fuse_file_info *fi);
-        static void create(fuse_req_t req, fuse_ino_t parent, const char *name,
+        void create(fuse_req_t req, fuse_ino_t parent, const char *name,
                           mode_t mode, struct fuse_file_info *fi);
-        static void mkdir(fuse_req_t req, fuse_ino_t parent, const char *name,
+        void mkdir(fuse_req_t req, fuse_ino_t parent, const char *name,
                           mode_t mode);
-        static void read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
+        void read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                         struct fuse_file_info *fi);
-        static void write(fuse_req_t req, fuse_ino_t ino, const char *buf,
+        void write(fuse_req_t req, fuse_ino_t ino, const char *buf,
                          size_t size, off_t off, struct fuse_file_info *fi);
-        static void statfs(fuse_req_t req, fuse_ino_t ino);
-        static void fsync(fuse_req_t req, fuse_ino_t ino, int datasync,
+        void statfs(fuse_req_t req, fuse_ino_t ino);
+        void fsync(fuse_req_t req, fuse_ino_t ino, int datasync,
                           struct fuse_file_info *fi);
-        static void rename(fuse_req_t req, fuse_ino_t parent, const char *name,
+        void rename(fuse_req_t req, fuse_ino_t parent, const char *name,
                            fuse_ino_t newparent, const char *newname,
                            unsigned int flags);
-        static void unlink(fuse_req_t req, fuse_ino_t parent, const char *name);
-        static void rmdir(fuse_req_t req, fuse_ino_t parent, const char *name);
-        static void getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
+        void unlink(fuse_req_t req, fuse_ino_t parent, const char *name);
+        void rmdir(fuse_req_t req, fuse_ino_t parent, const char *name);
+        void getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
                              size_t size);
-        static void setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
+        void setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
                              const char *value, size_t size, int flags);
-        static void listxattr(fuse_req_t req, fuse_ino_t ino, size_t size);
-        static void removexattr(fuse_req_t req, fuse_ino_t ino,
+        void listxattr(fuse_req_t req, fuse_ino_t ino, size_t size);
+        void removexattr(fuse_req_t req, fuse_ino_t ino,
                                 const char *name);
     };
 }

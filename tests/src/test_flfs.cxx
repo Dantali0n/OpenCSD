@@ -69,6 +69,9 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfs)
 
     class TestFuseLFS : public FuseLFS {
     public:
+        TestFuseLFS() : FuseLFS(nullptr) {
+        }
+
         using FuseLFS::nvme;
         using FuseLFS::nvme_info;
 
@@ -84,13 +87,15 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfs)
         struct qemucsd::fuse_lfs::data_position max_pos =
             {4, 8, 0, 0};
 
+        TestFuseLFS testfuse;
+
         TestFuseLFS::nvme_info.num_zones = max_pos.zone;
         TestFuseLFS::nvme_info.zone_size = max_pos.sector;
 
         struct qemucsd::fuse_lfs::data_position result;
         for(uint64_t i = 0; i < max_pos.zone; i++) {
             for(uint64_t j = 0; j < max_pos.sector; j++) {
-                TestFuseLFS::lba_to_position(i * max_pos.sector + j, result);
+                testfuse.lba_to_position(i * max_pos.sector + j, result);
                 BOOST_CHECK(result.zone == i);
                 BOOST_CHECK(result.sector == j);
             }
@@ -100,6 +105,8 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfs)
     BOOST_AUTO_TEST_CASE(Test_FuseLFS_position_to_lba) {
         struct qemucsd::fuse_lfs::data_position max_pos =
             {4, 8, 0, 0};
+
+        TestFuseLFS testfuse;
 
         TestFuseLFS::nvme_info.num_zones = max_pos.zone;
         TestFuseLFS::nvme_info.zone_size = max_pos.sector;
@@ -114,7 +121,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfs)
             for (uint64_t j = 0; j < max_pos.sector; j++) {
                 uint64_t t_res = result;
                 pos.sector = j;
-                TestFuseLFS::position_to_lba(pos, result);
+                testfuse.position_to_lba(pos, result);
 
                 if(i != 0 && j != 0)
                     BOOST_CHECK_MESSAGE(result == t_res + 1,

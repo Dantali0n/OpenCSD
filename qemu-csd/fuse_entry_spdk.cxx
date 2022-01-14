@@ -40,7 +40,7 @@ void segfault_handler(int signal, siginfo_t *si, void *arg) {
 }
 
 #include "arguments.hpp"
-#include "flfs.hpp"
+#include "flfs_wrap.hpp"
 #include "spdk_init.hpp"
 #include "nvme_zns_spdk.hpp"
 
@@ -105,8 +105,8 @@ int main(int argc, char* argv[]) {
             fuse_argv = stripped_args.at(0).second.data();
         }
 
-        return qemucsd::fuse_lfs::FuseLFS::initialize(
-                fuse_argc, fuse_argv, &nvme_spdk);
+        return qemucsd::fuse_lfs::FuseLFSWrapper::initialize(
+            fuse_argc, fuse_argv, &nvme_spdk);
     }
     catch(...) {
 #ifdef QEMUCSD_DEBUG

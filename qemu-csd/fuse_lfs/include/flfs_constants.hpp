@@ -139,10 +139,6 @@ namespace qemucsd::fuse_lfs {
 //        uint8_t _valid;
 
         int operator==(data_position const& cmp) const {
-//            // Invalid position can never equal anything
-//            if(this->_valid == false) return 0;
-//            if(cmp._valid == false) return 0;
-
             if(this->zone != cmp.zone) return 0;
             if(this->sector != cmp.sector) return 0;
             if(this->offset != cmp.offset) return 0;
@@ -154,14 +150,6 @@ namespace qemucsd::fuse_lfs {
         int operator!=(data_position const& cmp) const {
             return !(*this == cmp);
         }
-
-//        int operator<(data_position const& cmp) const {
-//            if(this->zone >= cmp.zone) return 0;
-//            if(this->sector >= cmp.sector) return 0;
-//            if(this->offset >= cmp.offset) return 0;
-//
-//            return 1;
-//        }
 
         /**
          * If the data_position is valid
@@ -185,14 +173,6 @@ namespace qemucsd::fuse_lfs {
             if(this->zone != zone || this->sector != sector) return 0;
             return 1;
         }
-
-//        void validate() {
-//            this->_valid = 1;
-//        }
-//
-//        void invalidate() {
-//            this->_valid = 0;
-//        }
     };
     static_assert(sizeof(data_position) == sizeof(uint64_t) * 4);
     static_assert(std::is_trivially_copyable<data_position>::value);

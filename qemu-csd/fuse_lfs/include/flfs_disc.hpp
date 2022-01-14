@@ -85,7 +85,8 @@ namespace qemucsd::fuse_lfs {
       */
      struct checkpoint_block {
          uint64_t randz_lba;
-         uint8_t  padding[SECTOR_SIZE-8];  // Pad out the rest
+         uint64_t logz_lba;
+         uint8_t  padding[SECTOR_SIZE-16];  // Pad out the rest
      };
     static_assert(sizeof(checkpoint_block) == SECTOR_SIZE);
     static_assert(std::is_trivially_copyable<checkpoint_block>::value);

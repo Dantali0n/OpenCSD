@@ -84,36 +84,16 @@ namespace qemucsd::fuse_lfs {
     // In memory session so this always start at 1.
     uint64_t FuseLFS::fh_ptr = 1;
 
-    const struct fuse_lowlevel_ops FuseLFS::operations = {
-        .init        = FuseLFS::init,
-        .destroy     = FuseLFS::destroy,
-        .lookup      = FuseLFS::lookup,
-        .forget      = FuseLFS::forget,
-        .getattr     = FuseLFS::getattr,
-        .setattr     = FuseLFS::setattr,
-        .mkdir       = FuseLFS::mkdir,
-        .unlink      = FuseLFS::unlink,
-        .open	     = FuseLFS::open,
-        .read        = FuseLFS::read,
-        .write       = FuseLFS::write,
-        .release     = FuseLFS::release,
-//        .fsync      = FuseLFS::fsync,
-        .readdir     = FuseLFS::readdir,
-        .statfs      = FuseLFS::statfs,
-        .setxattr    = FuseLFS::setxattr,
-        .getxattr    = FuseLFS::getxattr,
-        .listxattr   = FuseLFS::listxattr,
-        .removexattr = FuseLFS::removexattr,
-        .create      = FuseLFS::create,
-    };
+    // This constructor is for unit tests only!
+    FuseLFS::FuseLFS(nvme_zns::NvmeZnsBackend* nvme) :
+        FuseLFSSuperBlock(nvme, &nvme_info)
+    {
+        FuseLFS::nvme = nvme;
+    }
 
-    /**
-     * Initialize fuse using the low level API. Will block until unmounted in
-     * foreground mode.
-     * @return 0 upon success, -1 on failure.
-     */
-    int FuseLFS::initialize(
-        int argc, char* argv[], nvme_zns::NvmeZnsBackend* nvme)
+    FuseLFS::FuseLFS(int argc, char* argv[], nvme_zns::NvmeZnsBackend* nvme,
+        const struct fuse_lowlevel_ops *operations) :
+        FuseLFSSuperBlock(nvme, &nvme_info)
     {
         struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
         struct fuse_session *session;
@@ -134,11 +114,12 @@ namespace qemucsd::fuse_lfs {
         }
         if(safe == false) {
             output(std::cerr, "requires -s sequential mode\n");
-            return FLFS_RET_ERR;
+            ret = -1;
+            goto err_out1;
         }
 
         if (fuse_parse_cmdline(&args, &opts) != 0)
-            return 1;
+            ret = 0;
         if (opts.show_help) {
             output(std::cout, "usage: ", argv[0],
                    " [options] <mountpoint>\n\n");
@@ -175,23 +156,6 @@ namespace qemucsd::fuse_lfs {
             goto err_out1;
         }
 
-        /** Verify that sector are of the minimally required size */
-        if(SECTOR_SIZE > nvme_info.sector_size) {
-            output(std::cerr, "Sector size (", nvme_info.sector_size,
-                ") is to small, minimal is ", SECTOR_SIZE,
-                " bytes, aborting\n");
-            ret = 1;
-            goto err_out1;
-        }
-
-        /** Verify that sector size is clean multiple of data sector */
-        if(nvme_info.sector_size % SECTOR_SIZE != 0) {
-            output(std::cerr, "Sector size (", nvme_info.sector_size,
-                   ") is not clean multiple of ", SECTOR_SIZE, ", aborting");
-            ret = 1;
-            goto err_out1;
-        }
-
         // TODO(Dantali0n): Only create filesystem when a certain command line
         //                  argument is supplied. See fuse hello_ll for example.
         output(std::cout, "Creating filesystem..");
@@ -220,14 +184,15 @@ namespace qemucsd::fuse_lfs {
         output(std::cout, "Writing dirty block..");
         if(write_dirtyblock() != FLFS_RET_NONE) {
             output(std::cerr, "Unable to write dirty block to drive, "
-                   "check that drive is writeable");
+                              "check that drive is writeable");
             ret = 1;
             goto err_out1;
         }
 
-        /** Set the random_pos to the correct position */
+        /** Set the random_pos and log_pos to the correct position */
         get_checkpointblock(cblock);
         lba_to_position(cblock.randz_lba, random_pos);
+        lba_to_position(cblock.logz_lba, log_pos);
 
         /** Determine random_ptr now that random_pos is known */
         if(determine_random_ptr() == FLFS_RET_RANDZ_FULL) {
@@ -274,7 +239,7 @@ namespace qemucsd::fuse_lfs {
 //        }
 
         session = fuse_session_new(
-            &args, &operations, sizeof(operations), nullptr);
+            &args, operations, sizeof(*operations), this);
         if (session == nullptr) {
             ret = 1;
             goto err_out1;
@@ -286,7 +251,7 @@ namespace qemucsd::fuse_lfs {
         }
 
         if (fuse_session_mount(session, opts.mountpoint) !=
-                FLFS_RET_NONE) {
+            FLFS_RET_NONE) {
             ret = 1;
             goto err_out3;
         }
@@ -310,8 +275,6 @@ namespace qemucsd::fuse_lfs {
         err_out1:
         free(opts.mountpoint);
         fuse_opt_free_args(&args);
-
-        return ret ? 1 : 0;
     }
 
     /**
@@ -415,17 +378,6 @@ namespace qemucsd::fuse_lfs {
             #endif
             lba_map->insert_or_assign(ino, lba);
         }
-    }
-
-    /**
-     * Modify position such that it is advanced by a single sector contextually.
-     * Meaning that a position inside the random zone will never advance into
-     * the random buffer. Alternatively a position in the checkpoint zone will
-     * never advance into the random zone etc...
-     * TODO(Dantali0n): Actually implement advance_position
-     */
-    void FuseLFS::advance_position(struct data_position &position) {
-
     }
 
     /**
@@ -547,10 +499,12 @@ namespace qemucsd::fuse_lfs {
 
         // Write initial checkpoint block
         uint64_t randz_lba = 0;
+        uint64_t logz_lba = 0;
         position_to_lba(RANDZ_POS, randz_lba);
+        position_to_lba(LOGZ_POS, logz_lba);
 
         uint64_t res_sector;
-        struct checkpoint_block cblock = {randz_lba};
+        struct checkpoint_block cblock = {randz_lba, logz_lba};
         if(nvme->append(CBLOCK_POS.zone, res_sector, CBLOCK_POS.offset,
                         &cblock, sizeof(cblock)) != 0) {
             output(std::cerr, "Failed to write checkpoint block, check",
@@ -568,51 +522,6 @@ namespace qemucsd::fuse_lfs {
         cblock_pos.sector = CBLOCK_POS.sector;
         cblock_pos.offset = CBLOCK_POS.offset;
         cblock_pos.size = CBLOCK_POS.size;
-
-        return FLFS_RET_NONE;
-    }
-
-    /**
-     * Read the super block for the filesystem and verify the parameters to
-     * prevent overwritten a drive configured for other filesystems.
-     * @return 0 upon success, < 0 upon failure
-     */
-    int FuseLFS::verify_superblock() {
-        struct super_block sblock;
-        if(nvme->read(SBLOCK_POS.zone, SBLOCK_POS.sector, SBLOCK_POS.offset,
-                      &sblock, sizeof(super_block)) != 0)
-            return FLFS_RET_ERR;
-        if(sblock.magic_cookie != MAGIC_COOKIE)
-            return FLFS_RET_ERR;
-        if(sblock.zones != nvme_info.num_zones)
-            return FLFS_RET_ERR;
-        if(sblock.sectors != nvme_info.zone_size)
-            return FLFS_RET_ERR;
-        if(sblock.sector_size != nvme_info.sector_size)
-            return FLFS_RET_ERR;
-
-        return FLFS_RET_NONE;
-    }
-
-    /**
-     * Write the super block so it can be recognized on subsequent
-     * initializations.
-     * @return 0 upon success, < 0 upon failure
-     */
-    int FuseLFS::write_superblock() {
-        struct super_block sblock;
-        sblock.magic_cookie = MAGIC_COOKIE;
-        sblock.zones = nvme_info.num_zones;
-        sblock.sectors = nvme_info.zone_size;
-        sblock.sector_size = nvme_info.sector_size;
-
-        uint64_t sector;
-        if(nvme->append(SBLOCK_POS.zone, sector, SBLOCK_POS.offset, &sblock,
-                        sizeof(super_block)) != 0)
-            return FLFS_RET_ERR;
-
-        if(sector != SBLOCK_POS.sector)
-            return FLFS_RET_ERR;
 
         return FLFS_RET_NONE;
     }
@@ -666,10 +575,11 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
-     * Write the new start of the random zone to the new checkpoint block
+     * Write the new start of the random zone and log zone to the new
+     * checkpoint block
      * @return 0 upon success, < 0 upon failure
      */
-    int FuseLFS::update_checkpointblock(uint64_t randz_lba) {
+    int FuseLFS::update_checkpointblock(uint64_t randz_lba, uint64_t logz_lba) {
         struct data_position tmp_cblock_pos = cblock_pos;
 
         // cblock_pos not set yet, somehow update is called before mkfs() or
@@ -694,7 +604,7 @@ namespace qemucsd::fuse_lfs {
         }
 
         uint64_t res_sector;
-        struct checkpoint_block cblock = {randz_lba};
+        struct checkpoint_block cblock = {randz_lba, logz_lba};
         if(nvme->append(tmp_cblock_pos.zone, res_sector, tmp_cblock_pos.offset,
                         &cblock, tmp_cblock_pos.size) != 0)
             return FLFS_RET_ERR;
@@ -1233,8 +1143,10 @@ namespace qemucsd::fuse_lfs {
                 random_pos.zone = RANDZ_POS.zone;
 
             uint64_t new_randz_lba;
+            uint64_t logz_lba;
             position_to_lba(random_pos, new_randz_lba);
-            if(update_checkpointblock(new_randz_lba) != FLFS_RET_NONE)
+            position_to_lba(log_pos, logz_lba);
+            if(update_checkpointblock(new_randz_lba, logz_lba) != FLFS_RET_NONE)
                 return FLFS_RET_ERR;
 
             /** 3.1. If the random_ptr is still or became invalid again
@@ -1577,7 +1489,7 @@ namespace qemucsd::fuse_lfs {
      * the size of data_lbas vector while the data_block numbers depends on
      * start_blk.
      */
-    void FuseLFS::assign_data_blocks(fuse_ino_t ino, data_map_t *blocks) //, std::vector<data_block> *blocks)
+    void FuseLFS::assign_data_blocks(fuse_ino_t ino, data_map_t *blocks)
     {
         for(auto &block : *blocks) {
             assign_data_block(ino, block.first, &block.second);
@@ -1588,7 +1500,7 @@ namespace qemucsd::fuse_lfs {
      * Fill a data_block and insert or update the data_blocks
      */
     void FuseLFS::assign_data_block(fuse_ino_t ino, uint64_t block_num,
-        struct data_block *blk) //, struct data_block *blk)
+        struct data_block *blk)
     {
         // See if the inode already exists in data_blocks otherwise create it
         auto lookup = data_blocks.find(ino);
@@ -1608,7 +1520,7 @@ namespace qemucsd::fuse_lfs {
      * @return FLFS_RET_NONE upon success and FLFS_RET_ERR upon failure
      */
     int FuseLFS::get_data_block(inode_entry entry, uint64_t block_num,
-                                struct data_block *blk)
+        struct data_block *blk)
     {
         auto lookup = data_blocks.find(entry.inode);
 
@@ -2008,26 +1920,28 @@ namespace qemucsd::fuse_lfs {
      *      https://man7.org/linux/man-pages/man2/fgetxattr.2.html
      */
     void FuseLFS::get_csd_xattr(fuse_req_t req, fuse_ino_t ino, size_t size) {
-        inode_entry_t ino_entry;
+        struct stat stbuf = {0};
 
         if(ino == 0) {
             fuse_reply_err(req, ENODATA);
             return;
         }
 
-        if(get_inode_entry_t(ino, &ino_entry) != FLFS_RET_NONE) {
+        if(ino_stat(ino, &stbuf) != FLFS_RET_NONE) {
             output.error("Failed to find configured kernel inode ", ino);
             fuse_reply_err(req, EIO);
             return;
         }
 
+        std::string ino_as_str = std::to_string(ino);
+
         if(size == 0)
-            fuse_reply_xattr(req, ino_entry.second.size());
-        else if(size < ino_entry.second.size())
+            fuse_reply_xattr(req, ino_as_str.size());
+        else if(size < ino_as_str.size())
             fuse_reply_err(req, ERANGE);
         else
-            reply_buf_limited(req, ino_entry.second.c_str(),
-                              ino_entry.second.size(), 0, size);
+            reply_buf_limited(req, ino_as_str.c_str(), ino_as_str.size(), 0,
+                              size);
     }
 
     /**
@@ -2433,7 +2347,8 @@ namespace qemucsd::fuse_lfs {
         open_inode_vect_t::iterator open_ino_it;
         find_file_handle(fi->fh, &open_ino_it);
         if(open_ino_it == open_inode_vect.end()) {
-            output.error("File handle ", fi->fh, " not found in open_inode_map!");
+            output.error("File handle ", fi->fh, " not found in ",
+                         "open_inode_map!");
             fuse_reply_err(req, EIO);
             return;
         }
@@ -2492,7 +2407,9 @@ namespace qemucsd::fuse_lfs {
             if(db_lba_index >= DATA_BLK_LBA_NUM) {
                 db_lba_index = 0;
                 db_block_num += 1;
-                if(get_data_block(entry.first, db_block_num, blk) != FLFS_RET_NONE) {
+                if(get_data_block(entry.first, db_block_num, blk) !=
+                    FLFS_RET_NONE)
+                {
                     uint64_t error_lba = entry.first.data_lba;
                     output.error(
                         "Failed to get data_block at lba ", error_lba,

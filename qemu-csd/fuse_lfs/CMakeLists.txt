@@ -32,10 +32,14 @@ set(QEMUCSD_FUSE_LFS_LIBRARIES
 
 set(QEMUCSD_FUSE_LFS_SRC
     src/flfs.cxx
+        src/flfs_wrap.cxx
+    src/flfs_superblock.cxx
 )
 
 set(QEMUCSD_FUSE_LFS_HEADERS
     include/flfs.hpp
+        include/flfs_wrap.hpp
+    include/flfs_superblock.hpp
 )
 
 # Add qemucsd_measurements to the includes
