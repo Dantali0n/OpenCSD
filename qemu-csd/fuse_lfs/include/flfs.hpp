@@ -31,6 +31,7 @@ extern "C" {
     #include <assert.h>
     #include <fuse3/fuse_lowlevel.h>
     #include <string.h>
+    #include <sys/xattr.h>
 }
 
 #include <map>
@@ -290,13 +291,16 @@ namespace qemucsd::fuse_lfs {
         static int get_file_handle(csd_unique_t *uni_t,
                                    struct open_file_entry *entry);
 
+        static int update_file_handle(uint64_t fh,
+                                      struct open_file_entry *entry);
+
         static int find_file_handle(csd_unique_t *uni_t,
                                      open_inode_vect_t::iterator *it);
 
-        static int find_file_handle(struct fuse_file_info *fi,
-                                     open_inode_vect_t::iterator *it);
+        static int find_file_handle(uint64_t fh,
+                                    open_inode_vect_t::iterator *it);
 
-        static void release_file_handle(struct fuse_file_info *fi);
+        static void release_file_handle(uint64_t fh);
 
         // TODO(Dantali0n): Move Garbage Collection methods to separate
         //                  interface
@@ -319,8 +323,8 @@ namespace qemucsd::fuse_lfs {
 
         static void get_csd_xattr(fuse_req_t req, fuse_ino_t ino, size_t size);
 
-        static void set_csd_xattr(fuse_req_t req, fuse_ino_t ino,
-                                  const char *value, bool write);
+        static void set_csd_xattr(fuse_req_t req, struct open_file_entry *entry,
+                                  const char *value, int flags, bool write);
 
         static void xattr(fuse_req_t req, fuse_ino_t ino, const char *name,
             const char *value, size_t size, int flags, bool set);

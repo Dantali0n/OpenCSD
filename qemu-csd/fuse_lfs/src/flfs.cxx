@@ -446,7 +446,7 @@ namespace qemucsd::fuse_lfs {
      * Find and fill the stbuf information for the given inode. Every FUSE call
      * that needs to determine if an inode exists should use this method.
      * TODO(Dantali0n): Cache these lookups as much as possible.
-     * @return FLFS_RET_NONE upon success, FLFS_RET_ENONT upon not found
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ENOENT upon not found
      */
     int FuseLFS::ino_stat(fuse_ino_t ino, struct stat *stbuf) {
         inode_entry_t entry;
@@ -1764,8 +1764,19 @@ namespace qemucsd::fuse_lfs {
         fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
     {
         const fuse_ctx *context = fuse_req_ctx(req);
-
         struct open_file_entry file_entry = {0};
+
+        #ifdef QEMUCSD_DEBUG
+        // Check for opening the same file multiple times within the same
+        // process.
+        open_inode_vect_t::iterator it;
+        csd_unique_t csd_uni = std::make_pair(ino, context->pid);
+        if(find_file_handle(&csd_uni, &it) != 0) {
+            output.warning("Opening the same file multiple times within the ",
+                "same process can lead to undefined behavior regarding CSD ",
+                "operations!");
+        }
+        #endif
 
         fi->fh = fh_ptr;
 
@@ -1781,7 +1792,8 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
-     *
+     * Use a csd_unique_t pair of inode and pid to find the iterator index in
+     * the open_inode_vect and return this to the caller.
      * @return 1 if the file handle was found, 0 otherwise
      */
     int FuseLFS::find_file_handle(csd_unique_t *uni_t,
@@ -1798,7 +1810,8 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
-     *
+     * Use a csd_unique_t pair of inode and pid to find and return the
+     * open_file_entry to the caller.
      * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
      */
     int FuseLFS::get_file_handle(csd_unique_t *uni_t,
@@ -1816,16 +1829,32 @@ namespace qemucsd::fuse_lfs {
 
     /**
      *
+     * FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
+     */
+    int FuseLFS::update_file_handle(uint64_t fh,
+        struct open_file_entry *entry)
+    {
+        open_inode_vect_t::iterator it;
+        if(!find_file_handle(fh, &it))
+            return FLFS_RET_ERR;
+
+        open_inode_vect.at(std::distance(open_inode_vect.begin(), it)) = *entry;
+
+        return FLFS_RET_NONE;
+    }
+
+    /**
+     * Use an open filehandle to find the iterator index in the
+     * open_inode_Vect and return this to the caller.
      * @return 1 if the file handle was found, 0 otherwise
      */
-    int FuseLFS::find_file_handle(struct fuse_file_info *fi,
-        open_inode_vect_t::iterator *it)
+    int FuseLFS::find_file_handle(uint64_t fh, open_inode_vect_t::iterator *it)
     {
         *it = std::find_if(
             open_inode_vect.begin(), open_inode_vect.end(),
-            [&fi](const struct open_file_entry& entry)
+            [&fh](const struct open_file_entry& entry)
         {
-            return fi->fh == entry.fh;
+            return fh == entry.fh;
         });
 
         return *it == open_inode_vect.end() ? 0 : 1;
@@ -1834,9 +1863,9 @@ namespace qemucsd::fuse_lfs {
     /**
      * Called be release to remove the session for a file handle
      */
-    void FuseLFS::release_file_handle(struct fuse_file_info *fi) {
+    void FuseLFS::release_file_handle(uint64_t fh) {
         open_inode_vect_t::iterator del_key;
-        find_file_handle(fi, &del_key);
+        find_file_handle(fh, &del_key);
 
         if(del_key != open_inode_vect.end())
             open_inode_vect.erase(del_key);
@@ -1872,6 +1901,9 @@ namespace qemucsd::fuse_lfs {
      *         no errors.
      */
     int FuseLFS::check_flags(int flags) {
+
+        // Ignore O_NONBLOCK, we just do blocking I/O regardless
+
         #ifdef QEMUCSD_DEBUG
         if (flags & O_ASYNC) {
             return EOPNOTSUPP;
@@ -1919,6 +1951,8 @@ namespace qemucsd::fuse_lfs {
         }
         // Increase size
         else if(entry.first.size < size) {
+            // TODO(Dantali0n): Create all the data_blocks required for the new
+            //                  size
         }
 
         result = update_inode_entry_t(&entry);
@@ -1929,8 +1963,10 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
-     *
-     * @return
+     * Write a single sector of data taking into account any pre-existing data
+     * if it exists.
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure and
+     *         FLFS_RET_LOGZ_FULL if the log zone is full.
      */
 
     int FuseLFS::write_sector(size_t size, off_t offset, uint64_t cur_lba,
@@ -1950,6 +1986,13 @@ namespace qemucsd::fuse_lfs {
                 return FLFS_RET_ERR;
             }
         }
+        #ifdef QEMUCSD_DEBUG
+        else if(offset != 0) {
+            output.warning("[write_sector] No pre-existing data but offset is ",
+                           "non zero. In debug this buffer will be zerosd...");
+            memset(buffer, 0, offset);
+        }
+        #endif
 
         memcpy(buffer + offset, data, size);
         int result = log_append(buffer, SECTOR_SIZE, result_lba);
@@ -1959,8 +2002,10 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
-     *
-     *
+     * Get the file information about the inode and present its name as
+     * result for the extended attribute.
+     * @ref Valid error codes:
+     *      https://man7.org/linux/man-pages/man2/fgetxattr.2.html
      */
     void FuseLFS::get_csd_xattr(fuse_req_t req, fuse_ino_t ino, size_t size) {
         inode_entry_t ino_entry;
@@ -1971,7 +2016,7 @@ namespace qemucsd::fuse_lfs {
         }
 
         if(get_inode_entry_t(ino, &ino_entry) != FLFS_RET_NONE) {
-            output.error("Failed to find configured read kernel inode ", ino);
+            output.error("Failed to find configured kernel inode ", ino);
             fuse_reply_err(req, EIO);
             return;
         }
@@ -1987,12 +2032,57 @@ namespace qemucsd::fuse_lfs {
 
     /**
      *
-     *
+     * @ref Valid error codes:
+     *      https://man7.org/linux/man-pages/man2/setxattr.2.html
      */
-    void FuseLFS::set_csd_xattr(fuse_req_t req, fuse_ino_t ino,
-        const char *value, bool write = false)
+    void FuseLFS::set_csd_xattr(fuse_req_t req, struct open_file_entry *entry,
+        const char *value, int flags, bool write = false)
     {
+        struct stat stbuf = {0};
 
+        if(flags & XATTR_CREATE) {
+            if(write && entry->csd_write_kernel != 0) {
+                fuse_reply_err(req, EEXIST);
+                return;
+            }
+            else if(entry->csd_read_kernel != 0) {
+                fuse_reply_err(req, EEXIST);
+                return;
+            }
+        }
+        if(flags & XATTR_REPLACE) {
+            if(write && entry->csd_write_kernel == 0) {
+                fuse_reply_err(req, ENODATA);
+                return;
+            }
+            else if(entry->csd_read_kernel == 0) {
+                fuse_reply_err(req, ENODATA);
+                return;
+            }
+        }
+
+        // FUSE will sanitize the value argument for use making this wild call
+        // safe.
+        fuse_ino_t kernel_ino =
+            strtoll(value, (char **) (value + strlen(value)), 10);
+
+        // Check if the specified kernel inode exists
+        if(ino_stat(kernel_ino, &stbuf) != FLFS_RET_NONE) {
+            fuse_reply_err(req, ENOENT);
+            return;
+        }
+
+        if(write)
+            entry->csd_write_kernel = kernel_ino;
+        else
+            entry->csd_read_kernel = kernel_ino;
+
+        if(update_file_handle(entry->fh, entry) != FLFS_RET_NONE) {
+            fuse_reply_err(req, EIO);
+            return;
+        }
+
+        fuse_reply_err(req, 0);
     }
 
     /**
@@ -2020,15 +2110,22 @@ namespace qemucsd::fuse_lfs {
 
         if(strcmp(CSD_READ_KEY.c_str(), name) == 0) {
             if(set)
-                set_csd_xattr(req, ino, value, false);
+                set_csd_xattr(req, &entry, value, flags, false);
             else
                 get_csd_xattr(req, entry.csd_read_kernel, size);
         }
         else if(strcmp(CSD_WRITE_KEY.c_str(), name) == 0) {
             if(set)
-                set_csd_xattr(req, ino, value, true);
+                set_csd_xattr(req, &entry, value, flags, true);
             else
                 get_csd_xattr(req, entry.csd_write_kernel, size);
+        }
+        // Any other key either can't be set or does not exist
+        else {
+            if (set)
+                fuse_reply_err(req, ENOTSUP);
+            else
+                fuse_reply_err(req, ENODATA);
         }
     }
 
@@ -2224,7 +2321,7 @@ namespace qemucsd::fuse_lfs {
 
         // Release file handle if not directory
         if(e.attr.st_mode & S_IFREG)
-            release_file_handle(fi);
+            release_file_handle(fi->fh);
 
         #ifdef FLFS_DBG_FI
         output_fi("release", fi);
@@ -2334,7 +2431,7 @@ namespace qemucsd::fuse_lfs {
 
         // Verify file handle (session) exists
         open_inode_vect_t::iterator open_ino_it;
-        find_file_handle(fi, &open_ino_it);
+        find_file_handle(fi->fh, &open_ino_it);
         if(open_ino_it == open_inode_vect.end()) {
             output.error("File handle ", fi->fh, " not found in open_inode_map!");
             fuse_reply_err(req, EIO);
@@ -2454,7 +2551,7 @@ namespace qemucsd::fuse_lfs {
 
         // Verify file handle (session) exists
         open_inode_vect_t::iterator open_ino_it;
-        find_file_handle(fi, &open_ino_it);
+        find_file_handle(fi->fh, &open_ino_it);
         if(open_ino_it == open_inode_vect.end()) {
             output.error("File handle ", fi->fh, " not found in",
                          "open_inode_map!");
@@ -2658,7 +2755,7 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
         const char *value, size_t size, int flags)
     {
-        xattr(req, ino, name, value, size, flags);
+        xattr(req, ino, name, value, size, flags, true);
     }
 
     void FuseLFS::listxattr(fuse_req_t req, fuse_ino_t ino, size_t size) {
