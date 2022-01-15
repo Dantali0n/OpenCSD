@@ -22,28 +22,29 @@
  * SOFTWARE.
  */
 
-#ifndef QEMU_CSD_FLFS_SUPERBLOCK_HPP
-#define QEMU_CSD_FLFS_SUPERBLOCK_HPP
+#ifndef QEMU_CSD_FLFS_DIRTYBLOCK_HPP
+#define QEMU_CSD_FLFS_DIRTYBLOCK_HPP
 
-#include "nvme_zns_backend.hpp"
+//#include "nvme_zns_backend.hpp"
 
 namespace qemucsd::fuse_lfs {
 
     /**
-     * Interface for super block methods
+     * Interface for dirty block methods
      */
-    class FuseLFSSuperBlock {
+    class FuseLFSDirtyBlock {
     protected:
-        nvme_zns::NvmeZnsBackend* nvme;
-        struct nvme_zns::nvme_zns_info* nvme_info;
+//        nvme_zns::NvmeZnsBackend* nvme;
+//        struct nvme_zns::nvme_zns_info* nvme_info;
     public:
-        FuseLFSSuperBlock(nvme_zns::NvmeZnsBackend* nvme,
-            struct nvme_zns::nvme_zns_info* nvme_info);
+//        FuseLFSDirtyBlock(nvme_zns::NvmeZnsBackend* nvme,
+//            struct nvme_zns::nvme_zns_info* nvme_info);
 
-        int verify_superblock();
-        int write_superblock();
+        virtual int verify_dirtyblock() = 0;
+        virtual int write_dirtyblock() = 0;
+        virtual int remove_dirtyblock() = 0;
     };
 
 }
 
-#endif // QEMU_CSD_FLFS_SUPERBLOCK_HPP
+#endif // QEMU_CSD_FLFS_DIRTYBLOCK_HPP

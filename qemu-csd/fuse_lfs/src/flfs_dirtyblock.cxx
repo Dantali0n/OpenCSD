@@ -1,7 +1,7 @@
 /**
  * MIT License
  *
- * Copyright (c) 2021 Dantali0n
+ * Copyright (c) 2022 Dantali0n
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,53 +26,49 @@
 
 namespace qemucsd::fuse_lfs {
 
-    FuseLFSSuperBlock::FuseLFSSuperBlock(nvme_zns::NvmeZnsBackend* nvme,
-        struct nvme_zns::nvme_zns_info* nvme_info)
-    {
-        this->nvme = nvme;
-        this->nvme_info = nvme_info;
+    /**
+     * Checks if the filesystem was left dirty from last time
+     * @return FLFS_RET_NONE when clean, < FLFS_RET_ERR if dirty
+     */
+    int FuseLFS::verify_dirtyblock() {
+        struct dirty_block dblock = {0};
+
+        // If we can't read the dirty block assume it is unwritten thus clean
+        if(nvme->read(DBLOCK_POS.zone, DBLOCK_POS.sector, DBLOCK_POS.offset,
+                      &dblock, sizeof(dblock)) != 0)
+            return FLFS_RET_NONE;
+
+        // FLFS_RET_ERR if dirty or FLFS_RET_NONE otherwise
+        return dblock.is_dirty == 1 ? FLFS_RET_ERR : FLFS_RET_NONE;
     }
 
     /**
-     * Read the super block for the filesystem and verify the parameters to
-     * prevent overwritten a drive configured for other filesystems.
+     * Write the dirty block to the drive and verify it was appended to the
+     * correct location.
      * @return FLFS_RET_NONE upon success, < FLFS_RET_ERR upon failure
      */
-    int FuseLFSSuperBlock::verify_superblock() {
-        struct super_block sblock;
-        if(nvme->read(SBLOCK_POS.zone, SBLOCK_POS.sector, SBLOCK_POS.offset,
-                      &sblock, sizeof(super_block)) != 0)
+    int FuseLFS::write_dirtyblock() {
+        uint64_t sector;
+
+        struct dirty_block dblock = {0};
+        dblock.is_dirty = 1;
+
+        if(nvme->append(DBLOCK_POS.zone, sector, DBLOCK_POS.offset, &dblock,
+                        sizeof(dblock)) != 0)
             return FLFS_RET_ERR;
-        if(sblock.magic_cookie != MAGIC_COOKIE)
-            return FLFS_RET_ERR;
-        if(sblock.zones != nvme_info->num_zones)
-            return FLFS_RET_ERR;
-        if(sblock.sectors != nvme_info->zone_size)
-            return FLFS_RET_ERR;
-        if(sblock.sector_size != nvme_info->sector_size)
+
+        if(sector != DBLOCK_POS.sector)
             return FLFS_RET_ERR;
 
         return FLFS_RET_NONE;
     }
 
     /**
-     * Write the super block so it can be recognized on subsequent
-     * initializations.
+     * Reset the zone containing the dirty block
      * @return FLFS_RET_NONE upon success, < FLFS_RET_ERR upon failure
      */
-    int FuseLFSSuperBlock::write_superblock() {
-        struct super_block sblock;
-        sblock.magic_cookie = MAGIC_COOKIE;
-        sblock.zones = nvme_info->num_zones;
-        sblock.sectors = nvme_info->zone_size;
-        sblock.sector_size = nvme_info->sector_size;
-
-        uint64_t sector;
-        if(nvme->append(SBLOCK_POS.zone, sector, SBLOCK_POS.offset, &sblock,
-                        sizeof(super_block)) != 0)
-            return FLFS_RET_ERR;
-
-        if(sector != SBLOCK_POS.sector)
+    int FuseLFS::remove_dirtyblock() {
+        if(nvme->reset(DBLOCK_POS.zone) != 0)
             return FLFS_RET_ERR;
 
         return FLFS_RET_NONE;

@@ -44,27 +44,28 @@ extern "C" {
 #include "flfs_disc.hpp"
 #include "flfs_memory.hpp"
 #include "flfs_superblock.hpp"
+#include "flfs_dirtyblock.hpp"
 #include "nvme_zns_backend.hpp"
 
 namespace qemucsd::fuse_lfs {
 
     /**
-     * Static wrapper class around FUSE LFS filesystem.
+     * FUSE LFS filesystem for Zoned Namespaces SSDs (FluffleFS).
      */
-    class FuseLFS : public FuseLFSSuperBlock {
+    class FuseLFS : public FuseLFSSuperBlock, FuseLFSDirtyBlock {
     protected:
-        static output::Output output;
+        output::Output *output;
 
-        static struct fuse_conn_info* connection;
+        struct fuse_conn_info *connection;
 
-        static struct nvme_zns::nvme_zns_info nvme_info;
-        static nvme_zns::NvmeZnsBackend* nvme;
+        struct nvme_zns::nvme_zns_info nvme_info;
+        nvme_zns::NvmeZnsBackend *nvme;
 
         // Map filenames and their respective parent to inodes
-        static path_inode_map_t path_inode_map;
+        path_inode_map_t *path_inode_map;
 
         // Map inodes to the lba they are stored at
-        static inode_lba_map_t inode_lba_map;
+        inode_lba_map_t *inode_lba_map;
 
         static const std::string FUSE_LFS_NAME_PREFIX;
         static const std::string FUSE_SEQUENTIAL_PARAM;
@@ -72,7 +73,7 @@ namespace qemucsd::fuse_lfs {
         /** nlookup helpers */
 
         // Keep track of nlookup count per inode
-        static inode_nlookup_map_t inode_nlookup_map;
+        inode_nlookup_map_t *inode_nlookup_map;
 
         // TODO(Dantali0n): Use nlookup count to drive path_inode_map caching
         //                  and response to memory pressure
@@ -107,7 +108,7 @@ namespace qemucsd::fuse_lfs {
 
         int ino_stat(fuse_ino_t ino, struct stat *stbuf);
 
-        int reply_buf_limited(fuse_req_t req, const char *buf,
+        static int reply_buf_limited(fuse_req_t req, const char *buf,
                                      size_t bufsize, off_t off, size_t maxsize);
         void dir_buf_add(fuse_req_t req, struct dir_buf* buf,
                                 const char *name, fuse_ino_t ino);
@@ -122,17 +123,17 @@ namespace qemucsd::fuse_lfs {
 
         int mkfs();
 
-        // TODO(Dantali0n): Move dirtyblock methods to separate interface
+        /** Dirty block interface methods */
 
-        int verify_dirtyblock();
+        int verify_dirtyblock() override;
 
-        int write_dirtyblock();
+        int write_dirtyblock() override;
 
-        int remove_dirtyblock();
+        int remove_dirtyblock() override;
 
         // TODO(Dantali0n): Move checkpointblock methods to separate interface
 
-        static struct data_position cblock_pos;
+        struct data_position cblock_pos;
 
         int update_checkpointblock(uint64_t randz_lba,
                                           uint64_t logz_lba);
@@ -143,7 +144,7 @@ namespace qemucsd::fuse_lfs {
 
         // TODO(Dantali0n): Move random block methods to separate interface
 
-        static nat_update_set_t nat_update_set;
+        nat_update_set_t *nat_update_set;
 
         // random_pos indicates the beginning of the random zone.
         // The reading should continue if RANDZ_BUFF_POS is reached
@@ -152,13 +153,13 @@ namespace qemucsd::fuse_lfs {
         // for random_pos with the exception of RANDZ_BUFF_POS. random_pos must
         // be aligned to zone boundaries. Thus the last valid location for
         // random_pos is RANDZ_BUFF_POS.zone - 1;
-        static struct data_position random_pos;
+        struct data_position random_pos;
 
         // random_ptr is the write pointer into the random zone and indicates
         // the next writeable sector. The location overflows from RANDZ_BUFF_POS
         // back to RANDZ_POS. If random_ptr is invalid the random zone is full.
         //
-        static struct data_position random_ptr;
+        struct data_position random_ptr;
 
         void add_nat_update_set_entries(std::vector<fuse_ino_t> *inodes);
 
@@ -193,10 +194,10 @@ namespace qemucsd::fuse_lfs {
         // TODO(Dantali0n): Move log management methods to separate interface
 
         // Current start of the log zone
-        static struct data_position log_pos;
+        struct data_position log_pos;
 
         // Write pointer within the log zone
-        static struct data_position log_ptr;
+        struct data_position log_ptr;
 
         int advance_log_ptr(struct data_position *log_ptr);
 
@@ -206,7 +207,7 @@ namespace qemucsd::fuse_lfs {
 
         // TODO(Dantali0n): Move data block methods to separate interface
 
-        static data_blocks_t data_blocks;
+        data_blocks_t *data_blocks;
 
         void compute_data_block_num(uint64_t num_lbas, uint64_t &blocks);
 
@@ -227,12 +228,12 @@ namespace qemucsd::fuse_lfs {
 
         // TODO(Dantali0n): Move inode block methods to separate interface
 
-        static inode_entries_t inode_entries;
+        inode_entries_t *inode_entries;
 
         // Keep track of the highest observed ino and increment it for new
         // files and directories. The ino_ptr indicates the next possible ino
         // for new files and directories (similar to write pointers)
-        static fuse_ino_t ino_ptr;
+        fuse_ino_t ino_ptr;
 
         // TODO(Dantali0n): Create and keep track of ino_pos for log zone linear
         //                  continuity.
@@ -275,11 +276,11 @@ namespace qemucsd::fuse_lfs {
         // TODO(Dantali0n): Move open file handle methods to separate interface
 
         // File handle pointer for open files
-        static uint64_t fh_ptr;
+        uint64_t fh_ptr;
 
         // Keep track of open files and directories using unique handles for
         // respective inodes and caller pids.
-        static open_inode_vect_t open_inode_vect;
+        open_inode_vect_t *open_inode_vect;
 
         void create_file_handle(
             fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi);
@@ -324,12 +325,11 @@ namespace qemucsd::fuse_lfs {
 
         void xattr(fuse_req_t req, fuse_ino_t ino, const char *name,
             const char *value, size_t size, int flags, bool set);
-
-    protected:
-        // This constructor is for unit tests, do not call
-        FuseLFS(nvme_zns::NvmeZnsBackend* nvme);
     public:
-        FuseLFS(int argc, char* argv[], nvme_zns::NvmeZnsBackend* nvme,
+        explicit FuseLFS(nvme_zns::NvmeZnsBackend* nvme);
+        virtual ~FuseLFS();
+
+        int run(int argc, char* argv[],
             const struct fuse_lowlevel_ops *operations);
 
         void init(void *userdata, struct fuse_conn_info *conn);

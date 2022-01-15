@@ -38,7 +38,7 @@ namespace qemucsd::fuse_lfs {
     class FuseLFSWrapper {
     protected:
         static const struct fuse_lowlevel_ops operations;
-        static FuseLFS* flfs;
+        static FuseLFS* flfs_w;
     public:
         static int initialize(
             int argc, char* argv[], nvme_zns::NvmeZnsBackend* nvme);
