@@ -89,8 +89,8 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfs)
 
         TestFuseLFS testfuse;
 
-        TestFuseLFS::nvme_info.num_zones = max_pos.zone;
-        TestFuseLFS::nvme_info.zone_size = max_pos.sector;
+        testfuse.nvme_info.num_zones = max_pos.zone;
+        testfuse.nvme_info.zone_size = max_pos.sector;
 
         struct qemucsd::fuse_lfs::data_position result;
         for(uint64_t i = 0; i < max_pos.zone; i++) {
@@ -108,10 +108,10 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfs)
 
         TestFuseLFS testfuse;
 
-        TestFuseLFS::nvme_info.num_zones = max_pos.zone;
-        TestFuseLFS::nvme_info.zone_size = max_pos.sector;
-        auto backend = DummyBackend(&TestFuseLFS::nvme_info);
-        TestFuseLFS::nvme = &backend;
+        testfuse.nvme_info.num_zones = max_pos.zone;
+        testfuse.nvme_info.zone_size = max_pos.sector;
+        auto backend = DummyBackend(&testfuse.nvme_info);
+        testfuse.nvme = &backend;
 
         uint64_t result = 0;
         struct qemucsd::fuse_lfs::data_position pos =
