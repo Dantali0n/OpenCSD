@@ -25,21 +25,13 @@
 #ifndef QEMU_CSD_FLFS_DIRTYBLOCK_HPP
 #define QEMU_CSD_FLFS_DIRTYBLOCK_HPP
 
-//#include "nvme_zns_backend.hpp"
-
 namespace qemucsd::fuse_lfs {
 
     /**
      * Interface for dirty block methods
      */
     class FuseLFSDirtyBlock {
-    protected:
-//        nvme_zns::NvmeZnsBackend* nvme;
-//        struct nvme_zns::nvme_zns_info* nvme_info;
     public:
-//        FuseLFSDirtyBlock(nvme_zns::NvmeZnsBackend* nvme,
-//            struct nvme_zns::nvme_zns_info* nvme_info);
-
         virtual int verify_dirtyblock() = 0;
         virtual int write_dirtyblock() = 0;
         virtual int remove_dirtyblock() = 0;

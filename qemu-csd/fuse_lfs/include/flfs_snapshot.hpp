@@ -22,22 +22,31 @@
  * SOFTWARE.
  */
 
-#ifndef QEMU_CSD_FLFS_SUPERBLOCK_HPP
-#define QEMU_CSD_FLFS_SUPERBLOCK_HPP
+#ifndef QEMU_CSD_FLFS_SNAPSHOT_HPP
+#define QEMU_CSD_FLFS_SNAPSHOT_HPP
 
-#include "nvme_zns_backend.hpp"
+#include "flfs_memory.hpp"
 
 namespace qemucsd::fuse_lfs {
 
     /**
-     * Interface for super block methods
+     * Interface for snapshot methods
      */
-    class FuseLFSSuperBlock {
+    class FuseLFSSnapShot {
+    protected:
+        std::map<csd_unique_t, struct csd_snapshot> snapshots;
     public:
-        virtual int verify_superblock() = 0;
-        virtual int write_superblock() = 0;
+        virtual int update_snapshot(csd_unique_t *context, fuse_ino_t kernel,
+            bool write) = 0;
+        virtual int create_snapshot(fuse_ino_t kernel, struct snapshot *snap) = 0;
+        virtual int has_snapshot(csd_unique_t *context) = 0;
+        virtual int has_snapshot(csd_unique_t *context,
+            enum snapshot_store_type snap_t) = 0;
+        virtual int get_snapshot(csd_unique_t *context,
+            struct snapshot *snap, enum snapshot_store_type snap_t) = 0;
+        virtual int delete_snapshot(csd_unique_t *context) = 0;
     };
 
 }
 
-#endif // QEMU_CSD_FLFS_SUPERBLOCK_HPP
+#endif // QEMU_CSD_FLFS_SNAPSHOT_HPP

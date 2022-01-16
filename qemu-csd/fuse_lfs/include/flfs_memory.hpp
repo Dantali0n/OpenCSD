@@ -92,7 +92,7 @@ namespace qemucsd::fuse_lfs {
     typedef std::set<fuse_ino_t> nat_update_set_t;
 
     // An inode_entry combined with its name into a pair as inode_entry_t
-    typedef std::pair<inode_entry, std::string> inode_entry_t;
+    typedef std::pair<struct inode_entry, std::string> inode_entry_t;
 
     // A map of inode_entry and name that must be flushed to drive
     typedef std::map<fuse_ino_t, inode_entry_t> inode_entries_t;
@@ -102,6 +102,21 @@ namespace qemucsd::fuse_lfs {
 
     // A map of data_blocks that must be flushed to drive
     typedef std::map<fuse_ino_t, data_map_t*> data_blocks_t;
+
+    /**
+     * Datastructures for in-memory snapshots
+     */
+
+    struct snapshot {
+        inode_entry_t inode_data;
+        data_map_t data_blocks;
+    };
+
+    struct csd_snapshot {
+        struct snapshot file;
+        struct snapshot read_kernel;
+        struct snapshot write_kernel;
+    };
 }
 
 #endif //QEMU_CSD_FLFS_MEMORY_HPP

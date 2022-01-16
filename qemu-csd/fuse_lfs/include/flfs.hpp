@@ -28,12 +28,12 @@
 #define FUSE_USE_VERSION	36
 
 extern "C" {
-    #include <assert.h>
     #include <fuse3/fuse_lowlevel.h>
-    #include <string.h>
     #include <sys/xattr.h>
 }
 
+#include <cassert>
+#include <cstring>
 #include <map>
 #include <iostream>
 #include <sstream>
@@ -43,6 +43,7 @@ extern "C" {
 #include "flfs_constants.hpp"
 #include "flfs_disc.hpp"
 #include "flfs_memory.hpp"
+#include "flfs_snapshot.hpp"
 #include "flfs_superblock.hpp"
 #include "flfs_dirtyblock.hpp"
 #include "nvme_zns_backend.hpp"
@@ -52,7 +53,9 @@ namespace qemucsd::fuse_lfs {
     /**
      * FUSE LFS filesystem for Zoned Namespaces SSDs (FluffleFS).
      */
-    class FuseLFS : public FuseLFSSuperBlock, FuseLFSDirtyBlock {
+    class FuseLFS : public FuseLFSSuperBlock, FuseLFSDirtyBlock,
+        FuseLFSSnapShot
+    {
     protected:
         output::Output *output;
 
@@ -67,8 +70,8 @@ namespace qemucsd::fuse_lfs {
         // Map inodes to the lba they are stored at
         inode_lba_map_t *inode_lba_map;
 
-        static const std::string FUSE_LFS_NAME_PREFIX;
-        static const std::string FUSE_SEQUENTIAL_PARAM;
+        static const char *FUSE_LFS_NAME_PREFIX;
+        static const char *FUSE_SEQUENTIAL_PARAM;
 
         /** nlookup helpers */
 
@@ -91,7 +94,7 @@ namespace qemucsd::fuse_lfs {
         /** Inode, path and data position helper functions */
 
         void lba_to_position(
-            uint64_t lba, struct data_position &position);
+            uint64_t lba, struct data_position &position) const;
 
         void position_to_lba(
             struct data_position position, uint64_t &lba);
@@ -110,7 +113,7 @@ namespace qemucsd::fuse_lfs {
 
         static int reply_buf_limited(fuse_req_t req, const char *buf,
                                      size_t bufsize, off_t off, size_t maxsize);
-        void dir_buf_add(fuse_req_t req, struct dir_buf* buf,
+        static void dir_buf_add(fuse_req_t req, struct dir_buf* buf,
                                 const char *name, fuse_ino_t ino);
 
         // TODO(Dantali0n): Move filesystem initialization methods to separate
@@ -122,6 +125,12 @@ namespace qemucsd::fuse_lfs {
         //                  interface
 
         int mkfs();
+
+        /** Super block interface methods */
+
+        int verify_superblock() override;
+
+        int write_superblock() override;
 
         /** Dirty block interface methods */
 
@@ -165,7 +174,7 @@ namespace qemucsd::fuse_lfs {
 
         int determine_random_ptr();
 
-        void random_zone_distance(
+        static void random_zone_distance(
             struct data_position lhs, struct data_position rhs,
             uint32_t &distance);
 
@@ -176,7 +185,7 @@ namespace qemucsd::fuse_lfs {
 
         int append_random_block(struct rand_block_base &block);
 
-        void compute_nat_blocks(nat_update_set_t *nat_set,
+        static void compute_nat_blocks(nat_update_set_t *nat_set,
                                       uint64_t &num_blocks);
 
         int update_nat_blocks(nat_update_set_t *nat_set);
@@ -199,7 +208,7 @@ namespace qemucsd::fuse_lfs {
         // Write pointer within the log zone
         struct data_position log_ptr;
 
-        int advance_log_ptr(struct data_position *log_ptr);
+        int advance_log_ptr(struct data_position *log_ptr) const;
 
         void determine_log_ptr();
 
@@ -209,7 +218,7 @@ namespace qemucsd::fuse_lfs {
 
         data_blocks_t *data_blocks;
 
-        void compute_data_block_num(uint64_t num_lbas, uint64_t &blocks);
+        static void compute_data_block_num(uint64_t num_lbas, uint64_t &blocks);
 
         void assign_data_blocks(fuse_ino_t ino, data_map_t *blocks); //, std::vector<data_block> *blocks);
 
@@ -240,11 +249,11 @@ namespace qemucsd::fuse_lfs {
 
 //        static int build_path_inode_map();
 
-        int fill_inode_block(
+        static int fill_inode_block(
             struct inode_block *blck, std::vector<fuse_ino_t> *ino_remove,
             inode_entries_t *entries);
 
-        void erase_inode_entries(
+        static void erase_inode_entries(
             std::vector<fuse_ino_t> *ino_remove, inode_entries_t *entries);
 
         int get_inode_entry_t(fuse_ino_t ino, inode_entry_t *entry);
@@ -273,6 +282,16 @@ namespace qemucsd::fuse_lfs {
 
         // TODO(Dantali0n): Move CSD / snapshot methods to separate interface
 
+        int update_snapshot(csd_unique_t *context, fuse_ino_t kernel,
+            bool write) override;
+        int create_snapshot(fuse_ino_t ino, struct snapshot *snap) override;
+        int has_snapshot(csd_unique_t *context) override;
+        int has_snapshot(csd_unique_t *context,
+            enum snapshot_store_type snap_t) override;
+        int get_snapshot(csd_unique_t *context, struct snapshot *snap,
+            enum snapshot_store_type snap_t) override;
+        int delete_snapshot(csd_unique_t *context) override;
+
         // TODO(Dantali0n): Move open file handle methods to separate interface
 
         // File handle pointer for open files
@@ -285,17 +304,16 @@ namespace qemucsd::fuse_lfs {
         void create_file_handle(
             fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi);
 
-        int get_file_handle(csd_unique_t *uni_t,
-                                   struct open_file_entry *entry);
+        int get_file_handle(csd_unique_t *uni_t, struct open_file_entry *entry);
 
-        int update_file_handle(uint64_t fh,
-                                      struct open_file_entry *entry);
+        int get_file_handle(uint64_t fh, struct open_file_entry *entry);
+
+        int update_file_handle(uint64_t fh, struct open_file_entry *entry);
 
         int find_file_handle(csd_unique_t *uni_t,
-                                     open_inode_vect_t::iterator *it);
+                             open_inode_vect_t::iterator *it);
 
-        int find_file_handle(uint64_t fh,
-                                    open_inode_vect_t::iterator *it);
+        int find_file_handle(uint64_t fh, open_inode_vect_t::iterator *it);
 
         void release_file_handle(uint64_t fh);
 
@@ -307,11 +325,11 @@ namespace qemucsd::fuse_lfs {
         // TODO(Dantali0n): Move FUSE internal wrapper functions to separate
         //                  interface
 
-        int flfs_ret_to_fuse_reply(int flfs_ret);
+        static int flfs_ret_to_fuse_reply(int flfs_ret);
 
-        int check_flags(int flags);
+        static int check_flags(int flags);
 
-        void ino_fake_permissions(fuse_req_t req, struct stat *stbuf);
+        static void ino_fake_permissions(fuse_req_t req, struct stat *stbuf);
 
         int ftruncate(fuse_ino_t ino, size_t size);
 
@@ -325,6 +343,19 @@ namespace qemucsd::fuse_lfs {
 
         void xattr(fuse_req_t req, fuse_ino_t ino, const char *name,
             const char *value, size_t size, int flags, bool set);
+
+        void read_regular(fuse_req_t req, struct stat *stbuf,
+            size_t size, off_t off, struct fuse_file_info *fi);
+
+        void read_csd(fuse_req_t req, struct stat *stbuf, size_t size,
+            off_t off, struct fuse_file_info *fi);
+
+        void write_regular(fuse_req_t req, fuse_ino_t ino, const char *buf,
+            size_t size, off_t off, struct fuse_file_info *fi);
+
+        void write_csd(fuse_req_t req, fuse_ino_t ino, const char *buf,
+            size_t size, off_t off, struct fuse_file_info *fi);
+
     public:
         explicit FuseLFS(nvme_zns::NvmeZnsBackend* nvme);
         virtual ~FuseLFS();
@@ -337,39 +368,37 @@ namespace qemucsd::fuse_lfs {
         void lookup(fuse_req_t req, fuse_ino_t parent, const char *name);
         void forget(fuse_req_t req, fuse_ino_t ino, uint64_t nlookup);
         void getattr(fuse_req_t req, fuse_ino_t ino,
-                           struct fuse_file_info *fi);
+            struct fuse_file_info *fi);
         void setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
-                                      int to_set, struct fuse_file_info *fi);
-        void readdir(
-            fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
+            int to_set, struct fuse_file_info *fi);
+        void readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
             struct fuse_file_info *fi);
         void open(fuse_req_t req, fuse_ino_t ino,
-                         struct fuse_file_info *fi);
+            struct fuse_file_info *fi);
         void release(fuse_req_t req, fuse_ino_t ino,
-                            struct fuse_file_info *fi);
+            struct fuse_file_info *fi);
         void create(fuse_req_t req, fuse_ino_t parent, const char *name,
-                          mode_t mode, struct fuse_file_info *fi);
+            mode_t mode, struct fuse_file_info *fi);
         void mkdir(fuse_req_t req, fuse_ino_t parent, const char *name,
-                          mode_t mode);
+            mode_t mode);
         void read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
-                        struct fuse_file_info *fi);
+            struct fuse_file_info *fi);
         void write(fuse_req_t req, fuse_ino_t ino, const char *buf,
-                         size_t size, off_t off, struct fuse_file_info *fi);
+            size_t size, off_t off, struct fuse_file_info *fi);
         void statfs(fuse_req_t req, fuse_ino_t ino);
         void fsync(fuse_req_t req, fuse_ino_t ino, int datasync,
-                          struct fuse_file_info *fi);
+            struct fuse_file_info *fi);
         void rename(fuse_req_t req, fuse_ino_t parent, const char *name,
-                           fuse_ino_t newparent, const char *newname,
-                           unsigned int flags);
+            fuse_ino_t newparent, const char *newname, unsigned int flags);
         void unlink(fuse_req_t req, fuse_ino_t parent, const char *name);
         void rmdir(fuse_req_t req, fuse_ino_t parent, const char *name);
         void getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
-                             size_t size);
+            size_t size);
         void setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
-                             const char *value, size_t size, int flags);
+            const char *value, size_t size, int flags);
         void listxattr(fuse_req_t req, fuse_ino_t ino, size_t size);
         void removexattr(fuse_req_t req, fuse_ino_t ino,
-                                const char *name);
+            const char *name);
     };
 }
 

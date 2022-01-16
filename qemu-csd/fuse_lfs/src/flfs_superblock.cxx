@@ -26,30 +26,23 @@
 
 namespace qemucsd::fuse_lfs {
 
-    FuseLFSSuperBlock::FuseLFSSuperBlock(nvme_zns::NvmeZnsBackend* nvme,
-        struct nvme_zns::nvme_zns_info* nvme_info)
-    {
-        this->nvme = nvme;
-        this->nvme_info = nvme_info;
-    }
-
     /**
      * Read the super block for the filesystem and verify the parameters to
      * prevent overwritten a drive configured for other filesystems.
      * @return FLFS_RET_NONE upon success, < FLFS_RET_ERR upon failure
      */
-    int FuseLFSSuperBlock::verify_superblock() {
+    int FuseLFS::verify_superblock() {
         struct super_block sblock;
         if(nvme->read(SBLOCK_POS.zone, SBLOCK_POS.sector, SBLOCK_POS.offset,
                       &sblock, sizeof(super_block)) != 0)
             return FLFS_RET_ERR;
         if(sblock.magic_cookie != MAGIC_COOKIE)
             return FLFS_RET_ERR;
-        if(sblock.zones != nvme_info->num_zones)
+        if(sblock.zones != nvme_info.num_zones)
             return FLFS_RET_ERR;
-        if(sblock.sectors != nvme_info->zone_size)
+        if(sblock.sectors != nvme_info.zone_size)
             return FLFS_RET_ERR;
-        if(sblock.sector_size != nvme_info->sector_size)
+        if(sblock.sector_size != nvme_info.sector_size)
             return FLFS_RET_ERR;
 
         return FLFS_RET_NONE;
@@ -60,12 +53,12 @@ namespace qemucsd::fuse_lfs {
      * initializations.
      * @return FLFS_RET_NONE upon success, < FLFS_RET_ERR upon failure
      */
-    int FuseLFSSuperBlock::write_superblock() {
+    int FuseLFS::write_superblock() {
         struct super_block sblock;
         sblock.magic_cookie = MAGIC_COOKIE;
-        sblock.zones = nvme_info->num_zones;
-        sblock.sectors = nvme_info->zone_size;
-        sblock.sector_size = nvme_info->sector_size;
+        sblock.zones = nvme_info.num_zones;
+        sblock.sectors = nvme_info.zone_size;
+        sblock.sector_size = nvme_info.sector_size;
 
         uint64_t sector;
         if(nvme->append(SBLOCK_POS.zone, sector, SBLOCK_POS.offset, &sblock,

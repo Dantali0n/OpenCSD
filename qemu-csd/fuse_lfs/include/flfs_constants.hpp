@@ -28,7 +28,7 @@
 #define FUSE_USE_VERSION	36
 
 extern "C" {
-#include "fuse3/fuse_lowlevel.h"
+    #include "fuse3/fuse_lowlevel.h"
 }
 
 #include <map>
@@ -84,6 +84,12 @@ namespace qemucsd::fuse_lfs {
      */
     #define FLFS_FAKE_PERMS
 
+    /**
+     * Overwrite regular read and write access with snapshot content for
+     * csd_unique contexts with a kernel enabled.
+     */
+    #define FLFS_SNAPSHOT_REGULAR_ACCESS
+
     #define flfs_min(x, y) ((x) < (y) ? (x) : (y))
 
     enum flfs_return_codes {
@@ -115,6 +121,12 @@ namespace qemucsd::fuse_lfs {
         FLFS_RET_EISDIR             =  7,
     };
 
+    enum snapshot_store_type {
+        SNAP_FILE = 1,
+        SNAP_READ = 2,
+        SNAP_WRITE =3
+    };
+
     /**
      * Non dependent constants that should be accessible by all header files in
      * fuse_lfs
@@ -123,8 +135,8 @@ namespace qemucsd::fuse_lfs {
     static constexpr uint32_t SECTOR_SIZE = 4096;
     static constexpr uint64_t MAGIC_COOKIE = 0x10ADEDB00BDEC0DE;
 
-    static const std::string CSD_READ_KEY = "user.process.csd_read";
-    static const std::string CSD_WRITE_KEY = "user.process.csd_write";
+    static const char *CSD_READ_KEY = "user.process.csd_read";
+    static const char *CSD_WRITE_KEY = "user.process.csd_write";
 
     /**
      * Non dependent structs that should only be used for constant data
