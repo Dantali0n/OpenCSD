@@ -284,10 +284,12 @@ namespace qemucsd::fuse_lfs {
 
         int update_snapshot(csd_unique_t *context, fuse_ino_t kernel,
             bool write) override;
+        int update_snapshot(csd_unique_t *context, struct snapshot *snap,
+            enum snapshot_store_type snap_t) override;
         int create_snapshot(fuse_ino_t ino, struct snapshot *snap) override;
-        int has_snapshot(csd_unique_t *context) override;
         int has_snapshot(csd_unique_t *context,
             enum snapshot_store_type snap_t) override;
+        int get_snapshot(csd_unique_t *context, csd_snapshot *snaps) override;
         int get_snapshot(csd_unique_t *context, struct snapshot *snap,
             enum snapshot_store_type snap_t) override;
         int delete_snapshot(csd_unique_t *context) override;
@@ -336,25 +338,41 @@ namespace qemucsd::fuse_lfs {
         int write_sector(size_t size, off_t offset, uint64_t cur_lba,
             const char *data, uint64_t &result_lba);
 
-        void get_csd_xattr(fuse_req_t req, fuse_ino_t ino, size_t size);
+        void lookup_regular(fuse_req_t req, fuse_ino_t ino);
 
-        void set_csd_xattr(fuse_req_t req, struct open_file_entry *entry,
-                                  const char *value, int flags, bool write);
+        void lookup_csd(fuse_req_t req, csd_unique_t *context);
 
-        void xattr(fuse_req_t req, fuse_ino_t ino, const char *name,
-            const char *value, size_t size, int flags, bool set);
+        void getattr_regular(fuse_req_t req, fuse_ino_t ino,
+            struct fuse_file_info *fi);
+
+        void getattr_csd(fuse_req_t req, csd_unique_t *context,
+            struct fuse_file_info *fi);
+
+        void setattr_regular(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
+            int to_set, struct fuse_file_info *fi);
+
+        void setattr_csd(fuse_req_t req, csd_unique_t *context,
+            struct stat *attr, int to_set, struct fuse_file_info *fi);
 
         void read_regular(fuse_req_t req, struct stat *stbuf,
             size_t size, off_t off, struct fuse_file_info *fi);
 
-        void read_csd(fuse_req_t req, struct stat *stbuf, size_t size,
+        void read_csd(fuse_req_t req, csd_unique_t *context, size_t size,
             off_t off, struct fuse_file_info *fi);
 
         void write_regular(fuse_req_t req, fuse_ino_t ino, const char *buf,
             size_t size, off_t off, struct fuse_file_info *fi);
 
-        void write_csd(fuse_req_t req, fuse_ino_t ino, const char *buf,
+        void write_csd(fuse_req_t req, csd_unique_t *context, const char *buf,
             size_t size, off_t off, struct fuse_file_info *fi);
+
+        void get_csd_xattr(fuse_req_t req, fuse_ino_t ino, size_t size);
+
+        void set_csd_xattr(fuse_req_t req, struct open_file_entry *entry,
+            const char *value, size_t size, int flags, bool write);
+
+        void xattr(fuse_req_t req, fuse_ino_t ino, const char *name,
+            const char *value, size_t size, int flags, bool set);
 
     public:
         explicit FuseLFS(nvme_zns::NvmeZnsBackend* nvme);

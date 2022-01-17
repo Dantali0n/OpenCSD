@@ -38,10 +38,13 @@ namespace qemucsd::fuse_lfs {
     public:
         virtual int update_snapshot(csd_unique_t *context, fuse_ino_t kernel,
             bool write) = 0;
+        virtual int update_snapshot(csd_unique_t *context,
+            struct snapshot *snap, enum snapshot_store_type snap_t) = 0;
         virtual int create_snapshot(fuse_ino_t kernel, struct snapshot *snap) = 0;
-        virtual int has_snapshot(csd_unique_t *context) = 0;
         virtual int has_snapshot(csd_unique_t *context,
             enum snapshot_store_type snap_t) = 0;
+        virtual int get_snapshot(csd_unique_t *context,
+            csd_snapshot *snaps) = 0;
         virtual int get_snapshot(csd_unique_t *context,
             struct snapshot *snap, enum snapshot_store_type snap_t) = 0;
         virtual int delete_snapshot(csd_unique_t *context) = 0;

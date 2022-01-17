@@ -1843,151 +1843,147 @@ namespace qemucsd::fuse_lfs {
         return result;
     }
 
-    /**
-     * Get the file information about the inode and present its name as
-     * result for the extended attribute.
-     * @ref Valid error codes:
-     *      https://man7.org/linux/man-pages/man2/fgetxattr.2.html
-     */
-    void FuseLFS::get_csd_xattr(fuse_req_t req, fuse_ino_t ino, size_t size) {
-        struct stat stbuf = {0};
+    void FuseLFS::lookup_regular(fuse_req_t req, fuse_ino_t ino) {
+        struct fuse_entry_param e = {0};
 
-        if(ino == 0) {
-            fuse_reply_err(req, ENODATA);
-            return;
-        }
-
-        if(ino_stat(ino, &stbuf) != FLFS_RET_NONE) {
-            output->error("Failed to find configured kernel inode ", ino);
-            fuse_reply_err(req, EIO);
-            return;
-        }
-
-        std::string ino_as_str = std::to_string(ino);
-
-        if(size == 0)
-            fuse_reply_xattr(req, ino_as_str.size());
-        else if(size < ino_as_str.size())
-            fuse_reply_err(req, ERANGE);
-        else
-            reply_buf_limited(req, ino_as_str.c_str(), ino_as_str.size(), 0,
-                              size);
-    }
-
-    /**
-     *
-     * @ref Valid error codes:
-     *      https://man7.org/linux/man-pages/man2/setxattr.2.html
-     */
-    void FuseLFS::set_csd_xattr(fuse_req_t req, struct open_file_entry *entry,
-        const char *value, int flags, bool write = false)
-    {
-        struct stat stbuf = {0};
-
-        if(flags & XATTR_CREATE) {
-            if(write && entry->csd_write_kernel != 0) {
-                fuse_reply_err(req, EEXIST);
-                return;
-            }
-            else if(entry->csd_read_kernel != 0) {
-                fuse_reply_err(req, EEXIST);
-                return;
-            }
-        }
-        if(flags & XATTR_REPLACE) {
-            if(write && entry->csd_write_kernel == 0) {
-                fuse_reply_err(req, ENODATA);
-                return;
-            }
-            else if(entry->csd_read_kernel == 0) {
-                fuse_reply_err(req, ENODATA);
-                return;
-            }
-        }
-
-        // FUSE will sanitize the value argument for us making this wild call
-        // safe.
-        fuse_ino_t kernel_ino =
-            strtoll(value, (char **) (value + strlen(value)), 10);
-
-        // Check if the specified kernel inode exists
-        if(ino_stat(kernel_ino, &stbuf) != FLFS_RET_NONE) {
+        e.ino = ino;
+        e.attr_timeout = 0.0;
+        e.entry_timeout = 0.0;
+        if(ino_stat(ino, &e.attr) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENOENT);
             return;
         }
 
-        // Snapshot file and kernel contents
-        // If csd_unique context was previously snapshotted only contents of
-        // kernels is updated, file contents will remain identical upon update
-        csd_unique_t csd_unique = {entry->ino, entry->pid};
-        if(update_snapshot(&csd_unique, kernel_ino, write) != FLFS_RET_NONE) {
-            fuse_reply_err(req, EIO);
-            return;
-        }
+        #ifdef FLFS_FAKE_PERMS
+        ino_fake_permissions(req, &e.attr);
+        #endif
 
-        // Verify snapshot kernel contents using eBPF verifier (verification
-        // must always be performed on snapshot to prevent malicious race
-        // conditions).
-
-//        fuse_reply_err(req, ENOEXEC);
-//        return;
-
-        // Update the file handle to indicate the kernel is enabled
-        if(write)
-            entry->csd_write_kernel = kernel_ino;
-        else
-            entry->csd_read_kernel = kernel_ino;
-
-        if(update_file_handle(entry->fh, entry) != FLFS_RET_NONE) {
-            fuse_reply_err(req, EIO);
-            return;
-        }
-
-        fuse_reply_err(req, 0);
+        fuse_reply_entry_nlookup(req, &e);
     }
 
-    /**
-     * setxattr and getxattr are extremely similar so they share the same method
-     * minimal differences handled by setting the set bool.
-     */
-    void FuseLFS::xattr(fuse_req_t req, fuse_ino_t ino, const char *name,
-        const char *value, size_t size, int flags, bool set = false)
-    {
-        struct stat stbuf = {0};
-        if(ino_stat(ino, &stbuf) == FLFS_RET_ENOENT) {
+    void FuseLFS::lookup_csd(fuse_req_t req, csd_unique_t *context) {
+        struct fuse_entry_param e = {0};
+        struct snapshot snap;
+
+        if(get_snapshot(context, &snap, SNAP_FILE) != FLFS_RET_NONE) {
+            fuse_reply_err(req, EIO);
+            return;
+        }
+
+        e.ino = context->first;
+        e.attr_timeout = 0.0;
+        e.entry_timeout = 0.0;
+        if(ino_stat(context->first, &e.attr) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENOENT);
             return;
         }
 
-        const fuse_ctx *context = fuse_req_ctx(req);
-        csd_unique_t csd_info = std::make_pair(ino, context->pid);
-        struct open_file_entry entry = {0};
+        #ifdef FLFS_FAKE_PERMS
+        ino_fake_permissions(req, &e.attr);
+        #endif
 
-        // Check if file is open in CSD context (ino + pid) otherwise no data
-        if(get_file_handle(&csd_info, &entry) != FLFS_RET_NONE) {
-            fuse_reply_err(req, ENODATA);
-            return;
-        }
+        e.attr.st_size = snap.inode_data.first.size;
 
-        if(strcmp(CSD_READ_KEY, name) == 0) {
-            if(set)
-                set_csd_xattr(req, &entry, value, flags, false);
-            else
-                get_csd_xattr(req, entry.csd_read_kernel, size);
-        }
-        else if(strcmp(CSD_WRITE_KEY, name) == 0) {
-            if(set)
-                set_csd_xattr(req, &entry, value, flags, true);
-            else
-                get_csd_xattr(req, entry.csd_write_kernel, size);
-        }
-        // Any other key either can't be set or does not exist
+        // Do not increment nlookup for snapshot lookups
+        fuse_reply_entry(req, &e);
+    }
+
+    void FuseLFS::getattr_regular(fuse_req_t req, fuse_ino_t ino,
+        struct fuse_file_info *fi)
+    {
+        struct stat stbuf = {0};
+        if (ino_stat(ino, &stbuf) == FLFS_RET_ENOENT)
+            fuse_reply_err(req, ENOENT);
         else {
-            if (set)
-                fuse_reply_err(req, ENOTSUP);
-            else
-                fuse_reply_err(req, ENODATA);
+            #ifdef FLFS_FAKE_PERMS
+            ino_fake_permissions(req, &stbuf);
+            #endif
+
+            fuse_reply_attr(req, &stbuf, 0.0);
         }
+    }
+
+    void FuseLFS::getattr_csd(fuse_req_t req, csd_unique_t *context,
+        struct fuse_file_info *fi)
+    {
+        struct stat stbuf = {0};
+        struct snapshot snap;
+
+        if(get_snapshot(context, &snap, SNAP_FILE) != FLFS_RET_NONE) {
+            fuse_reply_err(req, EIO);
+            return;
+        }
+
+        if (ino_stat(context->first, &stbuf) == FLFS_RET_ENOENT)
+            fuse_reply_err(req, ENOENT);
+
+        #ifdef FLFS_FAKE_PERMS
+        ino_fake_permissions(req, &stbuf);
+        #endif
+
+        stbuf.st_size = snap.inode_data.first.size;
+
+        fuse_reply_attr(req, &stbuf, 90.0);
+    }
+
+    void FuseLFS::setattr_regular(fuse_req_t req, fuse_ino_t ino,
+        struct stat *attr, int to_set, struct fuse_file_info *fi)
+    {
+        int result;
+
+        // Change permissions (chmod)
+        if(to_set & FUSE_SET_ATTR_MODE) {
+
+        }
+        // Change owner (chown)
+        if(to_set & FUSE_SET_ATTR_UID) {
+
+        }
+        // Change group (chgrp)
+        if(to_set & FUSE_SET_ATTR_GID) {
+
+        }
+        // Change size of file (truncate / ftruncate)
+        if(to_set & FUSE_SET_ATTR_SIZE) {
+            result = ftruncate(ino, attr->st_size);
+            if(result != FLFS_RET_NONE) {
+                fuse_reply_err(req, flfs_ret_to_fuse_reply(result));
+                return;
+            }
+        }
+
+        getattr(req, ino, fi);
+    }
+
+    void FuseLFS::setattr_csd(fuse_req_t req, csd_unique_t *context,
+        struct stat *attr, int to_set, struct fuse_file_info *fi)
+    {
+        struct snapshot snap;
+        if(get_snapshot(context, &snap, SNAP_FILE) != FLFS_RET_NONE) {
+            fuse_reply_err(req, EIO);
+            return;
+        }
+
+        // Change permissions (chmod)
+        if(to_set & FUSE_SET_ATTR_MODE) {
+
+        }
+        // Change owner (chown)
+        if(to_set & FUSE_SET_ATTR_UID) {
+
+        }
+        // Change group (chgrp)
+        if(to_set & FUSE_SET_ATTR_GID) {
+
+        }
+        // Change size of file (truncate / ftruncate)
+        if(to_set & FUSE_SET_ATTR_SIZE) {
+            snap.inode_data.first.size = attr->st_size;
+        }
+
+        update_snapshot(context, &snap, SNAP_FILE);
+
+        getattr_csd(req, context, fi);
     }
 
     void FuseLFS::read_regular(fuse_req_t req, struct stat *stbuf,
@@ -2077,14 +2073,12 @@ namespace qemucsd::fuse_lfs {
         free(blk);
     }
 
-    void FuseLFS::read_csd(fuse_req_t req, struct stat *stbuf,
+    void FuseLFS::read_csd(fuse_req_t req, csd_unique_t *context,
         size_t size, off_t offset, struct fuse_file_info *fi)
     {
         struct snapshot snap;
-        csd_unique_t context =
-            std::make_pair(stbuf->st_ino, fuse_req_ctx(req)->pid);
 
-        if(get_snapshot(&context, &snap, SNAP_FILE) != FLFS_RET_NONE) {
+        if(get_snapshot(context, &snap, SNAP_FILE) != FLFS_RET_NONE) {
             fuse_reply_err(req, EIO);
             return;
         }
@@ -2130,11 +2124,12 @@ namespace qemucsd::fuse_lfs {
             if(nvme->read(data_pos.zone, data_pos.sector, data_pos.offset,
                           buffer + buffer_offset, SECTOR_SIZE) != 0)
             {
+                fuse_ino_t inode = snap.inode_data.first.inode;
                 uint64_t data_lba = blk->data_lbas[db_lba_index];
                 output->error(
                     "Failed to retrieve data at at data_block index ",
                     db_lba_index, " with lba ", data_lba, " for inode ",
-                    stbuf->st_ino);
+                    inode);
                 fuse_reply_err(req, EIO);
                 free(buffer);
                 free(blk);
@@ -2240,10 +2235,227 @@ namespace qemucsd::fuse_lfs {
         fuse_reply_write(req, size);
     }
 
-    void FuseLFS::write_csd(fuse_req_t req, fuse_ino_t ino, const char *buf,
-        size_t size, off_t offset, struct fuse_file_info *fi)
+    void FuseLFS::write_csd(fuse_req_t req, csd_unique_t *context, const char *buffer,
+        size_t size, off_t off, struct fuse_file_info *fi)
     {
+        struct snapshot snap;
 
+        if(get_snapshot(context, &snap, SNAP_FILE) != FLFS_RET_NONE) {
+            fuse_reply_err(req, EIO);
+            return;
+        }
+
+        // Number of sectors total write will cover
+        uint64_t num_sectors = size / SECTOR_SIZE;
+        if((size + off) % SECTOR_SIZE != 0) num_sectors += 1;
+        if(off % SECTOR_SIZE + size > SECTOR_SIZE) num_sectors += 1;
+
+        // Compute initial data_block and index
+        uint64_t cur_db_blk_num = (off / SECTOR_SIZE) / DATA_BLK_LBA_NUM;
+        uint64_t cur_db_lba_index = (off / SECTOR_SIZE) % DATA_BLK_LBA_NUM;
+
+        // Create data_block and fetch existing data_block info if it exists
+        struct data_block cur_db_blk = {0};
+        if(snap.inode_data.first.size > 0)
+            cur_db_blk = snap.data_blocks.at(cur_db_blk_num);
+
+        uint64_t write_res_lba;
+        uint64_t b_off = 0;
+        uint64_t s_size = size;
+        uint64_t s_off = off % SECTOR_SIZE;
+        for(uint64_t i = 0; i < num_sectors; i++) {
+            if(write_sector(
+                s_size + s_off > SECTOR_SIZE ? SECTOR_SIZE - s_off : s_size,
+                s_off, cur_db_blk.data_lbas[cur_db_lba_index],
+                buffer + b_off, write_res_lba) != FLFS_RET_NONE)
+            {
+                fuse_reply_err(req, EIO);
+                return;
+            }
+
+            // Update location of data for current sector
+            cur_db_blk.data_lbas[cur_db_lba_index] = write_res_lba;
+
+            // Increment data index in current data_block
+            cur_db_lba_index += 1;
+
+            // Handle overflow to next data block
+            if(cur_db_lba_index >= DATA_BLK_LBA_NUM) {
+                snap.data_blocks.insert_or_assign(cur_db_blk_num, cur_db_blk);
+
+                cur_db_lba_index = 0;
+                cur_db_blk_num += 1;
+
+                memset(&cur_db_blk, 0, sizeof(data_block));
+            }
+
+            // Get new data_block if file sufficiently sized such that it should
+            // exist.
+            if(cur_db_lba_index == 0 && snap.inode_data.first.size >
+                DATA_BLK_LBA_NUM * SECTOR_SIZE * cur_db_blk_num)
+            {
+                cur_db_blk = snap.data_blocks.at(cur_db_blk_num);
+            }
+
+            // Compute offset into provided data buffer
+            b_off += SECTOR_SIZE - s_off;
+            // Reduce remaining size to be written
+            s_size -= SECTOR_SIZE - s_off;
+            // Only first write has sector offset.
+            if(i == 0) s_off = 0;
+        }
+
+        if(cur_db_lba_index != 0)
+            snap.data_blocks.insert_or_assign(cur_db_blk_num, cur_db_blk);
+        snap.inode_data.first.size = snap.inode_data.first.size > off + size ?
+            snap.inode_data.first.size : off + size;
+
+        update_snapshot(context, &snap, SNAP_FILE);
+        fuse_reply_write(req, size);
+    }
+
+    /**
+ * Get the file information about the inode and present its name as
+ * result for the extended attribute.
+ * @ref Valid error codes:
+ *      https://man7.org/linux/man-pages/man2/fgetxattr.2.html
+ */
+    void FuseLFS::get_csd_xattr(fuse_req_t req, fuse_ino_t ino, size_t size) {
+        struct stat stbuf = {0};
+
+        if(ino == 0) {
+            fuse_reply_err(req, ENODATA);
+            return;
+        }
+
+        if(ino_stat(ino, &stbuf) != FLFS_RET_NONE) {
+            output->error("Failed to find configured kernel inode ", ino);
+            fuse_reply_err(req, EIO);
+            return;
+        }
+
+        std::string ino_as_str = std::to_string(ino);
+
+        if(size == 0)
+            fuse_reply_xattr(req, ino_as_str.size());
+        else if(size < ino_as_str.size())
+            fuse_reply_err(req, ERANGE);
+        else
+            reply_buf_limited(req, ino_as_str.c_str(), ino_as_str.size(), 0,
+                              size);
+    }
+
+    /**
+     *
+     * @ref Valid error codes:
+     *      https://man7.org/linux/man-pages/man2/setxattr.2.html
+     */
+    void FuseLFS::set_csd_xattr(fuse_req_t req, struct open_file_entry *entry,
+        const char *value, size_t size, int flags, bool write = false)
+    {
+        struct stat stbuf = {0};
+
+        if(flags & XATTR_CREATE) {
+            if(write && entry->csd_write_kernel != 0) {
+                fuse_reply_err(req, EEXIST);
+                return;
+            }
+            else if(entry->csd_read_kernel != 0) {
+                fuse_reply_err(req, EEXIST);
+                return;
+            }
+        }
+        if(flags & XATTR_REPLACE) {
+            if(write && entry->csd_write_kernel == 0) {
+                fuse_reply_err(req, ENODATA);
+                return;
+            }
+            else if(entry->csd_read_kernel == 0) {
+                fuse_reply_err(req, ENODATA);
+                return;
+            }
+        }
+
+        fuse_ino_t kernel_ino = strtoll(value, (char**) value + size, 10);
+
+        // Check if the specified kernel inode exists
+        if(ino_stat(kernel_ino, &stbuf) != FLFS_RET_NONE) {
+            fuse_reply_err(req, ENOENT);
+            return;
+        }
+
+        // Snapshot file and kernel contents
+        // If csd_unique context was previously snapshotted only contents of
+        // kernels is updated, file contents will remain identical upon update
+        csd_unique_t csd_unique = {entry->ino, entry->pid};
+        if(update_snapshot(&csd_unique, kernel_ino, write) != FLFS_RET_NONE) {
+            fuse_reply_err(req, EIO);
+            return;
+        }
+
+        // Verify snapshot kernel contents using eBPF verifier (verification
+        // must always be performed on snapshot to prevent malicious race
+        // conditions).
+
+//        fuse_reply_err(req, ENOEXEC);
+//        return;
+
+        // Update the file handle to indicate the kernel is enabled
+        if(write)
+            entry->csd_write_kernel = kernel_ino;
+        else
+            entry->csd_read_kernel = kernel_ino;
+
+        if(update_file_handle(entry->fh, entry) != FLFS_RET_NONE) {
+            fuse_reply_err(req, EIO);
+            return;
+        }
+
+        fuse_reply_err(req, 0);
+    }
+
+    /**
+     * setxattr and getxattr are extremely similar so they share the same method
+     * minimal differences handled by setting the set bool.
+     */
+    void FuseLFS::xattr(fuse_req_t req, fuse_ino_t ino, const char *name,
+        const char *value, size_t size, int flags, bool set = false)
+    {
+        struct stat stbuf = {0};
+        if(ino_stat(ino, &stbuf) == FLFS_RET_ENOENT) {
+            fuse_reply_err(req, ENOENT);
+            return;
+        }
+
+        const fuse_ctx *context = fuse_req_ctx(req);
+        csd_unique_t csd_info = std::make_pair(ino, context->pid);
+        struct open_file_entry entry = {0};
+
+        // Check if file is open in CSD context (ino + pid) otherwise no data
+        if(get_file_handle(&csd_info, &entry) != FLFS_RET_NONE) {
+            fuse_reply_err(req, ENODATA);
+            return;
+        }
+
+        if(strcmp(CSD_READ_KEY, name) == 0) {
+            if(set)
+                set_csd_xattr(req, &entry, value, size, flags, false);
+            else
+                get_csd_xattr(req, entry.csd_read_kernel, size);
+        }
+        else if(strcmp(CSD_WRITE_KEY, name) == 0) {
+            if(set)
+                set_csd_xattr(req, &entry, value, size, flags, true);
+            else
+                get_csd_xattr(req, entry.csd_write_kernel, size);
+        }
+            // Any other key either can't be set or does not exist
+        else {
+            if (set)
+                fuse_reply_err(req, ENOTSUP);
+            else
+                fuse_reply_err(req, ENODATA);
+        }
     }
 
     void FuseLFS::init(void *userdata, struct fuse_conn_info *conn) {
@@ -2304,19 +2516,12 @@ namespace qemucsd::fuse_lfs {
         // Clear parent fuse_entry_param information
         memset(&e, 0, sizeof(e));
 
-        e.attr_timeout = 60.0;
-        e.entry_timeout = 60.0;
-        if(ino_stat(result->second, &e.attr) == FLFS_RET_ENOENT) {
-            fuse_reply_err(req, ENOENT);
-            return;
-        }
-
-        #ifdef FLFS_FAKE_PERMS
-        ino_fake_permissions(req, &e.attr);
-        #endif
-
-        e.ino = result->second;
-        fuse_reply_entry_nlookup(req, &e);
+        csd_unique_t context = std::make_pair(result->second,
+            fuse_req_ctx(req)->pid);
+        if(has_snapshot(&context, SNAP_FILE))
+            lookup_csd(req, &context);
+        else
+            lookup_regular(req, result->second);
     }
 
     void FuseLFS::forget(fuse_req_t req, fuse_ino_t ino, uint64_t nlookup) {
@@ -2325,46 +2530,22 @@ namespace qemucsd::fuse_lfs {
     }
 
     void FuseLFS::getattr(fuse_req_t req, fuse_ino_t ino,
-                          struct fuse_file_info *fi)
+        struct fuse_file_info *fi)
     {
-        struct stat stbuf = {0};
-        if (ino_stat(ino, &stbuf) == FLFS_RET_ENOENT)
-            fuse_reply_err(req, ENOENT);
-        else {
-            #ifdef FLFS_FAKE_PERMS
-            ino_fake_permissions(req, &stbuf);
-            #endif
-
-            fuse_reply_attr(req, &stbuf, 90.0);
-        }
+        csd_unique_t context = std::make_pair(ino, fuse_req_ctx(req)->pid);
+        if(has_snapshot(&context, SNAP_FILE))
+            getattr_csd(req, &context, fi);
+        else
+            getattr_regular(req, ino, fi);
     }
 
     void FuseLFS::setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
         int to_set, struct fuse_file_info *fi) {
-        int result;
-
-        // Change permissions (chmod)
-        if(to_set & FUSE_SET_ATTR_MODE) {
-
-        }
-        // Change owner (chown)
-        if(to_set & FUSE_SET_ATTR_UID) {
-
-        }
-        // Change group (chgrp)
-        if(to_set & FUSE_SET_ATTR_GID) {
-
-        }
-        // Change size of file (truncate / ftruncate)
-        if(to_set & FUSE_SET_ATTR_SIZE) {
-            result = ftruncate(ino, attr->st_size);
-            if(result != FLFS_RET_NONE) {
-                fuse_reply_err(req, flfs_ret_to_fuse_reply(result));
-                return;
-            }
-        }
-
-        getattr(req, ino, fi);
+        csd_unique_t context = std::make_pair(ino, fuse_req_ctx(req)->pid);
+        if(has_snapshot(&context, SNAP_FILE))
+            setattr_csd(req, &context, attr, to_set, fi);
+        else
+            setattr_regular(req, ino, attr, to_set, fi);
     }
 
     void FuseLFS::readdir(fuse_req_t req, fuse_ino_t ino, size_t size,
@@ -2469,13 +2650,8 @@ namespace qemucsd::fuse_lfs {
             return;
         }
 
-        // Check if context has snapshot and delete it if it exists
-        if(has_snapshot(&context) && delete_snapshot(&context) !=
-            FLFS_RET_NONE)
-        {
-            fuse_reply_err(req, EIO);
-            return;
-        }
+        // Delete snapshot content if it exists
+        delete_snapshot(&context);
 
         fuse_reply_err(req, 0);
     }
@@ -2598,7 +2774,7 @@ namespace qemucsd::fuse_lfs {
 
         csd_unique_t csd_context = {ino, context->pid};
         if(has_snapshot(&csd_context, SNAP_READ))
-            read_csd(req, &e.attr, size, offset, fi);
+            read_csd(req, &csd_context, size, offset, fi);
         else
             read_regular(req, &e.attr, size, offset, fi);
     }
@@ -2645,7 +2821,7 @@ namespace qemucsd::fuse_lfs {
 
         csd_unique_t csd_context = {ino, context->pid};
         if(has_snapshot(&csd_context, SNAP_WRITE))
-            write_csd(req, ino, buffer, size, off, fi);
+            write_csd(req, &csd_context, buffer, size, off, fi);
         else
             write_regular(req, ino, buffer, size, off, fi);
     }
@@ -2681,11 +2857,18 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::fsync(fuse_req_t req, fuse_ino_t ino, int datasync,
         struct fuse_file_info *fi)
     {
-        int result;
+        int result = 0;
 
         #ifdef FLFS_DBG_FI
         output_fi("fsync", fi);
         #endif
+
+        /** Dont fsync snapshotted files */
+        csd_unique_t context = std::make_pair(ino, fuse_req_ctx(req)->pid);
+        if(has_snapshot(&context, SNAP_FILE)) {
+            fuse_reply_err(req, 0);
+            return;
+        }
 
         /** 1. Update the data blocks */
         result = flush_data_blocks();
