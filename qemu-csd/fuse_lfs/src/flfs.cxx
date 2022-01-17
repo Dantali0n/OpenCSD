@@ -2474,7 +2474,8 @@ namespace qemucsd::fuse_lfs {
         conn->want &= ~(FUSE_CAP_HANDLE_KILLPRIV);
 
         conn->want &= ~(FUSE_CAP_SPLICE_READ);
-        conn->want &= ~(FUSE_CAP_AUTO_INVAL_DATA);
+
+        conn->want |= FUSE_CAP_AUTO_INVAL_DATA;
     }
 
     void FuseLFS::destroy(void *userdata) {
