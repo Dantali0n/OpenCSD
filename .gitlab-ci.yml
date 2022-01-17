@@ -8,6 +8,7 @@ stages:
   - memory
 variables:
   GIT_SUBMODULE_STRATEGY: normal
+  CODECOV_TOKEN: '35147f6b-a8db-4845-87f5-843334c2b4cf'
 cache:
   paths:
 #    - "dependencies/*"
@@ -139,6 +140,7 @@ coverage:
     - make clean
     - make check
     - make qemu-csd_coverage
+    - bash <(curl -s https://codecov.io/bash) -f build/coverage.total.info || echo "Codecov did not collect coverage reports"
   artifacts:
     paths:
       - build/coverage/*
