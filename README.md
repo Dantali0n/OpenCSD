@@ -385,9 +385,13 @@ including:
       * [Linux Observability with BPF](https://www.oreilly.com/library/view/linux-observability-with/9781492050193/)
     * bpf-bootstrap
       * [Building BPF applications with libbpf-bootstrap](https://nakryiko.com/posts/libbpf-bootstrap/)
-  * userspace BPF execution / interpretation
+  * Userspace BPF execution / interpretation
     * [uBPF](https://github.com/iovisor/ubpf)
     * [generic-ebpf](https://github.com/generic-ebpf/generic-ebpf)
+  * Verifiers
+    * [PREVAIL](https://github.com/vbpf/ebpf-verifier)
+  * Hardware implementations
+    * [bHBPF](https://github.com/rprinz08/hBPF)
   * Various
     * [BTF sysfs vmlinux ABI](https://www.kernel.org/doc/Documentation/ABI/testing/sysfs-kernel-btf)
     * [BPF features and minimal kernel versions](https://github.com/iovisor/bcc/blob/master/docs/kernel-versions.md)
