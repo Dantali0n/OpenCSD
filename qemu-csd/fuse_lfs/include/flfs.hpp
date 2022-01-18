@@ -41,11 +41,12 @@ extern "C" {
 
 #include "output.hpp"
 #include "flfs_constants.hpp"
+#include "flfs_dirtyblock.hpp"
 #include "flfs_disc.hpp"
 #include "flfs_memory.hpp"
 #include "flfs_snapshot.hpp"
 #include "flfs_superblock.hpp"
-#include "flfs_dirtyblock.hpp"
+#include "flfs_write.hpp"
 #include "nvme_zns_backend.hpp"
 
 namespace qemucsd::fuse_lfs {
@@ -54,7 +55,7 @@ namespace qemucsd::fuse_lfs {
      * FUSE LFS filesystem for Zoned Namespaces SSDs (FluffleFS).
      */
     class FuseLFS : public FuseLFSSuperBlock, FuseLFSDirtyBlock,
-        FuseLFSSnapShot
+        FuseLFSSnapShot, FuseLFSWrite
     {
     protected:
         output::Output *output;
@@ -336,7 +337,23 @@ namespace qemucsd::fuse_lfs {
         int ftruncate(fuse_ino_t ino, size_t size);
 
         int write_sector(size_t size, off_t offset, uint64_t cur_lba,
-            const char *data, uint64_t &result_lba);
+            const char *data, uint64_t &result_lba) override;
+
+        int write_sectors(inode_entry *entry, size_t size, off_t off,
+            const char *buffer, struct data_block *cur_db_blk,
+            struct write_context *wr_context) override;
+
+        int write_sectors_blk_update_regular(fuse_ino_t ino,
+             uint64_t cur_db_blk_num, struct data_block *cur_db_blk) override;
+
+        int write_sectors_blk_update_csd(fuse_ino_t ino,
+             uint64_t cur_db_blk_num, struct data_block *cur_db_blk) override;
+
+        int write_sectors_get_blk_regular(inode_entry *entry,
+            uint64_t cur_db_blk_num, struct data_block *cur_db_blk) override;
+
+        virtual int write_sectors_get_blk_csd(inode_entry *entry,
+            uint64_t cur_db_blk_num, struct data_block *cur_db_blk) override;
 
         void lookup_regular(fuse_req_t req, fuse_ino_t ino);
 
@@ -361,10 +378,12 @@ namespace qemucsd::fuse_lfs {
             off_t off, struct fuse_file_info *fi);
 
         void write_regular(fuse_req_t req, fuse_ino_t ino, const char *buf,
-            size_t size, off_t off, struct fuse_file_info *fi);
+            size_t size, off_t off, struct write_context *wr_context,
+            struct fuse_file_info *fi) override;
 
         void write_csd(fuse_req_t req, csd_unique_t *context, const char *buf,
-            size_t size, off_t off, struct fuse_file_info *fi);
+            size_t size, off_t off, struct write_context *wr_context,
+            struct fuse_file_info *fi) override;
 
         void get_csd_xattr(fuse_req_t req, fuse_ino_t ino, size_t size);
 
