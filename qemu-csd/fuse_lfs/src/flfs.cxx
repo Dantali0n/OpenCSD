@@ -1804,45 +1804,6 @@ namespace qemucsd::fuse_lfs {
         return FLFS_RET_NONE;
     }
 
-    /**
-     * Write a single sector of data taking into account any pre-existing data
-     * if it exists.
-     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure and
-     *         FLFS_RET_LOGZ_FULL if the log zone is full.
-     */
-
-    int FuseLFS::write_sector(size_t size, off_t offset, uint64_t cur_lba,
-        const char *data, uint64_t &result_lba)
-    {
-        if(offset + size > SECTOR_SIZE) return FLFS_RET_ERR;
-        auto buffer = (uint8_t*) malloc(SECTOR_SIZE);
-
-        // Fetch current sector data if it exists and sector won't be completely
-        // rewritten
-        if(cur_lba != 0 && (size != SECTOR_SIZE && offset != 0)) {
-            struct data_position cur_data_pos = {0};
-            lba_to_position(cur_lba, cur_data_pos);
-            if(nvme->read(cur_data_pos.zone, cur_data_pos.sector,
-                          cur_data_pos.offset, buffer, SECTOR_SIZE) != 0) {
-                free(buffer);
-                return FLFS_RET_ERR;
-            }
-        }
-        #ifdef QEMUCSD_DEBUG
-        else if(offset != 0) {
-            output->warning("[write_sector] No pre-existing data but offset ",
-                "is non zero. In debug this buffer will be zerosd...");
-            memset(buffer, 0, offset);
-        }
-        #endif
-
-        memcpy(buffer + offset, data, size);
-        int result = log_append(buffer, SECTOR_SIZE, result_lba);
-
-        free(buffer);
-        return result;
-    }
-
     void FuseLFS::lookup_regular(fuse_req_t req, fuse_ino_t ino) {
         struct fuse_entry_param e = {0};
 
@@ -2145,181 +2106,12 @@ namespace qemucsd::fuse_lfs {
         free(buffer);
     }
 
-    void FuseLFS::write_regular(fuse_req_t req, fuse_ino_t ino,
-        const char *buffer, size_t size, off_t off, struct fuse_file_info *fi)
-    {
-        inode_entry_t entry;
-        if(get_inode_entry_t(ino, &entry) != FLFS_RET_NONE) {
-            fuse_reply_err(req, EIO);
-            return;
-        }
-
-        // Number of sectors total write will cover
-        uint64_t num_sectors = size / SECTOR_SIZE;
-        if((size + off) % SECTOR_SIZE != 0) num_sectors += 1;
-        if(off % SECTOR_SIZE + size > SECTOR_SIZE) num_sectors += 1;
-
-        // Compute initial data_block and index
-        uint64_t cur_db_blk_num = (off / SECTOR_SIZE) / DATA_BLK_LBA_NUM;
-        uint64_t cur_db_lba_index = (off / SECTOR_SIZE) % DATA_BLK_LBA_NUM;
-
-        // Create data_block and fetch existing data_block info if it exists
-        struct data_block cur_db_blk = {0};
-        if(entry.first.size > 0 && get_data_block(entry.first, cur_db_blk_num,
-            &cur_db_blk) != FLFS_RET_NONE)
-        {
-            output->error("Failed to get data_block ", cur_db_blk_num, " for ",
-                "inode", ino);
-            fuse_reply_err(req, EIO);
-            return;
-        }
-
-        uint64_t write_res_lba;
-        uint64_t b_off = 0;
-        uint64_t s_size = size;
-        uint64_t s_off = off % SECTOR_SIZE;
-        for(uint64_t i = 0; i < num_sectors; i++) {
-            if(write_sector(
-                s_size + s_off > SECTOR_SIZE ? SECTOR_SIZE - s_off : s_size,
-                s_off, cur_db_blk.data_lbas[cur_db_lba_index],
-                buffer + b_off, write_res_lba) != FLFS_RET_NONE)
-            {
-                fuse_reply_err(req, EIO);
-                return;
-            }
-
-            // Update location of data for current sector
-            cur_db_blk.data_lbas[cur_db_lba_index] = write_res_lba;
-
-            // Increment data index in current data_block
-            cur_db_lba_index += 1;
-
-            // Handle overflow to next data block
-            if(cur_db_lba_index >= DATA_BLK_LBA_NUM) {
-                assign_data_block(ino, cur_db_blk_num, &cur_db_blk);
-
-                cur_db_lba_index = 0;
-                cur_db_blk_num += 1;
-
-                memset(&cur_db_blk, 0, sizeof(data_block));
-            }
-
-            // Get new data_block if file sufficiently sized such that it should
-            // exist.
-            if(cur_db_lba_index == 0 && entry.first.size > DATA_BLK_LBA_NUM *
-                SECTOR_SIZE * cur_db_blk_num)
-            {
-                if(get_data_block(entry.first, cur_db_blk_num, &cur_db_blk)
-                   != FLFS_RET_NONE)
-                {
-                    output->error("Failed to get data_block ", cur_db_blk_num,
-                        " for inode", ino);
-                    fuse_reply_err(req, EIO);
-                    return;
-                }
-            }
-
-            // Compute offset into provided data buffer
-            b_off += SECTOR_SIZE - s_off;
-            // Reduce remaining size to be written
-            s_size -= SECTOR_SIZE - s_off;
-            // Only first write has sector offset.
-            if(i == 0) s_off = 0;
-        }
-
-        if(cur_db_lba_index != 0)
-            assign_data_block(ino, cur_db_blk_num, &cur_db_blk);
-        entry.first.size =
-            entry.first.size > off + size ? entry.first.size : off + size;
-        update_inode_entry_t(&entry);
-        fuse_reply_write(req, size);
-    }
-
-    void FuseLFS::write_csd(fuse_req_t req, csd_unique_t *context, const char *buffer,
-        size_t size, off_t off, struct fuse_file_info *fi)
-    {
-        struct snapshot snap;
-
-        if(get_snapshot(context, &snap, SNAP_FILE) != FLFS_RET_NONE) {
-            fuse_reply_err(req, EIO);
-            return;
-        }
-
-        // Number of sectors total write will cover
-        uint64_t num_sectors = size / SECTOR_SIZE;
-        if((size + off) % SECTOR_SIZE != 0) num_sectors += 1;
-        if(off % SECTOR_SIZE + size > SECTOR_SIZE) num_sectors += 1;
-
-        // Compute initial data_block and index
-        uint64_t cur_db_blk_num = (off / SECTOR_SIZE) / DATA_BLK_LBA_NUM;
-        uint64_t cur_db_lba_index = (off / SECTOR_SIZE) % DATA_BLK_LBA_NUM;
-
-        // Create data_block and fetch existing data_block info if it exists
-        struct data_block cur_db_blk = {0};
-        if(snap.inode_data.first.size > 0)
-            cur_db_blk = snap.data_blocks.at(cur_db_blk_num);
-
-        uint64_t write_res_lba;
-        uint64_t b_off = 0;
-        uint64_t s_size = size;
-        uint64_t s_off = off % SECTOR_SIZE;
-        for(uint64_t i = 0; i < num_sectors; i++) {
-            if(write_sector(
-                s_size + s_off > SECTOR_SIZE ? SECTOR_SIZE - s_off : s_size,
-                s_off, cur_db_blk.data_lbas[cur_db_lba_index],
-                buffer + b_off, write_res_lba) != FLFS_RET_NONE)
-            {
-                fuse_reply_err(req, EIO);
-                return;
-            }
-
-            // Update location of data for current sector
-            cur_db_blk.data_lbas[cur_db_lba_index] = write_res_lba;
-
-            // Increment data index in current data_block
-            cur_db_lba_index += 1;
-
-            // Handle overflow to next data block
-            if(cur_db_lba_index >= DATA_BLK_LBA_NUM) {
-                snap.data_blocks.insert_or_assign(cur_db_blk_num, cur_db_blk);
-
-                cur_db_lba_index = 0;
-                cur_db_blk_num += 1;
-
-                memset(&cur_db_blk, 0, sizeof(data_block));
-            }
-
-            // Get new data_block if file sufficiently sized such that it should
-            // exist.
-            if(cur_db_lba_index == 0 && snap.inode_data.first.size >
-                DATA_BLK_LBA_NUM * SECTOR_SIZE * cur_db_blk_num)
-            {
-                cur_db_blk = snap.data_blocks.at(cur_db_blk_num);
-            }
-
-            // Compute offset into provided data buffer
-            b_off += SECTOR_SIZE - s_off;
-            // Reduce remaining size to be written
-            s_size -= SECTOR_SIZE - s_off;
-            // Only first write has sector offset.
-            if(i == 0) s_off = 0;
-        }
-
-        if(cur_db_lba_index != 0)
-            snap.data_blocks.insert_or_assign(cur_db_blk_num, cur_db_blk);
-        snap.inode_data.first.size = snap.inode_data.first.size > off + size ?
-            snap.inode_data.first.size : off + size;
-
-        update_snapshot(context, &snap, SNAP_FILE);
-        fuse_reply_write(req, size);
-    }
-
     /**
- * Get the file information about the inode and present its name as
- * result for the extended attribute.
- * @ref Valid error codes:
- *      https://man7.org/linux/man-pages/man2/fgetxattr.2.html
- */
+     * Get the file information about the inode and present its name as
+     * result for the extended attribute.
+     * @ref Valid error codes:
+     *      https://man7.org/linux/man-pages/man2/fgetxattr.2.html
+     */
     void FuseLFS::get_csd_xattr(fuse_req_t req, fuse_ino_t ino, size_t size) {
         struct stat stbuf = {0};
 
@@ -2820,11 +2612,22 @@ namespace qemucsd::fuse_lfs {
             off = e.attr.st_size;
         }
 
+        struct write_context wr_context = {0};
+
+        // Number of sectors total write will cover
+        wr_context.num_sectors = size / SECTOR_SIZE;
+        if((size + off) % SECTOR_SIZE != 0) wr_context.num_sectors += 1;
+        if(off % SECTOR_SIZE + size > SECTOR_SIZE) wr_context.num_sectors += 1;
+
+        // Compute initial data_block and index
+        wr_context.cur_db_blk_num = (off / SECTOR_SIZE) / DATA_BLK_LBA_NUM;
+        wr_context.cur_db_lba_index = (off / SECTOR_SIZE) % DATA_BLK_LBA_NUM;
+
         csd_unique_t csd_context = {ino, context->pid};
         if(has_snapshot(&csd_context, SNAP_WRITE))
-            write_csd(req, &csd_context, buffer, size, off, fi);
+            write_csd(req, &csd_context, buffer, size, off, &wr_context, fi);
         else
-            write_regular(req, ino, buffer, size, off, fi);
+            write_regular(req, ino, buffer, size, off, &wr_context, fi);
     }
 
     void FuseLFS::statfs(fuse_req_t req, fuse_ino_t ino) {

@@ -36,6 +36,7 @@ set(QEMUCSD_FUSE_LFS_SRC
     src/flfs_dirtyblock.cxx
     src/flfs_snapshot.cxx
     src/flfs_superblock.cxx
+    src/flfs_write.cxx
 )
 
 set(QEMUCSD_FUSE_LFS_HEADERS
@@ -44,6 +45,7 @@ set(QEMUCSD_FUSE_LFS_HEADERS
     include/flfs_dirtyblock.hpp
     include/flfs_snapshot.hpp
     include/flfs_superblock.hpp
+    include/flfs_write.hpp
 )
 
 # Add qemucsd_measurements to the includes
