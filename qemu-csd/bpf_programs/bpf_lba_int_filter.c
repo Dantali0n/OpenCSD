@@ -40,10 +40,10 @@ static const uint16_t BUFFER_SIZE = 64;
 
 int main() {
     /** Reading from device using stack based buffers */
-//	uint64_t lba_size = bpf_get_lba_size();
+//	uint64_t sector_size = bpf_get_sector_size();
 //	uint8_t buffer[BUFFER_SIZE] = {0};
 //
-//	uint16_t its_per_lba = lba_size / BUFFER_SIZE;
+//	uint16_t its_per_lba = sector_size / BUFFER_SIZE;
 //	uint32_t ints_per_it = BUFFER_SIZE / sizeof(uint32_t);
 //
 //	uint64_t count = 0;
@@ -62,18 +62,18 @@ int main() {
 
 
     /** Reading from device using 'heap' based buffers */
-    uint64_t lba_size = bpf_get_lba_size();
+    uint64_t sector_size = bpf_get_sector_size();
     uint64_t buffer_size;
     void *buffer;
 
     bpf_get_mem_info(&buffer, &buffer_size);
 
-    if(buffer_size < lba_size) return -1;
+    if(buffer_size < sector_size) return -1;
 
     uint32_t ints_per_it = lba_size / sizeof(uint32_t);
     uint64_t count = 0;
 
-    bpf_read(0, 0, lba_size, buffer);
+    bpf_read(0, 0, sector_size, buffer);
 
     uint32_t *int_buf = (uint32_t*)buffer;
     for(uint32_t j = 0; j < ints_per_it; j++) {

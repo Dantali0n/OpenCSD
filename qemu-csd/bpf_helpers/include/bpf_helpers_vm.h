@@ -33,11 +33,15 @@
 
 static void bpf_return_data(void *data, uint64_t size);
 
-static void bpf_read(uint64_t lba, uint64_t offset, uint64_t limit, void *data);
+static int bpf_read(uint64_t zone, uint64_t sector, uint64_t offset, uint64_t
+    limit, void *data);
 
-static uint64_t bpf_get_lba_size(void);
+static int bpf_write(uint64_t zone, uint64_t *sector, uint64_t offset, uint64_t
+    limit, void *data);
 
-static uint64_t bpf_get_zone_size(void);
+static uint64_t bpf_get_sector_size(void);
+
+static uint64_t bpf_get_zone_capacity(void);
 
 static void bpf_get_mem_info(void **mem_ptr, uint64_t *mem_size);
 

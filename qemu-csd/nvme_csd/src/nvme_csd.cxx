@@ -31,10 +31,10 @@ static uint64_t return_size = 0;
 namespace qemucsd::nvme_csd {
 
 	NvmeCsd::NvmeCsd(struct arguments::options *options,
-		struct spdk_init::ns_entry *entry)
+        nvme_zns::NvmeZnsBackend *nvme)
 	{
 		this->options = *options;
-		this->entry = *entry;
+		this->nvme = nvme;
 
 		/** uBPF Initialization */
 		this->vm = ubpf_create();
@@ -44,14 +44,13 @@ namespace qemucsd::nvme_csd {
 
 		ubpf_register(vm, 1, "bpf_return_data", (void*)bpf_return_data);
 		ubpf_register(vm, 2, "bpf_read", (void*)bpf_read);
-		ubpf_register(vm, 3, "bpf_get_lba_size", (void*)bpf_get_lba_size);
-        ubpf_register(vm, 4, "bpf_get_zone_size", (void*)bpf_get_zone_size);
-		ubpf_register(vm, 5, "bpf_get_mem_info", (void*)bpf_get_mem_info);
+        ubpf_register(vm, 3, "bpf_write", (void*)bpf_write);
+		ubpf_register(vm, 4, "bpf_get_sector_size", (void*)bpf_get_sector_size);
+        ubpf_register(vm, 5, "bpf_get_zone_capacity", (void*)bpf_get_zone_capacity);
+		ubpf_register(vm, 6, "bpf_get_mem_info", (void*)bpf_get_mem_info);
 	}
 
 	NvmeCsd::~NvmeCsd() {
-		if(entry.ctrlr != nullptr) spdk_nvme_detach(entry.ctrlr);
-		if(entry.buffer != nullptr) spdk_free(entry.buffer);
 		if(vm != nullptr) ubpf_destroy(vm);
 		if(vm_mem != nullptr) free(vm_mem);
 	}
@@ -106,27 +105,30 @@ namespace qemucsd::nvme_csd {
 		return_size = size;
 	}
 
-	void NvmeCsd::bpf_read(uint64_t lba, uint64_t offset, uint64_t limit, void *data) {
-		auto *self = nvme_instance;
-
-		// Safer, still unsafe, limit is only uint16_t
-		uint64_t lba_size = bpf_get_lba_size();
-		if(limit >= lba_size) limit = lba_size;
-
-		spdk_nvme_ns_cmd_read(self->entry.ns, self->entry.qpair,
-			self->entry.buffer, lba, 1, spdk_init::error_print,
-			&self->entry,0);
-		spdk_init::spin_complete(&self->entry);
-
-		memcpy(data, (uint8_t*)self->entry.buffer + offset, limit);
+	int NvmeCsd::bpf_read(uint64_t zone, uint64_t sector, uint64_t offset,
+        uint64_t size, void *data)
+    {
+        return nvme_instance->nvme->read(zone, sector, offset, data, size);
 	}
 
-	uint64_t NvmeCsd::bpf_get_lba_size() {
-		return nvme_instance->entry.buffer_size;
+    int NvmeCsd::bpf_write(uint64_t zone, uint64_t *sector, uint64_t offset,
+        uint64_t size, void *data)
+    {
+        return nvme_instance->nvme->append(zone, *sector, offset, data, size);
+    }
+
+	uint64_t NvmeCsd::bpf_get_sector_size() {
+        nvme_zns::nvme_zns_info info = {0};
+		nvme_instance->nvme->get_nvme_zns_info(&info);
+
+        return info.sector_size;
 	}
 
-    uint64_t NvmeCsd::bpf_get_zone_size() {
-        return nvme_instance->entry.zone_size;
+    uint64_t NvmeCsd::bpf_get_zone_capacity() {
+        nvme_zns::nvme_zns_info info = {0};
+        nvme_instance->nvme->get_nvme_zns_info(&info);
+
+        return info.zone_capacity;
     }
 
 	void NvmeCsd::bpf_get_mem_info(void **mem_ptr, uint64_t *mem_size) {

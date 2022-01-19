@@ -35,8 +35,8 @@
 using std::ios_base;
 
 #include "arguments.hpp"
-#include "spdk_init.hpp"
 #include "nvme_csd.hpp"
+#include "nvme_zns_spdk.hpp"
 
 extern "C" {
 	#include <signal.h>
@@ -89,9 +89,11 @@ int main(int argc, char* argv[]) {
         duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         std::cout << "Fill first zone: " << duration.count() << "us." << std::endl;
 
+        qemucsd::nvme_zns::NvmeZnsSpdkBackend zns_backend(&entry);
+
 		// Initialize simulator for NVMe BPF command set
         start = std::chrono::high_resolution_clock::now();
-		qemucsd::nvme_csd::NvmeCsd nvme_csd(&opts, &entry);
+		qemucsd::nvme_csd::NvmeCsd nvme_csd(&opts, &zns_backend);
 
 		skel = bpf_zone_int_filter__open();
 		if (!skel) {

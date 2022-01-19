@@ -47,6 +47,7 @@ add_library(
 set_target_properties(${PRJ_LIB} PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(
     qemucsd_nvme_csd
+    qemucsd_nvme_zns_backend
     -Wl,--whole-archive
     spdk_log.a spdk_env_dpdk.a spdk_nvme.a spdk_util.a spdk_sock.a spdk_json.a
     spdk_rpc.a spdk_jsonrpc.a

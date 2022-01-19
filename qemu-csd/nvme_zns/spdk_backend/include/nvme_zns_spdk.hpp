@@ -49,7 +49,7 @@ namespace qemucsd::nvme_zns {
 //        int compute_sector(uint64_t zone, uint64_t sector, uint64_t offset,
 //            uint64_t size, uint64_t& result_sector);
     public:
-        NvmeZnsSpdkBackend(struct ns_entry* entry);
+        explicit NvmeZnsSpdkBackend(struct ns_entry* entry);
 
         // Destructors must always be virtual so they are still called in
         // super classes.

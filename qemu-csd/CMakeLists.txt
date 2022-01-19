@@ -43,11 +43,11 @@ add_subdirectory(bpf_programs)
 # SPDK initialization and data wrappers
 add_subdirectory(spdk_init)
 
-# Emulated new NVMe command set for Computational Storage Devices (CSx)
-add_subdirectory(nvme_csd)
-
 # Abstracted NVMe ZNS backends
 add_subdirectory(nvme_zns)
+
+# Emulated new NVMe command set for Computational Storage Devices (CSx)
+add_subdirectory(nvme_csd)
 
 # Userspace LFS filesystem with FUSE
 add_subdirectory(fuse_lfs)

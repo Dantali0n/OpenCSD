@@ -26,7 +26,7 @@
 #define QEMU_CSD_NVME_CSD_HPP
 
 #include "arguments.hpp"
-#include "spdk_init.hpp"
+#include "nvme_zns_backend.hpp"
 
 extern "C" {
 	#include <ubpf.h>
@@ -42,7 +42,7 @@ namespace qemucsd::nvme_csd {
 	class NvmeCsd {
 	public:
 		NvmeCsd(struct arguments::options *options,
-			   struct spdk_init::ns_entry *entry);
+                nvme_zns::NvmeZnsBackend *nvme);
 
         // Destructor must always be virtual otherwise won't be called in
         // superclasses!
@@ -65,17 +65,21 @@ namespace qemucsd::nvme_csd {
 		void nvm_cmd_bpf_result(void *data);
 	protected:
 		struct arguments::options options;
-		struct spdk_init::ns_entry entry;
+        nvme_zns::NvmeZnsBackend *nvme;
 		struct ubpf_vm *vm = nullptr;
 		void *vm_mem = nullptr;
 
 		static void bpf_return_data(void *data, uint64_t size);
 
-		static void bpf_read(uint64_t lba, uint64_t offset, uint64_t limit, void *data);
+		static int bpf_read(uint64_t zone, uint64_t sector, uint64_t offset,
+            uint64_t size, void *data);
 
-		static uint64_t bpf_get_lba_size(void);
+        static int bpf_write(uint64_t zone, uint64_t *sector, uint64_t offset,
+            uint64_t size, void *data);
 
-        static uint64_t bpf_get_zone_size(void);
+		static uint64_t bpf_get_sector_size(void);
+
+        static uint64_t bpf_get_zone_capacity(void);
 
 		static void bpf_get_mem_info(void **mem_ptr, uint64_t *mem_size);
 	};
