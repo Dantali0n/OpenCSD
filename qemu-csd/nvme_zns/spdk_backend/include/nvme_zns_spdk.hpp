@@ -43,11 +43,7 @@ namespace qemucsd::nvme_zns {
         // (see spdk_nvme_zns_report_zones)
         std::vector<uint64_t> write_pointers;
 
-        struct nvme_zns_info info;
         struct ns_entry* entry;
-
-//        int compute_sector(uint64_t zone, uint64_t sector, uint64_t offset,
-//            uint64_t size, uint64_t& result_sector);
     public:
         explicit NvmeZnsSpdkBackend(struct ns_entry* entry);
 
@@ -60,8 +56,8 @@ namespace qemucsd::nvme_zns {
         int read(uint64_t zone, uint64_t sector, uint64_t offset, void *buffer,
             uint64_t size) override;
 
-        int append(uint64_t zone, uint64_t &sector, uint64_t offset, void *buffer,
-            uint64_t size) override;
+        int append(uint64_t zone, uint64_t &sector, uint64_t offset,
+           void *buffer, uint64_t size) override;
 
         int reset(uint64_t zone) override;
     };

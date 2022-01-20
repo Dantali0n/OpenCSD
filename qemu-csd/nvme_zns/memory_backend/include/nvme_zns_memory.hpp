@@ -35,7 +35,8 @@
 
 namespace qemucsd::nvme_zns {
 
-    static output::Output output = output::Output("[NVME_ZNS_MEMORY] ", output::INFO);
+    static output::Output output = output::Output(
+        "[NVME_ZNS_MEMORY] ", output::INFO);
 
     class NvmeZnsMemoryBackend : public NvmeZnsBackend {
     protected:
@@ -60,8 +61,8 @@ namespace qemucsd::nvme_zns {
         int read(uint64_t zone, uint64_t sector, uint64_t offset, void* buffer,
                  uint64_t size) override;
 
-        int append(uint64_t zone, uint64_t& sector, uint64_t offset, void* buffer,
-                   uint64_t size) override;
+        int append(uint64_t zone, uint64_t& sector, uint64_t offset,
+                   void* buffer, uint64_t size) override;
 
         int reset(uint64_t zone) override;
     };

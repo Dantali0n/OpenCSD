@@ -118,6 +118,8 @@ namespace qemucsd::spdk_init {
                 output.warning(
                     "Can't use ZNS namespace ", spdk_nvme_ns_get_id(ns),
                     " ,incompatible feature 'variable zone capacity'");
+                // This is a hard fail, we really do not support this
+                continue;
             }
 
             // Device must be capable of reading across zone boundaries.
@@ -125,11 +127,12 @@ namespace qemucsd::spdk_init {
                 output.warning(
                     "Can't use ZNS namespace ", spdk_nvme_ns_get_id(ns),
                     " as it does not support reading beyond zone boundaries");
+                // This is a soft fail, we currently don't rely on this yet
             }
 
 			// Namespace is activate and supports ZNS
             output.info("Found ZNS supporting namespace: ",
-                        spdk_nvme_ns_get_id(ns), " on device: ", trid->traddr);
+                spdk_nvme_ns_get_id(ns), " on device: ", trid->traddr);
 
 			// Assign variables to global state
 			entry->ctrlr = ctrlr;
@@ -150,6 +153,20 @@ namespace qemucsd::spdk_init {
 			// Add zone size to entry
             uint32_t zone_size = spdk_nvme_zns_ns_get_zone_size(entry->ns);
             entry->zone_size = zone_size / entry->lba_size;
+
+            // TODO(Dantali0n): Test get zone capacity
+            size_t zone_rep_size = sizeof(spdk_nvme_zns_zone_report) +
+                                   sizeof(spdk_nvme_zns_zone_desc);
+            auto *report_buf = (spdk_nvme_zns_zone_report *)
+                malloc(zone_rep_size);
+            spdk_nvme_zns_report_zones(
+                entry->ns, entry->qpair, report_buf, zone_rep_size, 0,
+                SPDK_NVME_ZRA_LIST_ZSC, true, spdk_init::error_print, &entry);
+                spdk_init::spin_complete(entry);
+            // This is so convoluted because in reality zcap can be different
+            // per zone. However, we test for this feature and fail if so
+            entry->zone_capacity = report_buf->descs[0].zcap;
+            free(report_buf);
 
             // Add size of device to entry
             entry->device_size = spdk_nvme_zns_ns_get_num_zones(entry->ns);

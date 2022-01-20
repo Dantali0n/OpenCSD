@@ -46,7 +46,6 @@ namespace qemucsd::nvme_zns {
         /**
          * Update the write pointers to their current location.
          * Its inexcusable how difficult and ugly this is in SPDK.
-         * TODO(Dantali0n): Test that this actually works
          */
         uint32_t report_bufsize =
             spdk_nvme_ns_get_max_io_xfer_size(entry->ns);
@@ -62,11 +61,19 @@ namespace qemucsd::nvme_zns {
             spdk_init::spin_complete(entry);
 
             for(uint64_t i = 0; i < report_buf->nr_zones; i++) {
-                write_pointers.at(zones + i) = report_buf->descs[i].wp;
+                uint64_t normalized_wp = report_buf->descs[i].wp -
+                    report_buf->descs[i].zslba;
+
+                if(normalized_wp > report_buf->descs[i].zcap)
+                    normalized_wp = report_buf->descs[i].zcap;
+
+                write_pointers.at(zones + i) = normalized_wp;
             }
 
             zones += report_buf->nr_zones;
         }
+
+        free(report_buf);
     }
 
     NvmeZnsSpdkBackend::~NvmeZnsSpdkBackend() {
