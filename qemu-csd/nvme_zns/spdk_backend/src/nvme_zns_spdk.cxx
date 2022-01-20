@@ -30,7 +30,7 @@ namespace qemucsd::nvme_zns {
 
     NvmeZnsSpdkBackend::NvmeZnsSpdkBackend(struct ns_entry* entry) :
         NvmeZnsBackend(entry->device_size, entry->zone_size,
-                       entry->zone_capacity, entry->lba_size, entry->max_open)
+                       entry->zone_capacity, entry->sector_size, entry->max_open)
     {
         if(entry->qpair == nullptr || entry->ns == nullptr ||
            entry->ctrlr == nullptr)

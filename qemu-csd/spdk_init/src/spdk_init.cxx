@@ -143,8 +143,8 @@ namespace qemucsd::spdk_init {
 				entry->ctrlr, NULL, 0);
 
 			// Determine size of DMA IO buffer
-            entry->lba_size = spdk_nvme_ns_get_sector_size(entry->ns);
-			entry->buffer_size = entry->lba_size;
+            entry->sector_size = spdk_nvme_ns_get_sector_size(entry->ns);
+			entry->buffer_size = entry->sector_size;
 
 			// Construct DMA buffer
 			entry->buffer = spdk_zmalloc(entry->buffer_size, entry->buffer_size,
@@ -152,16 +152,15 @@ namespace qemucsd::spdk_init {
 
 			// Add zone size to entry
             uint32_t zone_size = spdk_nvme_zns_ns_get_zone_size(entry->ns);
-            entry->zone_size = zone_size / entry->lba_size;
+            entry->zone_size = zone_size / entry->sector_size;
 
-            // TODO(Dantali0n): Test get zone capacity
             size_t zone_rep_size = sizeof(spdk_nvme_zns_zone_report) +
                                    sizeof(spdk_nvme_zns_zone_desc);
             auto *report_buf = (spdk_nvme_zns_zone_report *)
                 malloc(zone_rep_size);
             spdk_nvme_zns_report_zones(
                 entry->ns, entry->qpair, report_buf, zone_rep_size, 0,
-                SPDK_NVME_ZRA_LIST_ZSC, true, spdk_init::error_print, &entry);
+                SPDK_NVME_ZRA_LIST_ALL, true, spdk_init::error_print, &entry);
                 spdk_init::spin_complete(entry);
             // This is so convoluted because in reality zcap can be different
             // per zone. However, we test for this feature and fail if so
@@ -219,26 +218,26 @@ namespace qemucsd::spdk_init {
                          "current directory");
             exit(1);
         }
-        uint64_t zone_size = entry->lba_size * entry->zone_size;
+        uint64_t zone_capacity = entry->sector_size * entry->zone_capacity;
 
         // Determine if length of file is sufficient
-        in.seekg(zone_size, ios_base::beg);
+        in.seekg(zone_capacity, ios_base::beg);
         file_length = in.tellg();
         in.seekg(0, ios_base::beg);
 
         // Ensure the input file has sufficient data to write the whole zone
-        assert(file_length >= zone_size);
+        assert(file_length >= zone_capacity);
 
         // Create buffer to store file contents into
         char* file_buffer = new char[file_length];
         in.read(file_buffer, file_length);
 
-        uint32_t int_lba = entry->lba_size / sizeof(uint32_t);
-        assert(entry->lba_size % sizeof(uint32_t)== 0);
+        uint32_t int_lba = entry->sector_size / sizeof(uint32_t);
+        assert(entry->sector_size % sizeof(uint32_t) == 0);
 
         uint32_t *data = (uint32_t*) spdk_zmalloc(
-            entry->lba_size, entry->lba_size, NULL, SPDK_ENV_SOCKET_ID_ANY,
-            SPDK_MALLOC_DMA);
+                entry->sector_size, entry->sector_size, NULL, SPDK_ENV_SOCKET_ID_ANY,
+                SPDK_MALLOC_DMA);
 
         if(data == nullptr) return -1;
 
@@ -247,7 +246,7 @@ namespace qemucsd::spdk_init {
         for(uint32_t i = 0; i < entry->zone_size; i++) {
 
             // Copy file contents into SPDK buffer
-            memcpy(data, file_buffer_alias, entry->lba_size);
+            memcpy(data, file_buffer_alias, entry->sector_size);
 
             // Zone append automatically tracks write pointer within block, so the
             // zslba argument remains 0 for the entire zone.
@@ -260,7 +259,7 @@ namespace qemucsd::spdk_init {
             spin_complete(entry);
 
             // Advance buffer pointer.
-            file_buffer_alias += entry->lba_size;
+            file_buffer_alias += entry->sector_size;
         }
 
         spdk_free(data);
