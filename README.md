@@ -354,11 +354,13 @@ including:
 
 ### References
 
-* [SPDK](https://spdk.io/)
-* [Zoned storage ZNS SSDs introduction](https://zonedstorage.io/introduction/zns/)
-* [Getting started with ZNS in QEMU](https://www.snia.org/educational-library/getting-started-nvme-zns-qemu-2020)
-* [NVMe ZNS command set 1.0 ratified TP](https://nvmexpress.org/wp-content/uploads/NVM-Express-1.4-Ratified-TPs-1.zip)
-* [libnvme presentation](https://www.usenix.org/sites/default/files/conference/protected-files/vault20_slides_busch.pdf)
+* ZNS
+  * [Zoned storage ZNS SSDs introduction](https://zonedstorage.io/introduction/zns/)
+  * [Getting started with ZNS in QEMU](https://www.snia.org/educational-library/getting-started-nvme-zns-qemu-2020)
+  * [NVMe ZNS command set 1.0 ratified TP](https://nvmexpress.org/wp-content/uploads/NVM-Express-1.4-Ratified-TPs-1.zip)
+  * [libnvme presentation](https://www.usenix.org/sites/default/files/conference/protected-files/vault20_slides_busch.pdf)
+  * [dm-zap conventional zones for ZNS](https://github.com/westerndigitalcorporation/dm-zap)
+  * [FEMU accurate NVMe SSD Emulator](https://github.com/ucare-uchicago/FEMU)
 * Filesystems
   * [Linux Inode](https://man7.org/linux/man-pages/man7/inode.7.html)
   * Filesystem Benchmarks
@@ -368,6 +370,8 @@ including:
   * [To FUSE or Not to FUSE: Performance of User-Space File Systems](http://libfuse.github.io/doxygen/fast17-vangoor.pdf)
   * [FUSE kermel documentation](https://www.kernel.org/doc/html/latest/filesystems/fuse.html)
   * [FUSE forget](https://fuse-devel.narkive.com/SMANJULN/when-does-fuse-forget)
+  * Other FUSE3 filesystems that can be used for reference
+    * [MergerFS](https://github.com/trapexit/mergerfs/tree/master/src)
 * LFS
   * [f2fs usenix paper](https://www.usenix.org/system/files/conference/fast15/fast15-paper-lee.pdf)
   * [f2fs kernel documentation](https://www.kernel.org/doc/html/latest/filesystems/f2fs.html)
@@ -387,11 +391,13 @@ including:
       * [Building BPF applications with libbpf-bootstrap](https://nakryiko.com/posts/libbpf-bootstrap/)
   * Userspace BPF execution / interpretation
     * [uBPF](https://github.com/iovisor/ubpf)
+    * [iomartin uBPF patch expose registers](https://github.com/iomartin/ubpf/commit/ca1ad94613a01e1fa5cc04d43c73acc6b5074881)
+    * [iomartin uBPF patch relocation type](https://github.com/iomartin/ubpf/commit/af4a54c201524f975137d8c531dfef82010b65cd)
     * [generic-ebpf](https://github.com/generic-ebpf/generic-ebpf)
   * Verifiers
     * [PREVAIL](https://github.com/vbpf/ebpf-verifier)
   * Hardware implementations
-    * [bHBPF](https://github.com/rprinz08/hBPF)
+    * [hBPF](https://github.com/rprinz08/hBPF)
   * Various
     * [BTF sysfs vmlinux ABI](https://www.kernel.org/doc/Documentation/ABI/testing/sysfs-kernel-btf)
     * [BPF features and minimal kernel versions](https://github.com/iovisor/bcc/blob/master/docs/kernel-versions.md)
@@ -486,8 +492,8 @@ including:
   - [X] Write inode block to drive
   - [X] Inode create / update / append
   - [X] Decide location of size and filename fields on disc
-  - [ ] Read file data from drive
-  - [ ] Write file data to drive
+  - [X] Read file data from drive
+  - [X] Write file data to drive
   - [ ] SIT block management for determining used sectors (use bitfields)
   - [ ] log_pos to artificially move the start of the log zone
         (same as random_pos)
@@ -498,10 +504,10 @@ including:
       - [ ] What if an open handle deletes the file / directory that has been
             renamed??
 - Week 12 -> FUSE LFS Filesystem
-  - [ ] Implement statfs
-  - [ ] Implement truncate
-  - [ ] Implement CSD state management using extended attributes
-  - [ ] Implement in-memory snapshots
+  - [X] Implement statfs
+  - [X] Implement truncate
+  - [X] Implement CSD state management using extended attributes
+  - [X] Implement in-memory snapshots
     - [ ] In-memory snapshots with write changes become persistent after the
           kernel finishes execution. The files use special filenames that are
           reserved to the filesystem (use filename + filehandle).
@@ -664,20 +670,16 @@ see source files such as `fuse_lfs_disc.hpp` until design is frozen.
 Extended filesystem attributes support various namespaces with different
 behavior and responsibility. Since the underlying filesystem is still tasked
 with storing these attributes persistently regardless of namespace, the FUSE
-filesystem is effectively in full control on how to proceed.
+filesystem is effectively in full control on how to process these calls.
 
-Given the already existing standard to use namespaces for permissions roles and
+Given the already existing standard to use namespaces for permissions, roles and
 behavior an additional namespace is an easy and clean extension. Introducing
 the _process_ namespace. Non-persistent extended file attributes that are only
 visible to the process that created them. Effectively an in memory map that
 lives inside the filesystem instead of in the calling process.
 
-Requirements:
-
-* Calling PID must be (made) available to either the high level or low level
-  FUSE API hooks (By observing the `-d` FUSE output the PID is already available
-  in some contexts just not to the API calls).
-* A clean method to deregister all hooks is needed, this either needs to be done
-  when the file is released or when the file is reopened using a previously used
-  PID. Using the release / releasedir system calls is difficult as the calling
-  PID is not available in this context.
+The state of these extended attributes is managed through the use of
+`fuse_req_ctx` which can determine the callers pid, gid and uid for all FUSE
+hooks except release / releasedir. To combat this limitation FluffleFS generates
+a unique  filehandle for each open file. The pid is only used at the moment the
+first extended attribute is set.
