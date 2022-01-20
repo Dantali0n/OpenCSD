@@ -148,7 +148,7 @@ namespace qemucsd::spdk_init {
 
 			// Construct DMA buffer
 			entry->buffer = spdk_zmalloc(entry->buffer_size, entry->buffer_size,
-				NULL, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
+				nullptr, SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
 
 			// Add zone size to entry
             uint32_t zone_size = spdk_nvme_zns_ns_get_zone_size(entry->ns);
@@ -236,8 +236,8 @@ namespace qemucsd::spdk_init {
         assert(entry->sector_size % sizeof(uint32_t) == 0);
 
         uint32_t *data = (uint32_t*) spdk_zmalloc(
-                entry->sector_size, entry->sector_size, NULL, SPDK_ENV_SOCKET_ID_ANY,
-                SPDK_MALLOC_DMA);
+            entry->sector_size, entry->sector_size, nullptr,
+            SPDK_ENV_SOCKET_ID_ANY, SPDK_MALLOC_DMA);
 
         if(data == nullptr) return -1;
 
@@ -251,8 +251,8 @@ namespace qemucsd::spdk_init {
             // Zone append automatically tracks write pointer within block, so the
             // zslba argument remains 0 for the entire zone.
             rc = spdk_nvme_zns_zone_append(entry->ns, entry->qpair, data, 0,
-                                      1, qemucsd::spdk_init::error_print,
-                                      entry, 0);
+                                           1, qemucsd::spdk_init::error_print,
+                                           entry, 0);
 
             if(rc < 0) return -1;
 

@@ -455,6 +455,15 @@ namespace qemucsd::fuse_lfs {
      * @return 0 upon success, < 0 upon failure
      */
     int FuseLFS::mkfs() {
+        output->info("erasing device..");
+
+        for(uint64_t i = 0; i < nvme_info.num_zones; i++) {
+            if(nvme->reset(i) != 0) {
+                output->error("Failed to reset device zone ", i);
+                return FLFS_RET_ERR;
+            }
+        }
+
         output->info("writing super block..");
 
         if(write_superblock() != FLFS_RET_NONE) {

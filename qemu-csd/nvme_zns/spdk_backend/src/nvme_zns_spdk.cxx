@@ -136,6 +136,12 @@ namespace qemucsd::nvme_zns {
         if(offset + size != info.sector_size)
             return -1;
 
+        if(offset != 0) memset(entry.buffer, 0, offset);
+        uint64_t remainder = (offset + size) % info.sector_size;
+        if(remainder != 0) memset((uint8_t*)entry.buffer + offset + size, 0,
+                                  remainder);
+        memcpy(entry.buffer, (uint8_t*)buffer + offset, size);
+
         spdk_nvme_zns_zone_append(entry.ns, entry.qpair, entry.buffer,
                                   lba, 1, spdk_init::error_print, &entry, 0);
 
