@@ -49,10 +49,10 @@
             }
         },
         {
-            "name": "SSH attach qemucsd",
+            "name": "SSH attach zcsd",
             "type": "gdb",
             "request": "launch",
-            "target": "./build/qemu-csd/qemucsd",
+            "target": "./build/qemu-csd/zcsd/zcsd",
             "cwd": "${workspaceRoot}",
             "ssh": {
                 "host": "127.0.0.1",
@@ -65,10 +65,10 @@
             }
         },
         {
-            "name": "SSH attach spdk-native",
+            "name": "SSH attach zcsd-spdk",
             "type": "gdb",
             "request": "launch",
-            "target": "./build/qemu-csd/spdk-native",
+            "target": "./build/qemu-csd/zcsd/zcsd-spdk",
             "cwd": "${workspaceRoot}",
             "ssh": {
                 "host": "127.0.0.1",
