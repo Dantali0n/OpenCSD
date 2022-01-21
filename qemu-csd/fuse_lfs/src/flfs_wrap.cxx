@@ -52,10 +52,10 @@ namespace qemucsd::fuse_lfs {
     FuseLFS* FuseLFSWrapper::flfs_w = nullptr;
 
     int FuseLFSWrapper::initialize(int argc, char* argv[],
-        nvme_zns::NvmeZnsBackend* nvme)
+        arguments::options *options, nvme_zns::NvmeZnsBackend* nvme)
     {
         try{
-            FuseLFS flfs(nvme);
+            FuseLFS flfs(options, nvme);
             return flfs.run(argc, argv, &operations);
         }
         catch(...) {

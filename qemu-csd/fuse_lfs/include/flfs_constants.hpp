@@ -136,6 +136,9 @@ namespace qemucsd::fuse_lfs {
     static constexpr uint32_t SECTOR_SIZE = 4096;
     static constexpr uint64_t MAGIC_COOKIE = 0x10ADEDB00BDEC0DE;
 
+    static constexpr bool VM_JIT = false;
+    static constexpr size_t VM_MEM = 0;
+
     static const char *CSD_READ_KEY = "user.process.csd_read";
     static const char *CSD_WRITE_KEY = "user.process.csd_write";
 

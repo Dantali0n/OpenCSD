@@ -26,6 +26,17 @@
 
 namespace qemucsd::fuse_lfs {
 
+    FuseLFSCSD::FuseLFSCSD(qemucsd::arguments::options *options,
+        nvme_zns::NvmeZnsBackend *nvme)
+    {
+        csd_instance = new nvme_csd::NvmeCsd(options->ubpf_jit,
+            options->ubpf_mem_size, nvme);
+    }
+
+    FuseLFSCSD::~FuseLFSCSD() {
+        delete csd_instance;
+    }
+
     int FuseLFS::read_csd(fuse_req_t req, csd_unique_t *context, size_t size,
         off_t off, struct fuse_file_info *fi)
     {

@@ -25,6 +25,7 @@ project(${PRJ_PRX}_fuse_lfs)
 
 set(QEMUCSD_FUSE_LFS_LIBRARIES
     qemucsd_output
+    qemucsd_nvme_csd
     qemucsd_nvme_zns_backend
     qemucsd_spdk_init
     fuse3

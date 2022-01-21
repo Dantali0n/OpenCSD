@@ -30,10 +30,13 @@ namespace qemucsd::fuse_lfs {
     const char *FuseLFS::FUSE_LFS_NAME_PREFIX = "[FUSE LFS] ";
     const char *FuseLFS::FUSE_SEQUENTIAL_PARAM = "-s";
 
-    FuseLFS::FuseLFS(nvme_zns::NvmeZnsBackend* nvme) : nvme_info({0}),
-        cblock_pos({0, 0, 0, 0}), random_pos({0, 0, 0, 0}),
+    FuseLFS::FuseLFS(arguments::options *options,
+        nvme_zns::NvmeZnsBackend *nvme) : FuseLFSCSD(options, nvme),
+        nvme_info({0}), cblock_pos({0, 0, 0, 0}), random_pos({0, 0, 0, 0}),
         random_ptr({0, 0, 0, 0}), log_pos({0, 0, 0, 0}), log_ptr({0, 0, 0, 0})
     {
+        this->options = options;
+
         this->nvme = nvme;
         this->connection = nullptr;
 

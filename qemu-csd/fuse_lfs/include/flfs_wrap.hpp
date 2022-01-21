@@ -33,6 +33,8 @@ extern "C" {
     #include <fuse3/fuse_lowlevel.h>
 }
 
+#include "arguments.hpp"
+
 namespace qemucsd::fuse_lfs {
 
     class FuseLFSWrapper {
@@ -40,8 +42,8 @@ namespace qemucsd::fuse_lfs {
         static const struct fuse_lowlevel_ops operations;
         static FuseLFS* flfs_w;
     public:
-        static int initialize(
-            int argc, char* argv[], nvme_zns::NvmeZnsBackend* nvme);
+        static int initialize(int argc, char* argv[],
+            arguments::options *options, nvme_zns::NvmeZnsBackend* nvme);
         static void init(void *userdata, struct fuse_conn_info *conn);
         static void destroy(void *userdata);
         static void lookup(fuse_req_t req, fuse_ino_t parent, const char *name);

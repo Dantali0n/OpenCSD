@@ -96,17 +96,10 @@ namespace qemucsd::arguments {
 			options->input_file = std::make_shared<std::string>(DEFAULT_INPUT_FILE);
 		}
 
-		struct spdk_env_opts *opts = &options->spdk;
-		spdk_env_opts_init(opts);
-		// Same default value as identify example
-		opts->shm_id = -1;
-
 		if(vm.count("name")) {
 			options->_name = std::make_shared<std::string>(vm["name"].as<std::string>());
-			opts->name = options->_name->c_str();
 		} else {
 			options->_name = std::make_shared<std::string>(DEFAULT_SPDK_NAME);
-			opts->name = options->_name->c_str();
 		}
 	}
 
@@ -138,7 +131,7 @@ namespace qemucsd::arguments {
     {
         for(int i = 0; i < argc; i++) {
             // If argument not -- add it args and continue
-            if(ARG_SEPARATOR.compare(argv[i]) != 0) {
+            if(strcmp(ARG_SEPARATOR, argv[i]) != 0) {
                 strip_args->second.push_back(argv[i]);
                 continue;
             }

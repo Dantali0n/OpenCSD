@@ -28,9 +28,6 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
 
-#include <spdk/stdinc.h>
-#include <spdk/env.h>
-
 #include <chrono>
 #include <cmath>
 #include <complex>
@@ -51,10 +48,10 @@ namespace qemucsd::arguments {
 		DEV_INIT_RESET, // Reset all zones of the device upon initialization
 	};
 
-    static const std::string ARG_SEPARATOR = "--";
+    static const char *ARG_SEPARATOR = "--";
 
-	static const std::string DEFAULT_SPDK_NAME = "";
-    static const std::string DEFAULT_INPUT_FILE = "integers.dat";
+	static const char *DEFAULT_SPDK_NAME = "";
+    static const char *DEFAULT_INPUT_FILE = "integers.dat";
 	static const DeviceInitMode DEFAULT_DEV_INIT_MODE = DEV_INIT_PRESERVE;
 	static constexpr uint64_t DEFAULT_UBPF_MEM_SIZE = 1024*512;
     static constexpr bool DEFAULT_UBPF_JIT = false;
@@ -65,14 +62,12 @@ namespace qemucsd::arguments {
 	struct options {
 		/** values */
 		DeviceInitMode dev_init_mode;
+
 		uint64_t ubpf_mem_size;
 		bool ubpf_jit;
 
 		/** owned / reference counted */
 		std::shared_ptr<std::string> input_file;
-
-		/** SPDK environment options */
-		struct spdk_env_opts spdk;
 
 		/** Containers to prevent data going out of scope */
 		std::shared_ptr<std::string> _name;

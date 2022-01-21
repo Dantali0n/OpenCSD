@@ -42,8 +42,11 @@ namespace qemucsd::fuse_lfs {
      */
     class FuseLFSCSD {
     protected:
-        nvme_csd::NvmeCsd *csd_instance = nullptr;
+        nvme_csd::NvmeCsd *csd_instance;
     public:
+        FuseLFSCSD(arguments::options *options, nvme_zns::NvmeZnsBackend *nvme);
+        virtual ~FuseLFSCSD();
+
         virtual int read_csd(fuse_req_t req, csd_unique_t *context, size_t size,
             off_t off, struct fuse_file_info *fi) = 0;
 

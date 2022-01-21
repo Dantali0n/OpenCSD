@@ -105,7 +105,7 @@ int main(int argc, char* argv[]) {
         }
 
         return qemucsd::fuse_lfs::FuseLFSWrapper::initialize(
-            fuse_argc, fuse_argv, &nvme_memory);
+            fuse_argc, fuse_argv, &opts, &nvme_memory);
     }
     catch(...) {
         #ifdef QEMUCSD_DEBUG

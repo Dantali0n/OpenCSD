@@ -102,8 +102,8 @@ namespace qemucsd::spdk_init {
      * @param entry
      * @return 0 upon success, < 0 upon error
      */
-	int initialize_zns_spdk(struct arguments::options *options,
-		struct ns_entry *entry);
+	int initialize_zns_spdk(struct qemucsd::arguments::options *options,
+        struct spdk_env_opts *spdk_opts, struct ns_entry *entry);
 
     /**
      * Small function to reset all zones of a device

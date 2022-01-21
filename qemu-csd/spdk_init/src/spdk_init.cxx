@@ -28,8 +28,8 @@ namespace qemucsd::spdk_init {
 
     using std::ios_base;
 
-	int initialize_zns_spdk(struct arguments::options *options,
-		struct ns_entry *entry)
+	int initialize_zns_spdk(struct qemucsd::arguments::options *options,
+        struct spdk_env_opts *spdk_opts, struct ns_entry *entry)
 	{
 		int rc;
 
@@ -39,14 +39,19 @@ namespace qemucsd::spdk_init {
 		entry->qpair = nullptr;
 		entry->ns = nullptr;
 
-		rc = spdk_env_init(&options->spdk);
+        spdk_env_opts_init(spdk_opts);
+
+        spdk_opts->name = options->_name->c_str();
+        spdk_opts->shm_id = -1;
+
+		rc = spdk_env_init(spdk_opts);
 		if(rc < 0) {
             output.error("Unable to initialize SPDK env: ", strerror(rc), "\n");
 			return -1;
 		}
 
-		rc = spdk_nvme_probe(NULL, entry, probe_cb_attach_all,
-	   		attach_cb_ns_entry,NULL);
+		rc = spdk_nvme_probe(nullptr, entry, probe_cb_attach_all,
+	   		attach_cb_ns_entry,nullptr);
 		if(rc < 0) {
             output.error("spdk_nvme_probe() failed: ", strerror(rc), "\n");
 			return -1;
@@ -103,7 +108,7 @@ namespace qemucsd::spdk_init {
 			ns = spdk_nvme_ctrlr_get_ns(ctrlr, nsid);
 
 			// Check that namespace exists
-			if(ns == NULL) continue;
+			if(ns == nullptr) continue;
 			// Check that namespace is active
 			if(!spdk_nvme_ns_is_active(ns)) continue;
 			// Check that namespace supports ZNS command set
@@ -140,7 +145,7 @@ namespace qemucsd::spdk_init {
 
 			// Create qpair for I/O operations
 			entry->qpair = spdk_nvme_ctrlr_alloc_io_qpair(
-				entry->ctrlr, NULL, 0);
+				entry->ctrlr, nullptr, 0);
 
 			// Determine size of DMA IO buffer
             entry->sector_size = spdk_nvme_ns_get_sector_size(entry->ns);
@@ -188,7 +193,7 @@ namespace qemucsd::spdk_init {
 
 		if(spdk_nvme_cpl_is_error(completion)) {
 			spdk_nvme_qpair_print_completion(
-					entry->qpair, (struct spdk_nvme_cpl *) completion);
+                entry->qpair, (struct spdk_nvme_cpl *) completion);
             output.error("I/O error status: ",
                 spdk_nvme_cpl_get_status_string(&completion->status));
             output.error( "I/O failed, aborting run");

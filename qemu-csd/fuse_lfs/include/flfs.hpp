@@ -40,6 +40,8 @@ extern "C" {
 #include <string>
 
 #include "output.hpp"
+#include "arguments.hpp"
+#include "nvme_csd.hpp"
 #include "flfs_constants.hpp"
 #include "flfs_csd.hpp"
 #include "flfs_dirtyblock.hpp"
@@ -61,6 +63,8 @@ namespace qemucsd::fuse_lfs {
     {
     protected:
         output::Output *output;
+
+        arguments::options *options;
 
         struct fuse_conn_info *connection;
 
@@ -388,7 +392,8 @@ namespace qemucsd::fuse_lfs {
             const char *value, size_t size, int flags, bool set);
 
     public:
-        explicit FuseLFS(nvme_zns::NvmeZnsBackend* nvme);
+        explicit FuseLFS(arguments::options *options,
+            nvme_zns::NvmeZnsBackend* nvme);
         virtual ~FuseLFS();
 
         int run(int argc, char* argv[],
