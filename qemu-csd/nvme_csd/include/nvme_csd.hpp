@@ -25,23 +25,22 @@
 #ifndef QEMU_CSD_NVME_CSD_HPP
 #define QEMU_CSD_NVME_CSD_HPP
 
-#include "arguments.hpp"
 #include "nvme_zns_backend.hpp"
+
+#include <chrono>
+#include <cstring>
+#include <iostream>
 
 extern "C" {
 	#include <ubpf.h>
 }
 
-// SPDK headers already have if __cplusplus extern "C" wrapper
-#include <spdk/env.h>
-#include <spdk/nvme.h>
-#include <spdk/nvme_zns.h>
 
 namespace qemucsd::nvme_csd {
 
 	class NvmeCsd {
 	public:
-		NvmeCsd(struct arguments::options *options,
+		NvmeCsd(size_t vm_mem_size, bool vm_jit,
                 nvme_zns::NvmeZnsBackend *nvme);
 
         // Destructor must always be virtual otherwise won't be called in
@@ -64,9 +63,11 @@ namespace qemucsd::nvme_csd {
 		 */
 		void nvm_cmd_bpf_result(void *data);
 	protected:
-		struct arguments::options options;
         nvme_zns::NvmeZnsBackend *nvme;
 		struct ubpf_vm *vm = nullptr;
+
+        bool vm_jit = false;
+        size_t vm_mem_size = 0;
 		void *vm_mem = nullptr;
 
 		static void bpf_return_data(void *data, uint64_t size);

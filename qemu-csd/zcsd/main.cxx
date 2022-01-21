@@ -93,7 +93,8 @@ int main(int argc, char* argv[]) {
 
 		// Initialize simulator for NVMe BPF command set
         start = std::chrono::high_resolution_clock::now();
-		qemucsd::nvme_csd::NvmeCsd nvme_csd(&opts, &zns_backend);
+		qemucsd::nvme_csd::NvmeCsd nvme_csd(opts.ubpf_mem_size, opts.ubpf_jit,
+                                            &zns_backend);
 
 		skel = bpf_zone_int_filter__open();
 		if (!skel) {

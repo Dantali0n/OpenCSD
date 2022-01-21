@@ -33,6 +33,7 @@ extern "C" {
 
 #include <map>
 #include <iostream>
+#include <set>
 #include <sstream>
 #include <string>
 

@@ -41,6 +41,7 @@ extern "C" {
 
 #include "output.hpp"
 #include "flfs_constants.hpp"
+#include "flfs_csd.hpp"
 #include "flfs_dirtyblock.hpp"
 #include "flfs_disc.hpp"
 #include "flfs_memory.hpp"
@@ -55,8 +56,8 @@ namespace qemucsd::fuse_lfs {
     /**
      * FUSE LFS filesystem for Zoned Namespaces SSDs (FluffleFS).
      */
-    class FuseLFS : public FuseLFSSuperBlock, FuseLFSDirtyBlock,
-        FuseLFSSnapShot, FuseLFSWrite
+    class FuseLFS : public FuseLFSCSD, FuseLFSDirtyBlock, FuseLFSSnapShot,
+        FuseLFSSuperBlock, FuseLFSWrite
     {
     protected:
         output::Output *output;
@@ -356,8 +357,11 @@ namespace qemucsd::fuse_lfs {
         void read_regular(fuse_req_t req, struct stat *stbuf,
             size_t size, off_t off, struct fuse_file_info *fi);
 
-        void read_csd(fuse_req_t req, csd_unique_t *context, size_t size,
+        void read_snapshot(fuse_req_t req, csd_unique_t *context, size_t size,
             off_t off, struct fuse_file_info *fi);
+
+        int read_csd(fuse_req_t req, csd_unique_t *context, size_t size,
+            off_t off, struct fuse_file_info *fi) override;
 
         int write_sector(size_t size, off_t offset, uint64_t cur_lba,
              const char *data, uint64_t &result_lba) override;
@@ -365,9 +369,14 @@ namespace qemucsd::fuse_lfs {
         void write_regular(fuse_req_t req, fuse_ino_t ino, const char *buf,
             size_t size, off_t off, struct write_context *wr_context,
             struct fuse_file_info *fi) override;
+        void write_snapshot(fuse_req_t req, csd_unique_t *context,
+            const char *buf, size_t size, off_t off,
+            struct write_context *wr_context,
+            struct fuse_file_info *fi) override;
 
-        void write_csd(fuse_req_t req, csd_unique_t *context, const char *buf,
-            size_t size, off_t off, struct write_context *wr_context,
+        int write_csd(fuse_req_t req, csd_unique_t *context,
+            const char *buf, size_t size, off_t off,
+            struct write_context *wr_context,
             struct fuse_file_info *fi) override;
 
         void get_csd_xattr(fuse_req_t req, fuse_ino_t ino, size_t size);

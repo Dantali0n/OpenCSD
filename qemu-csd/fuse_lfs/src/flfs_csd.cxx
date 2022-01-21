@@ -1,7 +1,7 @@
 /**
  * MIT License
  *
- * Copyright (c) 2021 Dantali0n
+ * Copyright (c) 2022 Dantali0n
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,11 +22,21 @@
  * SOFTWARE.
  */
 
-#ifndef QEMU_CSD_FUSE_LFS_GC_HPP
-#define QEMU_CSD_FUSE_LFS_GC_HPP
+#include "flfs.hpp"
 
 namespace qemucsd::fuse_lfs {
 
-}
+    int FuseLFS::read_csd(fuse_req_t req, csd_unique_t *context, size_t size,
+        off_t off, struct fuse_file_info *fi)
+    {
 
-#endif // QEMU_CSD_FUSE_LFS_GC_HPP
+    }
+
+    int FuseLFS::write_csd(fuse_req_t req, csd_unique_t *context,
+        const char *buf, size_t size, off_t off,
+        struct write_context *wr_context,
+        struct fuse_file_info *fi)
+    {
+
+    }
+}

@@ -30,15 +30,17 @@ static uint64_t return_size = 0;
 
 namespace qemucsd::nvme_csd {
 
-	NvmeCsd::NvmeCsd(struct arguments::options *options,
+	NvmeCsd::NvmeCsd(size_t vm_mem_size, bool vm_jit,
         nvme_zns::NvmeZnsBackend *nvme)
 	{
-		this->options = *options;
+        this->vm_mem_size = vm_mem_size;
+        this->vm_jit = vm_jit;
+
 		this->nvme = nvme;
 
 		/** uBPF Initialization */
 		this->vm = ubpf_create();
-		this->vm_mem = malloc(this->options.ubpf_mem_size);
+		this->vm_mem = malloc(this->vm_mem_size);
 
 		nvme_instance = this;
 
@@ -66,14 +68,14 @@ namespace qemucsd::nvme_csd {
 		free(msg_buf);
 
 		// Jit compilation path
-		if(this->options.ubpf_jit) {
+		if(this->vm_jit) {
 		    // Measure jit compilation time
             auto start = std::chrono::high_resolution_clock::now();
             ubpf_jit_fn exec = ubpf_compile(this->vm, &msg_buf);
             auto stop = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
             std::cout << "Jit compilation: " << duration.count() << "us." << std::endl;
-            if (exec(this->vm_mem, this->options.ubpf_mem_size) < 0)
+            if (exec(this->vm_mem, this->vm_mem_size) < 0)
                 return -1;
 
             return return_size;
@@ -81,7 +83,7 @@ namespace qemucsd::nvme_csd {
 
 		// Non jit path
 		uint64_t result;
-		if(ubpf_exec(this->vm, this->vm_mem, this->options.ubpf_mem_size, &result) < 0)
+		if(ubpf_exec(this->vm, this->vm_mem, this->vm_mem_size, &result) < 0)
 			return -1;
 
 		return return_size;
@@ -134,6 +136,6 @@ namespace qemucsd::nvme_csd {
 	void NvmeCsd::bpf_get_mem_info(void **mem_ptr, uint64_t *mem_size) {
 		auto *self = nvme_instance;
 		*mem_ptr = self->vm_mem;
-		*mem_size = self->options.ubpf_mem_size;
+		*mem_size = self->vm_mem_size;
 	}
 }

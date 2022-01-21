@@ -2043,8 +2043,8 @@ namespace qemucsd::fuse_lfs {
         free(blk);
     }
 
-    void FuseLFS::read_csd(fuse_req_t req, csd_unique_t *context,
-        size_t size, off_t offset, struct fuse_file_info *fi)
+    void FuseLFS::read_snapshot(fuse_req_t req, csd_unique_t *context,
+                                size_t size, off_t off, struct fuse_file_info *fi)
     {
         struct snapshot snap;
 
@@ -2055,13 +2055,13 @@ namespace qemucsd::fuse_lfs {
 
         // Inode is of size 0
         if(snap.inode_data.first.size == 0) {
-            reply_buf_limited(req, nullptr, 0, offset, size);
+            reply_buf_limited(req, nullptr, 0, off, size);
             return;
         }
 
         // Variables corresponding to initial data_block
         uint64_t db_block_num;
-        uint64_t db_num_lbas = offset / SECTOR_SIZE;
+        uint64_t db_num_lbas = off / SECTOR_SIZE;
         compute_data_block_num(db_num_lbas, db_block_num);
 
         struct data_block *blk = &snap.data_blocks.at(db_block_num);
@@ -2110,7 +2110,7 @@ namespace qemucsd::fuse_lfs {
             db_lba_index += 1;
         }
 
-        reply_buf_limited(req, (const char*)buffer, data_limit, offset, size);
+        reply_buf_limited(req, (const char*)buffer, data_limit, off, size);
 
         free(buffer);
     }
@@ -2576,7 +2576,7 @@ namespace qemucsd::fuse_lfs {
 
         csd_unique_t csd_context = {ino, context->pid};
         if(has_snapshot(&csd_context, SNAP_READ))
-            read_csd(req, &csd_context, size, offset, fi);
+            read_snapshot(req, &csd_context, size, offset, fi);
         else
             read_regular(req, &e.attr, size, offset, fi);
     }
@@ -2634,7 +2634,7 @@ namespace qemucsd::fuse_lfs {
 
         csd_unique_t csd_context = {ino, context->pid};
         if(has_snapshot(&csd_context, SNAP_WRITE))
-            write_csd(req, &csd_context, buffer, size, off, &wr_context, fi);
+            write_snapshot(req, &csd_context, buffer, size, off, &wr_context, fi);
         else
             write_regular(req, ino, buffer, size, off, &wr_context, fi);
     }

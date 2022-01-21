@@ -25,6 +25,11 @@
 #ifndef QEMU_CSD_FLFS_DISC_HPP
 #define QEMU_CSD_FLFS_DISC_HPP
 
+#include <cstddef>
+#include <cstdint>
+
+#include <type_traits>
+
 #include "flfs_constants.hpp"
 
 namespace qemucsd::fuse_lfs {

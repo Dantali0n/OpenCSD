@@ -25,6 +25,11 @@
 #ifndef QEMU_CSD_FLFS_SNAPSHOT_HPP
 #define QEMU_CSD_FLFS_SNAPSHOT_HPP
 
+extern "C" {
+    #include <fuse3/fuse_lowlevel.h>
+}
+
+#include "flfs_constants.hpp"
 #include "flfs_memory.hpp"
 
 namespace qemucsd::fuse_lfs {

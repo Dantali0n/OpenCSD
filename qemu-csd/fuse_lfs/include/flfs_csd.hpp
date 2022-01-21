@@ -22,43 +22,36 @@
 * SOFTWARE.
 */
 
-#ifndef QEMU_CSD_FLFS_WRITE_HPP
-#define QEMU_CSD_FLFS_WRITE_HPP
+#ifndef QEMU_CSD_FLFS_CSD_HPP
+#define QEMU_CSD_FLFS_CSD_HPP
 
 extern "C" {
     #include <fuse3/fuse_lowlevel.h>
 }
 
 #include <cstddef>
-#include <cstdint>
 
 #include "flfs_memory.hpp"
+#include "flfs_write.hpp"
+#include "nvme_csd.hpp"
 
 namespace qemucsd::fuse_lfs {
 
-    struct write_context {
-        uint64_t num_sectors;
-        uint64_t cur_db_blk_num;
-        uint64_t cur_db_lba_index;
-    };
-
     /**
-     * Interface for write methods
+     * Interface for CSD methods
      */
-    class FuseLFSWrite {
+    class FuseLFSCSD {
+    protected:
+        nvme_csd::NvmeCsd *csd_instance = nullptr;
     public:
-        virtual int write_sector(size_t size, off_t offset, uint64_t cur_lba,
-            const char *data, uint64_t &result_lba) = 0;
+        virtual int read_csd(fuse_req_t req, csd_unique_t *context, size_t size,
+            off_t off, struct fuse_file_info *fi) = 0;
 
-        virtual void write_regular(fuse_req_t req, fuse_ino_t ino,
-            const char *buf, size_t size, off_t off,
-            struct write_context *wr_context, struct fuse_file_info *fi) = 0;
-
-        virtual void write_snapshot(fuse_req_t req, csd_unique_t *context,
+        virtual int write_csd(fuse_req_t req, csd_unique_t *context,
             const char *buf, size_t size, off_t off,
             struct write_context *wr_context, struct fuse_file_info *fi) = 0;
     };
 
 }
 
-#endif // QEMU_CSD_FLFS_WRITE_HPP
+#endif // QEMU_CSD_FLFS_CSD_HPP
