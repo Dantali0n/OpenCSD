@@ -35,7 +35,6 @@ add_custom_target(
     DEPENDS
     play-backward
     play-boost-locale
-    play-example
     play-fuse-hooks-hl
     play-generate-integer-data
     play-generic-ebpf
@@ -99,25 +98,6 @@ target_link_libraries(
 add_dependencies(play-boost-locale boost-build)
 
 qemucsd_target_postprocess(play-boost-locale)
-
-# ------------------ #
-# Playground example #
-# ------------------ #
-
-set(PLAYGROUND_EXAMPLE_SOURCE
-    example/playground-example.cxx
-)
-
-message("${PRJ_PRX}: playground example cxx flags:${CMAKE_CXX_FLAGS}")
-add_executable(play-example ${PLAYGROUND_EXAMPLE_SOURCE})
-
-target_link_libraries(
-    play-example
-    qemucsd_arguments
-    ${${PRJ_PRX}_PLAY_LIBRARIES_PACK}
-)
-
-qemucsd_target_postprocess(play-example)
 
 # ------------------------ #
 # Playground fuse-hooks-hl #
