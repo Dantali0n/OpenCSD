@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_SUITE(Test_Arguments)
 
 		std::string reference = "spdk_env_opts";
 
-		BOOST_CHECK(reference.compare(opts.spdk.name) == 0);
+		BOOST_CHECK(reference.compare(opts._name->c_str()) == 0);
 	}
 
     BOOST_AUTO_TEST_CASE(Test_Arguments_Jit_true) {

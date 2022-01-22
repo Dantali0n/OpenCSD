@@ -59,6 +59,7 @@ void segfault_handler(int signal, siginfo_t *si, void *arg) {
 int main(int argc, char* argv[]) {
 	struct bpf_zone_int_filter *skel = nullptr;
 	qemucsd::arguments::options opts;
+    struct spdk_env_opts spdk_opts;
 	struct qemucsd::spdk_init::ns_entry entry = {0};
 
 	// Setup segfault handler to print backward stacktraces
@@ -76,7 +77,8 @@ int main(int argc, char* argv[]) {
 
 		// Initialize SPDK with the first ZNS supporting zone found
         auto start = std::chrono::high_resolution_clock::now();
-		if(qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)
+		if(qemucsd::spdk_init::initialize_zns_spdk(
+                &opts, &spdk_opts, &entry) < 0)
 			return EXIT_FAILURE;
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);

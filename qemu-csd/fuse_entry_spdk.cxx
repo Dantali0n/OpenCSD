@@ -63,6 +63,7 @@ int main(int argc, char* argv[]) {
 
     const struct fuse_operations* ops;
     qemucsd::arguments::options opts;
+    struct spdk_env_opts spdk_opts;
 
     struct qemucsd::spdk_init::ns_entry entry = {0};
 
@@ -89,7 +90,8 @@ int main(int argc, char* argv[]) {
 
         qemucsd::arguments::parse_args(qemu_argc, qemu_argv, &opts);
 
-        if (qemucsd::spdk_init::initialize_zns_spdk(&opts, &entry) < 0)
+        if (qemucsd::spdk_init::initialize_zns_spdk(
+                &opts, &spdk_opts, &entry) < 0)
             return EXIT_FAILURE;
 
         NvmeZnsSpdkBackend nvme_spdk(&entry);
@@ -106,7 +108,7 @@ int main(int argc, char* argv[]) {
         }
 
         return qemucsd::fuse_lfs::FuseLFSWrapper::initialize(
-            fuse_argc, fuse_argv, &nvme_spdk);
+            fuse_argc, fuse_argv, &opts, &nvme_spdk);
     }
     catch(...) {
 #ifdef QEMUCSD_DEBUG

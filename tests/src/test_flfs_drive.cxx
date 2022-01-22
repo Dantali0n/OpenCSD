@@ -42,10 +42,12 @@
 BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
     using qemucsd::fuse_lfs::FuseLFS;
+    static qemucsd::arguments::options opts = {};
 
     class TestFuseLFS : public FuseLFS {
     public:
-        TestFuseLFS(qemucsd::nvme_zns::NvmeZnsBackend* nvme) : FuseLFS(nvme) {
+        TestFuseLFS(qemucsd::nvme_zns::NvmeZnsBackend* nvme) :
+            FuseLFS(&opts, nvme) {
 
         }
 
