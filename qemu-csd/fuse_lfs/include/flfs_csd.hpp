@@ -47,10 +47,10 @@ namespace qemucsd::fuse_lfs {
         FuseLFSCSD(arguments::options *options, nvme_zns::NvmeZnsBackend *nvme);
         virtual ~FuseLFSCSD();
 
-        virtual int read_csd(fuse_req_t req, csd_unique_t *context, size_t size,
-            off_t off, struct fuse_file_info *fi) = 0;
+        virtual void read_csd(fuse_req_t req, csd_unique_t *context,
+            size_t size, off_t off, struct fuse_file_info *fi) = 0;
 
-        virtual int write_csd(fuse_req_t req, csd_unique_t *context,
+        virtual void write_csd(fuse_req_t req, csd_unique_t *context,
             const char *buf, size_t size, off_t off,
             struct write_context *wr_context, struct fuse_file_info *fi) = 0;
     };

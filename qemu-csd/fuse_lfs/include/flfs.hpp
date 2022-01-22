@@ -361,11 +361,15 @@ namespace qemucsd::fuse_lfs {
         void read_regular(fuse_req_t req, struct stat *stbuf,
             size_t size, off_t off, struct fuse_file_info *fi);
 
-        void read_snapshot(fuse_req_t req, csd_unique_t *context, size_t size,
-            off_t off, struct fuse_file_info *fi);
+        int read_snapshot(csd_unique_t *context, size_t size,
+            off_t off, void *buffer, struct snapshot *snap);
 
-        int read_csd(fuse_req_t req, csd_unique_t *context, size_t size,
+        /** CSD interface method */
+
+        void read_csd(fuse_req_t req, csd_unique_t *context, size_t size,
             off_t off, struct fuse_file_info *fi) override;
+
+        /** Write interface methods */
 
         int write_sector(size_t size, off_t offset, uint64_t cur_lba,
              const char *data, uint64_t &result_lba) override;
@@ -378,10 +382,14 @@ namespace qemucsd::fuse_lfs {
             struct write_context *wr_context,
             struct fuse_file_info *fi) override;
 
-        int write_csd(fuse_req_t req, csd_unique_t *context,
+        /** CSD interface method */
+
+        void write_csd(fuse_req_t req, csd_unique_t *context,
             const char *buf, size_t size, off_t off,
             struct write_context *wr_context,
             struct fuse_file_info *fi) override;
+
+        // TODO(Dantali0n): Move xattr methods to separate interface
 
         void get_csd_xattr(fuse_req_t req, fuse_ino_t ino, size_t size);
 

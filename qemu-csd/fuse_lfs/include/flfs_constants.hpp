@@ -85,12 +85,6 @@ namespace qemucsd::fuse_lfs {
      */
     #define FLFS_FAKE_PERMS
 
-    /**
-     * Overwrite regular read and write access with snapshot content for
-     * csd_unique contexts with a kernel enabled.
-     */
-    #define FLFS_SNAPSHOT_REGULAR_ACCESS
-
     #define flfs_min(x, y) ((x) < (y) ? (x) : (y))
 
     enum flfs_return_codes {

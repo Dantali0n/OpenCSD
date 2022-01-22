@@ -2046,20 +2046,12 @@ namespace qemucsd::fuse_lfs {
         free(blk);
     }
 
-    void FuseLFS::read_snapshot(fuse_req_t req, csd_unique_t *context,
-                                size_t size, off_t off, struct fuse_file_info *fi)
+    int FuseLFS::read_snapshot(csd_unique_t *context, size_t size, off_t off,
+        void *buffer, struct snapshot *snap)
     {
-        struct snapshot snap;
-
-        if(get_snapshot(context, &snap, SNAP_FILE) != FLFS_RET_NONE) {
-            fuse_reply_err(req, EIO);
-            return;
-        }
-
         // Inode is of size 0
-        if(snap.inode_data.first.size == 0) {
-            reply_buf_limited(req, nullptr, 0, off, size);
-            return;
+        if(snap->inode_data.first.size == 0) {
+            return FLFS_RET_NONE;
         }
 
         // Variables corresponding to initial data_block
@@ -2067,14 +2059,14 @@ namespace qemucsd::fuse_lfs {
         uint64_t db_num_lbas = off / SECTOR_SIZE;
         compute_data_block_num(db_num_lbas, db_block_num);
 
-        struct data_block *blk = &snap.data_blocks.at(db_block_num);
+        struct data_block *blk = &snap->data_blocks.at(db_block_num);
 
-        uint64_t data_limit = flfs_min(size, snap.inode_data.first.size);
+        uint64_t data_limit = flfs_min(size, snap->inode_data.first.size);
         // Initial lba index in the data_block
         uint64_t db_lba_index = db_num_lbas % DATA_BLK_LBA_NUM;
 
         // Round buffer size to nearest higher multiple of SECTOR_SIZE
-        auto buffer = (uint8_t*) malloc(
+        auto internal_buffer = (uint8_t*) malloc(
             data_limit + (SECTOR_SIZE-1) & (-SECTOR_SIZE));
 
         // Loop through the data until the buffer is filled to the required size
@@ -2086,7 +2078,7 @@ namespace qemucsd::fuse_lfs {
             if(db_lba_index >= DATA_BLK_LBA_NUM) {
                 db_lba_index = 0;
                 db_block_num += 1;
-                blk = &snap.data_blocks.at(db_block_num);
+                blk = &snap->data_blocks.at(db_block_num);
             }
 
             // Convert the data_block lba at the current index to a position
@@ -2095,27 +2087,28 @@ namespace qemucsd::fuse_lfs {
             // Read the data from this position into the buffer given the
             // currently accumulated offset
             if(nvme->read(data_pos.zone, data_pos.sector, data_pos.offset,
-                          buffer + buffer_offset, SECTOR_SIZE) != 0)
+                          internal_buffer + buffer_offset, SECTOR_SIZE) != 0)
             {
-                fuse_ino_t inode = snap.inode_data.first.inode;
+                fuse_ino_t inode = snap->inode_data.first.inode;
                 uint64_t data_lba = blk->data_lbas[db_lba_index];
                 output->error(
                     "Failed to retrieve data at at data_block index ",
                     db_lba_index, " with lba ", data_lba, " for inode ",
                     inode);
-                fuse_reply_err(req, EIO);
                 free(buffer);
                 free(blk);
-                return;
+                return FLFS_RET_ERR;
             }
 
             buffer_offset += SECTOR_SIZE;
             db_lba_index += 1;
         }
 
-        reply_buf_limited(req, (const char*)buffer, data_limit, off, size);
+        memcpy(buffer, internal_buffer, flfs_min(data_limit, size));
 
-        free(buffer);
+        free(internal_buffer);
+
+        return FLFS_RET_NONE;
     }
 
     /**
@@ -2579,7 +2572,7 @@ namespace qemucsd::fuse_lfs {
 
         csd_unique_t csd_context = {ino, context->pid};
         if(has_snapshot(&csd_context, SNAP_READ))
-            read_snapshot(req, &csd_context, size, offset, fi);
+            read_csd(req, &csd_context, size, offset, fi);
         else
             read_regular(req, &e.attr, size, offset, fi);
     }
@@ -2637,7 +2630,7 @@ namespace qemucsd::fuse_lfs {
 
         csd_unique_t csd_context = {ino, context->pid};
         if(has_snapshot(&csd_context, SNAP_WRITE))
-            write_snapshot(req, &csd_context, buffer, size, off, &wr_context, fi);
+            write_csd(req, &csd_context, buffer, size, off, &wr_context, fi);
         else
             write_regular(req, ino, buffer, size, off, &wr_context, fi);
     }

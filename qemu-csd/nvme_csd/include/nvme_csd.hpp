@@ -70,6 +70,8 @@ namespace qemucsd::nvme_csd {
         size_t vm_mem_size = 0;
 		void *vm_mem = nullptr;
 
+        void initialize();
+
 		static void bpf_return_data(void *data, uint64_t size);
 
 		static int bpf_read(uint64_t zone, uint64_t sector, uint64_t offset,

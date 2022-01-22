@@ -38,18 +38,7 @@ namespace qemucsd::nvme_csd {
 
 		this->nvme = nvme;
 
-		/** uBPF Initialization */
-		this->vm = ubpf_create();
-		this->vm_mem = malloc(this->vm_mem_size);
-
 		nvme_instance = this;
-
-		ubpf_register(vm, 1, "bpf_return_data", (void*)bpf_return_data);
-		ubpf_register(vm, 2, "bpf_read", (void*)bpf_read);
-        ubpf_register(vm, 3, "bpf_write", (void*)bpf_write);
-		ubpf_register(vm, 4, "bpf_get_sector_size", (void*)bpf_get_sector_size);
-        ubpf_register(vm, 5, "bpf_get_zone_capacity", (void*)bpf_get_zone_capacity);
-		ubpf_register(vm, 6, "bpf_get_mem_info", (void*)bpf_get_mem_info);
 	}
 
 	NvmeCsd::~NvmeCsd() {
@@ -57,8 +46,21 @@ namespace qemucsd::nvme_csd {
 		if(vm_mem != nullptr) free(vm_mem);
 	}
 
+    void NvmeCsd::initialize() {
+        /** uBPF Initialization */
+        this->vm = ubpf_create();
+        this->vm_mem = malloc(this->vm_mem_size);
+
+        ubpf_register(vm, 1, "bpf_return_data", (void*)bpf_return_data);
+        ubpf_register(vm, 2, "bpf_read", (void*)bpf_read);
+        ubpf_register(vm, 3, "bpf_write", (void*)bpf_write);
+        ubpf_register(vm, 4, "bpf_get_sector_size", (void*)bpf_get_sector_size);
+        ubpf_register(vm, 5, "bpf_get_zone_capacity", (void*)bpf_get_zone_capacity);
+        ubpf_register(vm, 6, "bpf_get_mem_info", (void*)bpf_get_mem_info);
+    }
+
 	uint64_t NvmeCsd::nvm_cmd_bpf_run(void *bpf_elf, uint64_t bpf_elf_size) {
-		char *msg_buf = (char*) malloc(256);
+		char *msg_buf = nullptr;
 		if(ubpf_load_elf(this->vm, bpf_elf, bpf_elf_size, &msg_buf) < 0) {
 			std::cerr << msg_buf << std::endl;
 			free(msg_buf);
@@ -75,7 +77,7 @@ namespace qemucsd::nvme_csd {
             auto stop = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
             std::cout << "Jit compilation: " << duration.count() << "us." << std::endl;
-            if (exec(this->vm_mem, this->vm_mem_size) < 0)
+            if ((int)exec(this->vm_mem, this->vm_mem_size) < 0)
                 return -1;
 
             return return_size;
