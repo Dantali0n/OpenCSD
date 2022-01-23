@@ -44,9 +44,22 @@ namespace qemucsd::fuse_lfs {
         // 1 is root inode.
         this->ino_ptr = 0;
 
-        this->path_inode_map = new path_inode_map_t();
+        // Initialize the lock attributes
+        if(pthread_rwlockattr_init(&gl_attr) != 0) {
+            output.error("Failed to initialize global lock attributes");
+        }
+        // Disable support for recursive reads but enable writer preference
+        if(pthread_rwlockattr_setkind_np(&gl_attr,
+            PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP) != 0)
+        {
+            output.error("Invalid arguments for configuring global lock");
+        }
+        // Initialize the global lock
+        if(pthread_rwlock_init(&gl, &gl_attr) != 0) {
+            output.error("Failed to initialize global lock");
+        }
 
-        this->inode_lba_map = new inode_lba_map_t();
+        this->path_inode_map = new path_inode_map_t();
 
         this->nat_update_set = new nat_update_set_t();
 
@@ -58,14 +71,27 @@ namespace qemucsd::fuse_lfs {
     }
 
     FuseLFS::~FuseLFS() {
+        if(pthread_rwlockattr_destroy(&gl_attr) != 0) {
+            output.error("Failed to destroy global lock attributes");
+        }
+
+        if(pthread_rwlock_destroy(&gl)!= 0) {
+            output.error("Failed to destroy global lock");
+        }
+
         delete this->open_inode_vect;
         delete this->inode_entries;
         delete this->data_blocks;
         delete this->nat_update_set;
-        delete this->inode_lba_map;
         delete this->path_inode_map;
     }
 
+    /**
+     * Start running FUSE, process execution while inside this function is
+     * referred to as 'initialization'. FluffleFS is still running as single
+     * thread during this stage.
+     * @return 0 upon success, -1 upon failure
+     */
     int FuseLFS::run(int argc, char* argv[],
         const struct fuse_lowlevel_ops *operations)
     {
@@ -77,21 +103,6 @@ namespace qemucsd::fuse_lfs {
         struct checkpoint_block cblock = {0};
 
         int ret = -1;
-
-        // Check sequential performance mode
-        // TODO(Dantali0n): Remove this once concurrency is supported
-//        bool safe = false;
-//        for(int i = 0; i < argc; i++) {
-//            if(strcmp(FUSE_SEQUENTIAL_PARAM, argv[i]) == 0) {
-//                safe = true;
-//                break;
-//            }
-//        }
-//        if(!safe) {
-//            output->error("requires -s sequential mode\n");
-//            ret = -1;
-//            goto err_out1;
-//        }
 
         if (fuse_parse_cmdline(&args, &opts) != 0) {
             ret = -1;
@@ -187,11 +198,11 @@ namespace qemucsd::fuse_lfs {
 
         /** Now that random_pos is known reconstruct inode lba map */
         // TODO(Dantali0n): Make this also reconstruct SIT blocks
-        read_random_zone(inode_lba_map);
+        read_random_zone(&inode_lba_map);
 
         /** Find highest free inode number and keep track */
         ino_ptr = 2;
-        for(auto &ino : *inode_lba_map) {
+        for(auto &ino : inode_lba_map) {
             if(ino.first > ino_ptr) ino_ptr = ino.first + 1;
         }
 
@@ -247,6 +258,7 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Compute the position of data from a Logical Block Address (LBA).
+     * @threadsafety: thread safe
      */
     void FuseLFS::lba_to_position(
         uint64_t lba, struct data_position &position) const
@@ -257,6 +269,7 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Compute the Logical Block Address (LBA) from an position.
+     * @threadsafety: thread safe
      */
     void FuseLFS::position_to_lba(
         struct data_position position, uint64_t &lba)
@@ -265,28 +278,9 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
-     * Update an inode_lba_map_t with the provided lba for the vector of inodes
-     */
-    void FuseLFS::update_inode_lba_map(std::vector<fuse_ino_t> *inodes,
-        uint64_t lba, inode_lba_map_t *lba_map)
-    {
-        for(auto &ino : *inodes) {
-            #ifdef QEMUCSD_DEBUG
-            // Inode 0 is regarded as invalid
-            // Inode 1 is hardcoded for root and should not be updated
-            if(ino < 2) {
-                output.error("Invalid attempt to insert inode ", ino, " into ",
-                             "a inode_lba_map_t");
-                continue;
-            }
-            #endif
-            lba_map->insert_or_assign(ino, lba);
-        }
-    }
-
-    /**
      * Output information from the current fuse_file_info struct to stdout
      * using output level debug.
+     * @threadsafety: thread safe
      */
     void FuseLFS::output_fi(const char *name, struct fuse_file_info *fi) {
         output.debug(
@@ -383,6 +377,7 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Create the filesystem and bring it into the initial state
+     * @threadsafety: single threaded, only called during initialization
      * @return 0 upon success, < 0 upon failure
      */
     int FuseLFS::mkfs() {
@@ -482,6 +477,7 @@ namespace qemucsd::fuse_lfs {
     /**
      * Fetch the known location of the current checkpoint block or call
      * get_checkpointblock_locate.
+     * @threadsafety: single threaded
      */
     int FuseLFS::get_checkpointblock(struct checkpoint_block &cblock) {
         if(!cblock_pos.valid())
@@ -501,6 +497,7 @@ namespace qemucsd::fuse_lfs {
      * Determine the location of the most up to date checkpoint block by
      * scanning the checkpoint zones and return its data. Must set cblock_pos
      * member variable to speed up future lookups.
+     * @threadsafety: single threaded
      */
     int FuseLFS::get_checkpointblock_locate(struct checkpoint_block &cblock) {
         struct data_position tmp_cblock_pos = {0};
@@ -571,6 +568,7 @@ namespace qemucsd::fuse_lfs {
      * unreadable (unwritten) sector from random_pos with overflow from
      * RANDZ_BUFF_POS back to RANDZ_POS (The random zone is interpreted as
      * linearly contiguous from random_pos up until random_pos).
+     * @threadsafety: single thread, only called during initialization
      * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure and
      *         FLFS_RET_RANDZ_FULL if the random zone is full
      */
@@ -629,6 +627,7 @@ namespace qemucsd::fuse_lfs {
     /**
      * Compute the distance between the data_positions in the random zone. This
      * zone behaves as contiguous with overflow / wrap around at RANDZ_BUFF_POS
+     * @threadsafety: thread safe
      */
     void FuseLFS::random_zone_distance(
         struct data_position lhs, struct data_position rhs, uint32_t &distance)
@@ -640,6 +639,8 @@ namespace qemucsd::fuse_lfs {
     /**
      * Read the entire random zone and reconstruct the inode_lba map. Can only
      * be called after random_pos has been restored from checkpoint blocks.
+     * This function is only performed during initialization.
+     * @threadsafety: single threaded
      * TODO(Dantali0n): Process and reconstruct SIT map.
      */
     void FuseLFS::read_random_zone(inode_lba_map_t *inode_map) {
@@ -662,8 +663,16 @@ namespace qemucsd::fuse_lfs {
                         break;
 
                     uint64_t inode = nat_blk->inode[i];
-                    uint64_t lba = nat_blk->lba[i];
-                    inode_map->insert_or_assign(inode, lba);
+
+                    struct lba_inode cur_lba;
+
+                    auto it = inode_map->find(inode);
+                    if(it != inode_map->end())
+                        cur_lba = it->second;
+
+                    cur_lba.lba = nat_blk->lba[i];
+
+                    inode_map->insert_or_assign(inode, cur_lba);
                 }
             }
             // TODO(Dantali0n): Process SIT blocks.
@@ -686,14 +695,23 @@ namespace qemucsd::fuse_lfs {
     /**
      * Fill a nat_block until it is full removing any appendices from nat_set or
      * when nat_set is empty.
+     * @threadsafety: Single Threaded, must have acquired flfs_wrap global lock
      */
     void FuseLFS::fill_nat_block(
         nat_update_set_t *nat_set, struct nat_block &nt_blk)
     {
+        struct lba_inode cur_lba;
         uint16_t i = 0;
+
         for(auto &nt : *nat_set) {
             nt_blk.inode[i] = nt;
-            nt_blk.lba[i] = inode_lba_map->at(nt);
+
+            if(get_inode_lba(nt, &cur_lba) != FLFS_RET_NONE) {
+                output.fatal("Inode in nat_set does not exist in lba_map!");
+                continue;
+            }
+
+            nt_blk.lba[i] = cur_lba.lba;
 
             i++;
 
@@ -788,6 +806,7 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Perform a flush to drive of all changes that happened to nat blocks
+     * @threadsafety: Single Threaded, must have acquired flfs_wrap global lock
      * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure,
      *         FLFS_RET_RANDZ_FULL when random zone full.
      */
@@ -961,6 +980,7 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Rewrite the entirely full random zone
+     * @threadsafety: Single Threaded, must have acquired flfs_wrap global lock
      * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure,
      *         FLFS_RET_RANDZ_INSUFFICIENT if no data could be freed.
      */
@@ -968,7 +988,7 @@ namespace qemucsd::fuse_lfs {
         uint64_t zones[N_RAND_BUFF_ZONES] = {0};
 
         // Create a copy of all inodes and remove every encountered one.
-        inode_lba_map_t inode_lba_copy = *inode_lba_map;
+        inode_lba_map_t inode_lba_copy = inode_lba_map;
 
         uint32_t steps = (RANDZ_BUFF_POS.zone - RANDZ_POS.zone) /
             N_RAND_BUFF_ZONES;
@@ -1167,6 +1187,7 @@ namespace qemucsd::fuse_lfs {
     /**
      * Find and populate the inode_entry_t (inode entry + name) for a given
      * inode.
+     * @threadsafety: thread safe
      * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon error or
      *         FLFS_RET_ENOENT if the inode_entry could not be found
      */
@@ -1174,8 +1195,9 @@ namespace qemucsd::fuse_lfs {
         struct data_position ino_pos = {0};
 
         // Verify the inode exists, inode_lba_map should always be complete
-        auto lookup = inode_lba_map->find(ino);
-        if(lookup == inode_lba_map->end())
+
+        struct lba_inode cur_lba;
+        if(get_inode_lba(ino, &cur_lba) != FLFS_RET_NONE)
             return FLFS_RET_ENOENT;
 
         // Check if inode information still unflushed in inode_entries
@@ -1188,7 +1210,7 @@ namespace qemucsd::fuse_lfs {
 
         // Read the inode_block from the drive
         auto *ino_blk_ptr = (uint8_t*) malloc(sizeof(inode_block));
-        lba_to_position(lookup->second, ino_pos);
+        lba_to_position(cur_lba.lba, ino_pos);
         if(nvme->read(ino_pos.zone, ino_pos.sector, ino_pos.offset, ino_blk_ptr,
                       sizeof(inode_block)) != 0) {
             free(ino_blk_ptr);
@@ -1226,10 +1248,8 @@ namespace qemucsd::fuse_lfs {
     /**
      * Create a new inode entry and add this to inode_entries. Increment ino_ptr
      * accordingly.
-     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon error,
-     *         FLFS_RET_MAX_INO if no more inodes available and
-     *         FLFS_RET_LOGZ_FULL if the log zone is full
-     *         (LOGZ_FULL only when FLFS_INODE_FLUSH_IMMEDIATE is defined).
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon error and
+     *         FLFS_RET_MAX_INO if no more inodes available
      */
     int FuseLFS::create_inode(fuse_ino_t parent, const char *name,
         enum inode_type type, fuse_ino_t &ino)
@@ -1259,7 +1279,9 @@ namespace qemucsd::fuse_lfs {
             std::make_pair(entry, std::string(name)));
 
         uint64_t entry_inode = entry.inode;
-        inode_lba_map->insert(std::make_pair(entry_inode, 0));
+        struct lba_inode cur_lba =
+            {entry.parent, 0, std::make_shared<std::mutex>()};
+        update_inode_lba(entry.inode, &cur_lba);
 
         // Newly created inodes are added to path_inode_map. Normally this is
         // handled by lookup only when a file is looked up and nlookup becomes
@@ -1274,19 +1296,13 @@ namespace qemucsd::fuse_lfs {
         // Communicate new inode information to caller
         ino = entry.inode;
 
-        #ifdef FLFS_INODE_FLUSH_IMMEDIATE
-        return flush_inodes(true);
-        #endif
-
         return FLFS_RET_NONE;
     }
 
     /**
      * Update any given inode by adding or overriding the new data to
      * inode_entries
-     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon error and
-     *         FLFS_RET_LOGZ_FULL if the log zone is full
-     *         (LOGZ_FULL only when FLFS_INODE_FLUSH_IMMEDIATE is defined).
+     * @return FLFS_RET_NONE upon success or FLFS_RET_ERR upon error
      */
     int FuseLFS::update_inode_entry_t(inode_entry_t *entry) {
 
@@ -1294,10 +1310,6 @@ namespace qemucsd::fuse_lfs {
         // flushed to drive yet.
         inode_entries->insert_or_assign(
             entry->first.inode, std::make_pair(entry->first, entry->second));
-
-        #ifdef FLFS_INODE_FLUSH_IMMEDIATE
-        return flush_inodes(true);
-        #endif
 
         return FLFS_RET_NONE;
     }
@@ -1470,7 +1482,7 @@ namespace qemucsd::fuse_lfs {
 
             if (result == FLFS_RET_NONE) {
                 erase_inode_entries(&inodes, inode_entries);
-                update_inode_lba_map(&inodes, res_lba, inode_lba_map);
+                update_inode_lba_map(&inodes, res_lba);
                 add_nat_update_set_entries(&inodes);
             }
             else return result;
@@ -1496,7 +1508,7 @@ namespace qemucsd::fuse_lfs {
             result = log_append(&blk, sizeof(inode_block), res_lba);
             if(result == FLFS_RET_NONE) {
                 erase_inode_entries(&inodes, inode_entries);
-                update_inode_lba_map(&inodes, res_lba, inode_lba_map);
+                update_inode_lba_map(&inodes, res_lba);
                 add_nat_update_set_entries(&inodes);
             }
             else return result;
@@ -1709,10 +1721,8 @@ namespace qemucsd::fuse_lfs {
      * Truncate the inode changing its size to what was requested. Can be
      * used to increase and decrease file size.
      * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure,
-     *         FLFS_RET_ENOENT if the inode could not be found,
-     *         FLFS_RET_EISDIR if the inode is a directory and
-     *         FLFS_RET_LOGZ_FULL if the log zone is full but only when
-     *         FLFS_INODE_FLUSH_IMMEDIATE is defined.
+     *         FLFS_RET_ENOENT if the inode could not be found and
+     *         FLFS_RET_EISDIR if the inode is a directory
      */
     int FuseLFS::ftruncate(fuse_ino_t ino, size_t size) {
         inode_entry_t entry;
@@ -1853,6 +1863,7 @@ namespace qemucsd::fuse_lfs {
             }
         }
 
+        pthread_rwlock_unlock(&gl);
         getattr(req, ino, fi);
     }
 
@@ -2203,6 +2214,12 @@ namespace qemucsd::fuse_lfs {
         conn->want |= FUSE_CAP_AUTO_INVAL_DATA;
     }
 
+    /**
+     * This function is called during unmounting, this stage is otherwise known
+     * as teardown. The process returns to single threaded operation before
+     * calling this method.
+      @threadsafety: single threaded, only run when FUSE has closed all workers
+     */
     void FuseLFS::destroy(void *userdata) {
         output.info("Tearing down filesystem");
 
@@ -2220,13 +2237,17 @@ namespace qemucsd::fuse_lfs {
      * TODO(Dantali0n): Any inode accessed with lookup should be added to
      *                  path_inode_map. Subsequently, if nlookup reaches 0 it
      *                  should be removed.
+     * @threadsafety: thread safe, strongly synchronized with other FUSE calls
      */
     void FuseLFS::lookup(fuse_req_t req, fuse_ino_t parent, const char *name) {
         struct fuse_entry_param e = {0};
 
+        pthread_rwlock_wrlock(&gl);
+
         // Check if parent exists
         if(ino_stat(parent, &e.attr) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENOENT);
+            pthread_rwlock_unlock(&gl);
             return;
         }
 
@@ -2236,6 +2257,7 @@ namespace qemucsd::fuse_lfs {
         auto result = path_inode_map->find(parent)->second->find(name);
         if(result == path_inode_map->find(parent)->second->end()) {
             fuse_reply_err(req, ENOENT);
+            pthread_rwlock_unlock(&gl);
             return;
         }
 
@@ -2248,44 +2270,83 @@ namespace qemucsd::fuse_lfs {
             lookup_csd(req, &context);
         else
             lookup_regular(req, result->second);
+
+        pthread_rwlock_unlock(&gl);
     }
 
+    /**
+     *
+     * @threadsafety: thread safe
+     */
     void FuseLFS::forget(fuse_req_t req, fuse_ino_t ino, uint64_t nlookup) {
         inode_nlookup_decrement(ino, nlookup);
         fuse_reply_none(req);
     }
 
+    /**
+     *
+     * @threadsafety: thread safe, strongly synchronized with other FUSE calls
+     */
     void FuseLFS::getattr(fuse_req_t req, fuse_ino_t ino,
         struct fuse_file_info *fi)
     {
+        pthread_rwlock_wrlock(&gl);
+
         csd_unique_t context = std::make_pair(ino, fuse_req_ctx(req)->pid);
         if(has_snapshot(&context, SNAP_FILE))
             getattr_csd(req, &context, fi);
         else
             getattr_regular(req, ino, fi);
+
+        pthread_rwlock_unlock(&gl);
     }
 
+    /**
+     *
+     * @threadsafety: thread safe, strongly synchronized with other FUSE calls
+     */
     void FuseLFS::setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
-        int to_set, struct fuse_file_info *fi) {
+        int to_set, struct fuse_file_info *fi)
+    {
+        pthread_rwlock_wrlock(&gl);
+
         csd_unique_t context = std::make_pair(ino, fuse_req_ctx(req)->pid);
         if(has_snapshot(&context, SNAP_FILE))
             setattr_csd(req, &context, attr, to_set, fi);
-        else
+        else {
             setattr_regular(req, ino, attr, to_set, fi);
+
+            // setattr_regular calls getattr which will release gl
+            return;
+        }
+
+        pthread_rwlock_unlock(&gl);
     }
 
+    /**
+     *
+     * @threadsafety: thread safe, strongly synchronized with other FUSE calls
+     */
     void FuseLFS::readdir(fuse_req_t req, fuse_ino_t ino, size_t size,
                           off_t offset, struct fuse_file_info *fi)
     {
         struct stat stbuf = {0};
 
+        pthread_rwlock_wrlock(&gl);
+
         // Check if the inode exists
-        if (ino_stat(ino, &stbuf) == FLFS_RET_ENOENT)
+        if (ino_stat(ino, &stbuf) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENOENT);
+            pthread_rwlock_unlock(&gl);
+            return;
+        }
 
         // Check if it is a directory
-        if(!(stbuf.st_mode & S_IFDIR))
+        if(!(stbuf.st_mode & S_IFDIR)) {
             fuse_reply_err(req, ENOTDIR);
+            pthread_rwlock_unlock(&gl);
+            return;
+        }
 
         struct dir_buf buf = {nullptr, 0};
         dir_buf_add(req, &buf, ".", ino);
@@ -2298,22 +2359,32 @@ namespace qemucsd::fuse_lfs {
 
         reply_buf_limited(req, buf.p, buf.size, offset, size);
         free(buf.p);
+
+        pthread_rwlock_unlock(&gl);
     }
 
+    /**
+     *
+     * @threadsafety: thread safe, strongly synchronized with other FUSE calls
+     */
     void FuseLFS::open(fuse_req_t req, fuse_ino_t ino,
                       struct fuse_file_info *fi)
     {
         struct stat stbuf = {0};
 
+        pthread_rwlock_wrlock(&gl);
+
         // Check if the inode exists
         if(ino_stat(ino, &stbuf) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENONET);
+            pthread_rwlock_unlock(&gl);
             return;
         }
 
         // Check if directory
         if (stbuf.st_mode & S_IFDIR) {
             fuse_reply_err(req, EISDIR);
+            pthread_rwlock_unlock(&gl);
             return;
         }
 
@@ -2321,6 +2392,7 @@ namespace qemucsd::fuse_lfs {
         int flag_result = check_flags(fi->flags);
         if(flag_result != 0) {
             fuse_reply_err(req, flag_result);
+            pthread_rwlock_unlock(&gl);
             return;
         }
 
@@ -2331,25 +2403,37 @@ namespace qemucsd::fuse_lfs {
         create_file_handle(req, ino, fi);
 
         fuse_reply_open(req, fi);
+
+        pthread_rwlock_unlock(&gl);
     }
 
+    /**
+     *
+     * @threadsafety: thread safe, strongly synchronized with other FUSE calls
+     */
     void FuseLFS::release(
         fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
     {
         struct open_file_entry open_entry = {0};
         struct fuse_entry_param e = {0};
 
+        pthread_rwlock_wrlock(&gl);
+
         #ifdef FLFS_DBG_FI
         output_fi("release", fi);
         #endif
 
         // Check that inode exists and retrieve its basic information
-        if(ino_stat(ino, &e.attr) == FLFS_RET_ENOENT)
+        if(ino_stat(ino, &e.attr) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENOENT);
+            pthread_rwlock_unlock(&gl);
+            return;
+        }
 
         // If directory release is finished
         if(e.attr.st_mode & S_IFDIR) {
             fuse_reply_err(req, 0);
+            pthread_rwlock_unlock(&gl);
             return;
         }
 
@@ -2358,6 +2442,7 @@ namespace qemucsd::fuse_lfs {
         // FUSE context to retrieve pid.
         if(get_file_handle(fi->fh, &open_entry) != FLFS_RET_NONE) {
             fuse_reply_err(req, EIO);
+            pthread_rwlock_unlock(&gl);
             return;
         }
 
@@ -2373,6 +2458,7 @@ namespace qemucsd::fuse_lfs {
             output.warning("File with inode ", open_entry.ino, " released "
                 "while opened multiple times by process ", open_entry.pid);
             fuse_reply_err(req, 0);
+            pthread_rwlock_unlock(&gl);
             return;
         }
 
@@ -2380,13 +2466,21 @@ namespace qemucsd::fuse_lfs {
         delete_snapshot(&context);
 
         fuse_reply_err(req, 0);
+
+        pthread_rwlock_unlock(&gl);
     }
 
+    /**
+     *
+     * @threadsafety: thread safe, strongly synchronized with other FUSE calls
+     */
     void FuseLFS::create(fuse_req_t req, fuse_ino_t parent, const char *name,
                          mode_t mode, struct fuse_file_info *fi)
     {
         struct fuse_entry_param e = {0};
         e.ino = parent;
+
+        pthread_rwlock_wrlock(&gl);
 
         #ifdef FLFS_DBG_FI
         if(fi)
@@ -2397,17 +2491,25 @@ namespace qemucsd::fuse_lfs {
         // inode_entry size.
         if(strlen(name) > MAX_NAME_SIZE) {
             fuse_reply_err(req, ENAMETOOLONG);
+            pthread_rwlock_unlock(&gl);
+            return;
         }
 
         // Verify parent exists
-        if(ino_stat(e.ino, &e.attr) == FLFS_RET_ENOENT)
+        if(ino_stat(e.ino, &e.attr) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENOENT);
+            pthread_rwlock_unlock(&gl);
+            return;
+        }
 
         // Verify the parent is a directory, this check is already performed by
         // Linux ABI
         #ifdef QEMUCSD_DEBUG
-        if(e.attr.st_mode & S_IFREG)
+        if(e.attr.st_mode & S_IFREG) {
             fuse_reply_err(req, ENOTDIR);
+            pthread_rwlock_unlock(&gl);
+            return;
+        }
         #endif
 
         // Verify flags are sane and operations are supported if fi is set
@@ -2415,6 +2517,7 @@ namespace qemucsd::fuse_lfs {
             int flag_result = check_flags(fi->flags);
             if (flag_result != 0) {
                 fuse_reply_err(req, flag_result);
+                pthread_rwlock_unlock(&gl);
                 return;
             }
         }
@@ -2423,7 +2526,11 @@ namespace qemucsd::fuse_lfs {
         // TODO(Dantali0n): Fix this once path_inode_map becomes partial
         if(path_inode_map->find(parent)->second->find(name) !=
             path_inode_map->find(parent)->second->end())
+        {
             fuse_reply_err(req, EEXIST);
+            pthread_rwlock_unlock(&gl);
+            return;
+        }
 
         // Clear parent data from e
         memset(&e, 0, sizeof(fuse_entry_param));
@@ -2449,8 +2556,15 @@ namespace qemucsd::fuse_lfs {
             // in FUSE.
             fuse_reply_err(req, EOPNOTSUPP);
         }
+
+        pthread_rwlock_unlock(&gl);
     }
 
+    /**
+     *
+     * @threadsafety: thread safe, strongly synchronized with other FUSE calls.
+     *                locking managed through create
+     */
     void FuseLFS::mkdir(fuse_req_t req, fuse_ino_t parent, const char *name,
         mode_t mode)
     {
@@ -2464,19 +2578,34 @@ namespace qemucsd::fuse_lfs {
         create(req, parent, name, mode, nullptr);
     }
 
+    /**
+     *
+     * @threadsafety: thread safe, weakly synchronized with other FUSE calls
+     */
     void FuseLFS::read(fuse_req_t req, fuse_ino_t ino, size_t size,
         off_t offset, struct fuse_file_info *fi)
     {
         struct fuse_entry_param e = {0};
         const fuse_ctx* context = fuse_req_ctx(req);
 
+//        pthread_rwlock_rdlock(&gl);
+        pthread_rwlock_wrlock(&gl);
+
         #ifdef FLFS_DBG_FI
         output_fi("read", fi);
         #endif
 
+        // Check if inode exists and lock
+        if(lock_inode(ino) != FLFS_RET_NONE) {
+            fuse_reply_err(req, ENOENT);
+            pthread_rwlock_unlock(&gl);
+            return;
+        }
+
         // Check if inode exists
         if(ino_stat(ino, &e.attr) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENOENT);
+            pthread_rwlock_unlock(&gl);
             return;
         }
 
@@ -2484,6 +2613,7 @@ namespace qemucsd::fuse_lfs {
         // Verify inode is regular file
         if(!(e.attr.st_mode & S_IFREG)) {
             fuse_reply_err(req, EISDIR);
+            pthread_rwlock_unlock(&gl);
             return;
         }
 
@@ -2494,30 +2624,54 @@ namespace qemucsd::fuse_lfs {
             output.error("File handle ", fi->fh, " not found in ",
                          "open_inode_map!");
             fuse_reply_err(req, EIO);
+            pthread_rwlock_unlock(&gl);
             return;
         }
         #endif
 
         csd_unique_t csd_context = {ino, context->pid};
-        if(has_snapshot(&csd_context, SNAP_READ))
+        if(has_snapshot(&csd_context, SNAP_READ)) {
+            // Snapshot reads and writes can happen concurrently
+            unlock_inode(ino);
             read_csd(req, &csd_context, size, offset, fi);
-        else
-            read_regular(req, &e.attr, size, offset, fi);
+            pthread_rwlock_unlock(&gl);
+            return;
+        }
+
+        read_regular(req, &e.attr, size, offset, fi);
+        unlock_inode(ino);
+        pthread_rwlock_unlock(&gl);
     }
 
+    /**
+     *
+     * @threadsafety: thread safe, weakly synchronized with other FUSE calls
+     */
     void FuseLFS::write(fuse_req_t req, fuse_ino_t ino, const char *buffer,
         size_t size, off_t off, struct fuse_file_info *fi)
     {
         struct fuse_entry_param e = {0};
         const fuse_ctx* context = fuse_req_ctx(req);
 
+//        pthread_rwlock_rdlock(&gl);
+        pthread_rwlock_wrlock(&gl);
+
         #ifdef FLFS_DBG_FI
         output_fi("write", fi);
         #endif
 
+        // Check if inode exists and lock
+        if(lock_inode(ino) != FLFS_RET_NONE) {
+            fuse_reply_err(req, ENOENT);
+            pthread_rwlock_unlock(&gl);
+            return;
+        }
+
         // Check if inode exists
         if(ino_stat(ino, &e.attr) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENOENT);
+            unlock_inode(ino);
+            pthread_rwlock_unlock(&gl);
             return;
         }
 
@@ -2525,6 +2679,8 @@ namespace qemucsd::fuse_lfs {
         // Verify inode is regular file
         if(!(e.attr.st_mode & S_IFREG)) {
             fuse_reply_err(req, EISDIR);
+            unlock_inode(ino);
+            pthread_rwlock_unlock(&gl);
             return;
         }
 
@@ -2535,6 +2691,8 @@ namespace qemucsd::fuse_lfs {
             output.error("File handle ", fi->fh, " not found in",
                          "open_inode_map!");
             fuse_reply_err(req, EIO);
+            unlock_inode(ino);
+            pthread_rwlock_unlock(&gl);
             return;
         }
         #endif
@@ -2557,12 +2715,22 @@ namespace qemucsd::fuse_lfs {
         wr_context.cur_db_lba_index = (off / SECTOR_SIZE) % DATA_BLK_LBA_NUM;
 
         csd_unique_t csd_context = {ino, context->pid};
-        if(has_snapshot(&csd_context, SNAP_WRITE))
+        if(has_snapshot(&csd_context, SNAP_WRITE)) {
+            unlock_inode(ino);
             write_csd(req, &csd_context, buffer, size, off, &wr_context, fi);
-        else
-            write_regular(req, ino, buffer, size, off, &wr_context, fi);
+            pthread_rwlock_unlock(&gl);
+            return;
+        }
+
+        write_regular(req, ino, buffer, size, off, &wr_context, fi);
+        unlock_inode(ino);
+        pthread_rwlock_unlock(&gl);
     }
 
+    /**
+     *
+     * @threadsafety: thread safe
+     */
     void FuseLFS::statfs(fuse_req_t req, fuse_ino_t ino) {
         struct statvfs statbuf = {0};
         statbuf.f_bsize = nvme_info.sector_size;
@@ -2579,7 +2747,7 @@ namespace qemucsd::fuse_lfs {
             LOGZ_POS.zone) * nvme_info.zone_capacity);
 
         // Number of inodes used, don't ask why its called f_files
-        statbuf.f_files = inode_lba_map->size();
+        statbuf.f_files = inode_lba_size();
         statbuf.f_ffree = (SECTOR_SIZE / INODE_ENTRY_SIZE) * statbuf.f_bfree;
 
         statbuf.f_namemax = MAX_NAME_SIZE;
@@ -2590,10 +2758,12 @@ namespace qemucsd::fuse_lfs {
      * Flush data to drive. Flush order is always 1. data_blocks
      * 2. inode_blocks. 3. NAT blocks. data blocks contain raw data LBAs,
      * inode_blocks contain data_blocks LBAs and NAT blocks contain inode LBAs.
+     * @threadsafety: thread safe, strongly synchronized with other FUSE calls
      */
     void FuseLFS::fsync(fuse_req_t req, fuse_ino_t ino, int datasync,
         struct fuse_file_info *fi)
     {
+        pthread_rwlock_wrlock(&gl);
         int result = 0;
 
         #ifdef FLFS_DBG_FI
@@ -2604,6 +2774,7 @@ namespace qemucsd::fuse_lfs {
         csd_unique_t context = std::make_pair(ino, fuse_req_ctx(req)->pid);
         if(has_snapshot(&context, SNAP_FILE)) {
             fuse_reply_err(req, 0);
+            pthread_rwlock_unlock(&gl);
             return;
         }
 
@@ -2612,11 +2783,13 @@ namespace qemucsd::fuse_lfs {
         if(result == FLFS_RET_LOGZ_FULL) {
             if(log_garbage_collect() != FLFS_RET_NONE) {
                 fuse_reply_err(req, EIO);
+                pthread_rwlock_unlock(&gl);
                 return;
             }
 
             if(flush_data_blocks() != FLFS_RET_NONE) {
                 fuse_reply_err(req, EIO);
+                pthread_rwlock_unlock(&gl);
                 return;
             }
         }
@@ -2626,16 +2799,19 @@ namespace qemucsd::fuse_lfs {
         if(result == FLFS_RET_LOGZ_FULL) {
             if(log_garbage_collect() != FLFS_RET_NONE) {
                 fuse_reply_err(req, EIO);
+                pthread_rwlock_unlock(&gl);
                 return;
             }
 
             if(flush_inodes() != FLFS_RET_NONE) {
                 fuse_reply_err(req, EIO);
+                pthread_rwlock_unlock(&gl);
                 return;
             }
         }
         else if (result != FLFS_RET_NONE) {
             fuse_reply_err(req, EIO);
+            pthread_rwlock_unlock(&gl);
             return;
         }
 
@@ -2644,48 +2820,94 @@ namespace qemucsd::fuse_lfs {
         if(result == FLFS_RET_RANDZ_FULL) {
             if(rewrite_random_blocks() != FLFS_RET_NONE) {
                 fuse_reply_err(req, EIO);
+                pthread_rwlock_unlock(&gl);
                 return;
             }
             if(update_nat_blocks(nat_update_set) != FLFS_RET_NONE) {
                 fuse_reply_err(req, EIO);
+                pthread_rwlock_unlock(&gl);
                 return;
             }
         }
+
+        pthread_rwlock_unlock(&gl);
     }
 
+    /**
+     *
+     * @threadsafety: thread safe, strongly synchronized with other FUSE calls
+     */
     void FuseLFS::rename(fuse_req_t req, fuse_ino_t parent, const char *name,
        fuse_ino_t newparent, const char *newname, unsigned int flags)
     {
+        pthread_rwlock_wrlock(&gl);
         fuse_reply_err(req, ENOSYS);
+        pthread_rwlock_unlock(&gl);
     }
 
+    /**
+    *
+     * @threadsafety: thread safe, strongly synchronized with other FUSE calls
+     */
     void FuseLFS::unlink(fuse_req_t req, fuse_ino_t parent, const char *name) {
+        pthread_rwlock_wrlock(&gl);
         fuse_reply_err(req, ENOSYS);
+        pthread_rwlock_unlock(&gl);
     }
 
+    /**
+     *
+     * @threadsafety: thread safe, strongly synchronized with other FUSE calls
+     */
     void FuseLFS::rmdir(fuse_req_t req, fuse_ino_t parent, const char *name) {
+        pthread_rwlock_wrlock(&gl);
         fuse_reply_err(req, ENOSYS);
+        pthread_rwlock_unlock(&gl);
     }
 
+    /**
+     *
+     * @threadsafety: thread safe, strongly synchronized with other FUSE calls
+     */
     void FuseLFS::getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
         size_t size)
     {
+        pthread_rwlock_wrlock(&gl);
         xattr(req, ino, name, nullptr, size, 0);
+        pthread_rwlock_unlock(&gl);
     }
 
+    /**
+     *
+     * @threadsafety: thread safe, strongly synchronized with other FUSE calls
+     */
     void FuseLFS::setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
         const char *value, size_t size, int flags)
     {
+        pthread_rwlock_wrlock(&gl);
         xattr(req, ino, name, value, size, flags, true);
+        pthread_rwlock_unlock(&gl);
     }
 
+    /**
+     *
+     * @threadsafety: thread safe, strongly synchronized with other FUSE calls
+     */
     void FuseLFS::listxattr(fuse_req_t req, fuse_ino_t ino, size_t size) {
+        pthread_rwlock_wrlock(&gl);
         fuse_reply_err(req, ENOSYS);
+        pthread_rwlock_unlock(&gl);
     }
 
+    /**
+     *
+     * @threadsafety: thread safe, strongly synchronized with other FUSE calls
+     */
     void FuseLFS::removexattr(fuse_req_t req, fuse_ino_t ino,
         const char *name)
     {
+        pthread_rwlock_wrlock(&gl);
         fuse_reply_err(req, ENOSYS);
+        pthread_rwlock_unlock(&gl);
     }
 }

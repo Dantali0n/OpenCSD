@@ -28,6 +28,7 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Checks if the filesystem was left dirty from last time
+     * @threadsafety: single threaded, only called during initialization
      * @return FLFS_RET_NONE when clean, < FLFS_RET_ERR if dirty
      */
     int FuseLFS::verify_dirtyblock() {
@@ -45,6 +46,7 @@ namespace qemucsd::fuse_lfs {
     /**
      * Write the dirty block to the drive and verify it was appended to the
      * correct location.
+     * @threadsafety: single threaded, only called during initialization
      * @return FLFS_RET_NONE upon success, < FLFS_RET_ERR upon failure
      */
     int FuseLFS::write_dirtyblock() {
@@ -65,6 +67,7 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Reset the zone containing the dirty block
+     * @threadsafety: single threaded, only called during teardown
      * @return FLFS_RET_NONE upon success, < FLFS_RET_ERR upon failure
      */
     int FuseLFS::remove_dirtyblock() {

@@ -670,7 +670,11 @@ see source files such as `fuse_lfs_disc.hpp` until design is frozen.
 
 #### Threading and concurrency
 
--
+- Parallelism is managed through coarse grained locking.
+  - Any operations regarding a particular inode must first obtain a lock for
+    this inode.
+  - All individual datastructures are protected using reader writer locks with
+    writer preference.
 
 #### Non-persistent Conditional Extended Attributes in FUSE
 

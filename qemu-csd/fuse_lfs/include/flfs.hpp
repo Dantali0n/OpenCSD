@@ -35,6 +35,7 @@ extern "C" {
 #include <cassert>
 #include <cstring>
 #include <map>
+#include <mutex>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -46,6 +47,7 @@ extern "C" {
 #include "flfs_csd.hpp"
 #include "flfs_dirtyblock.hpp"
 #include "flfs_disc.hpp"
+#include "flfs_inode_lba.hpp"
 #include "flfs_memory.hpp"
 #include "flfs_nlookup.hpp"
 #include "flfs_snapshot.hpp"
@@ -63,11 +65,15 @@ namespace qemucsd::fuse_lfs {
      * FUSE LFS filesystem for Zoned Namespaces SSDs (FluffleFS).
      */
     class FuseLFS : public FuseLFSCSD, public FuseLFSDirtyBlock,
-        public FuseLFSNlookup, public FuseLFSSnapShot, public FuseLFSSuperBlock,
-        public FuseLFSWrite
+        public FuseLFSInodeLba, public FuseLFSNlookup, public FuseLFSSnapShot,
+        public FuseLFSSuperBlock, public FuseLFSWrite
     {
     protected:
         arguments::options *options;
+
+        // Concurrency management for global lock
+        pthread_rwlock_t gl;
+        pthread_rwlockattr_t gl_attr;
 
         struct fuse_conn_info *connection;
 
@@ -77,10 +83,7 @@ namespace qemucsd::fuse_lfs {
         // Map filenames and their respective parent to inodes
         path_inode_map_t *path_inode_map;
 
-        // Map inodes to the lba they are stored at
-        inode_lba_map_t *inode_lba_map;
-
-        static const char *FUSE_LFS_NAME_PREFIX;
+        /** Inode lba map interface methods */
 
         /** Nlookup interface methods */
 
@@ -104,10 +107,6 @@ namespace qemucsd::fuse_lfs {
 
         void position_to_lba(
             struct data_position position, uint64_t &lba);
-
-        void update_inode_lba_map(
-            std::vector<fuse_ino_t> *inodes, uint64_t lba,
-            inode_lba_map_t *lba_map);
 
         /** Debug helper functions */
 

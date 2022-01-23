@@ -28,6 +28,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <mutex>
 
 extern "C" {
     #include <fuse3/fuse_lowlevel.h>
@@ -64,12 +65,20 @@ namespace qemucsd::fuse_lfs {
         fuse_ino_t csd_write_kernel;
     };
 
+    struct lba_inode {
+        uint64_t parent;
+        uint64_t lba;
+        std::shared_ptr<std::mutex> l;
+    };
+
     // Keep track of the number of nlookups per inode.
     // Increases by one for every call to fuse_reply_entry & fuse_reply_create
     // Decreases by calls to forget.
     // Scheduled unlink, rmdir or rename operations can only be flushed when
-    // count reaches 0.
-    typedef std::map<fuse_ino_t, std::atomic<uint64_t>> inode_nlookup_map_t;
+    // count reaches 0. Count must be able to go negative due to reordering /
+    // non-determinism of inode locks. Call to forget could be performed before
+    // all calls to lookup are finished making the count go negative temporarily
+    typedef std::map<fuse_ino_t, std::atomic<int64_t>> inode_nlookup_map_t;
 
     // Names and their inodes for use in path_inode_map_t
     // TODO(Dantali0n): Investigate if memory consumption will be beyond control
@@ -79,7 +88,7 @@ namespace qemucsd::fuse_lfs {
     typedef std::map<fuse_ino_t, path_map_t*> path_inode_map_t;
 
     // Map corresponding inodes to the lba storing the inode_block
-    typedef std::map<fuse_ino_t, uint64_t> inode_lba_map_t;
+    typedef std::map<fuse_ino_t, struct lba_inode> inode_lba_map_t;
 
     // Pair of data that is interpreted as unique for the CSD context
     typedef std::pair<fuse_ino_t, pid_t> csd_unique_t;

@@ -29,6 +29,7 @@ namespace qemucsd::fuse_lfs {
     /**
      * Read the super block for the filesystem and verify the parameters to
      * prevent overwritten a drive configured for other filesystems.
+     * @threadsafety: single threaded, only called during initialization
      * @return FLFS_RET_NONE upon success, < FLFS_RET_ERR upon failure
      */
     int FuseLFS::verify_superblock() {
@@ -51,6 +52,7 @@ namespace qemucsd::fuse_lfs {
     /**
      * Write the super block so it can be recognized on subsequent
      * initializations.
+     * @threadsafety: single threaded, only called during initialization
      * @return FLFS_RET_NONE upon success, < FLFS_RET_ERR upon failure
      */
     int FuseLFS::write_superblock() {

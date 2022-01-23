@@ -55,24 +55,6 @@ namespace qemucsd::fuse_lfs {
 //    #define FLFS_RANDOM_RW_STRICT
 
     /**
-     * Flush the nat_update_set as soon as entries occupy one nat_block instead
-     * of waiting for periodic flushes.
-     */
-//    #define FLFS_NAT_FLUSH_IMMEDIATE
-
-    /**
-     * Flush the sit_update_set as soon as entries occupy one sit_block instead
-     * of waiting for periodic flushes.
-     */
-//    #define FLFS_SIT_FLUSH_IMMEDIATE
-
-    /**
-     * Flush inode_entries as soon as they occupy one inode_block instead of
-     * waiting for periodic flushes.
-     */
-    #define FLFS_INODE_FLUSH_IMMEDIATE
-
-    /**
      * Decide to output fuse_file_info fi debug info to the console upon FUSE
      * calls. output level will be debug
      */

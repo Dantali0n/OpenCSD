@@ -27,8 +27,6 @@
 
 #define FUSE_USE_VERSION	36
 
-#include <mutex>
-
 extern "C" {
     #include <fuse3/fuse_lowlevel.h>
 }
@@ -40,7 +38,6 @@ namespace qemucsd::fuse_lfs {
 
     class FuseLFSWrapper {
     protected:
-        static std::mutex gl;
         static const struct fuse_lowlevel_ops operations;
         static FuseLFS* flfs_w;
     public:

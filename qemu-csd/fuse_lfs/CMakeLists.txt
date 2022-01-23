@@ -35,6 +35,7 @@ set(QEMUCSD_FUSE_LFS_SRC
     src/flfs.cxx
     src/flfs_csd.cxx
     src/flfs_dirtyblock.cxx
+    src/flfs_inode_lba.cxx
     src/flfs_nlookup.cxx
     src/flfs_snapshot.cxx
     src/flfs_superblock.cxx
@@ -46,6 +47,7 @@ set(QEMUCSD_FUSE_LFS_HEADERS
     include/flfs.hpp
     include/flfs_csd.hpp
     include/flfs_dirtyblock.hpp
+    include/flfs_inode_lba.hpp
     include/flfs_nlookup.hpp
     include/flfs_snapshot.hpp
     include/flfs_superblock.hpp

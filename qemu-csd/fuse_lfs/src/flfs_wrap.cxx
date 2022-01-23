@@ -51,8 +51,6 @@ namespace qemucsd::fuse_lfs {
 
     FuseLFS* FuseLFSWrapper::flfs_w = nullptr;
 
-    std::mutex FuseLFSWrapper::gl = std::mutex();
-
     int FuseLFSWrapper::initialize(int argc, char* argv[],
         arguments::options *options, nvme_zns::NvmeZnsBackend* nvme)
     {
@@ -80,89 +78,76 @@ namespace qemucsd::fuse_lfs {
     void FuseLFSWrapper::lookup(fuse_req_t req, fuse_ino_t parent,
                                 const char *name)
     {
-        std::lock_guard<std::mutex> guard(gl);
         flfs_w->lookup(req, parent, name);
     }
 
     void FuseLFSWrapper::forget(fuse_req_t req, fuse_ino_t ino,
         uint64_t nlookup)
     {
-        std::lock_guard<std::mutex> guard(gl);
         flfs_w->forget(req, ino, nlookup);
     }
 
     void FuseLFSWrapper::getattr(fuse_req_t req, fuse_ino_t ino,
                                  struct fuse_file_info *fi)
     {
-        std::lock_guard<std::mutex> guard(gl);
         flfs_w->getattr(req, ino, fi);
     }
 
     void FuseLFSWrapper::setattr(fuse_req_t req, fuse_ino_t ino,
         struct stat *attr, int to_set, struct fuse_file_info *fi)
     {
-        std::lock_guard<std::mutex> guard(gl);
         flfs_w->setattr(req, ino, attr, to_set, fi);
     }
 
     void FuseLFSWrapper::readdir(fuse_req_t req, fuse_ino_t ino, size_t size,
                                  off_t off, struct fuse_file_info *fi)
     {
-        std::lock_guard<std::mutex> guard(gl);
         flfs_w->readdir(req, ino, size, off, fi);
     }
 
     void FuseLFSWrapper::open(fuse_req_t req, fuse_ino_t ino,
         struct fuse_file_info *fi)
     {
-        std::lock_guard<std::mutex> guard(gl);
         flfs_w->open(req, ino, fi);
     }
 
     void FuseLFSWrapper::release(fuse_req_t req, fuse_ino_t ino,
         struct fuse_file_info *fi)
     {
-        std::lock_guard<std::mutex> guard(gl);
         flfs_w->release(req, ino, fi);
     }
 
     void FuseLFSWrapper::create(fuse_req_t req, fuse_ino_t parent,
         const char *name, mode_t mode, struct fuse_file_info *fi)
     {
-        std::lock_guard<std::mutex> guard(gl);
         flfs_w->create(req, parent, name, mode, fi);
     }
 
     void FuseLFSWrapper::mkdir(fuse_req_t req, fuse_ino_t parent,
         const char *name, mode_t mode)
     {
-        std::lock_guard<std::mutex> guard(gl);
         flfs_w->mkdir(req, parent, name, mode);
     }
 
     void FuseLFSWrapper::read(fuse_req_t req, fuse_ino_t ino, size_t size,
                               off_t off, struct fuse_file_info *fi)
     {
-        std::lock_guard<std::mutex> guard(gl);
         flfs_w->read(req, ino, size, off, fi);
     }
 
     void FuseLFSWrapper::write(fuse_req_t req, fuse_ino_t ino, const char *buf,
                                size_t size, off_t off, struct fuse_file_info *fi)
     {
-        std::lock_guard<std::mutex> guard(gl);
         flfs_w->write(req, ino, buf, size, off, fi);
     }
 
     void FuseLFSWrapper::statfs(fuse_req_t req, fuse_ino_t ino) {
-        std::lock_guard<std::mutex> guard(gl);
         flfs_w->statfs(req, ino);
     }
 
     void FuseLFSWrapper::fsync(fuse_req_t req, fuse_ino_t ino, int datasync,
                                struct fuse_file_info *fi)
     {
-        std::lock_guard<std::mutex> guard(gl);
         flfs_w->fsync(req, ino, datasync, fi);
     }
 
@@ -170,49 +155,42 @@ namespace qemucsd::fuse_lfs {
         const char *name, fuse_ino_t newparent, const char *newname,
         unsigned int flags)
     {
-        std::lock_guard<std::mutex> guard(gl);
         flfs_w->rename(req, parent, name, newparent, newname, flags);
     }
 
     void FuseLFSWrapper::unlink(fuse_req_t req, fuse_ino_t parent,
                                 const char *name)
     {
-        std::lock_guard<std::mutex> guard(gl);
         flfs_w->unlink(req, parent, name);
     }
 
     void FuseLFSWrapper::rmdir(fuse_req_t req, fuse_ino_t parent,
                                const char *name)
     {
-        std::lock_guard<std::mutex> guard(gl);
         flfs_w->rmdir(req, parent, name);
     }
 
     void FuseLFSWrapper::getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
                                   size_t size)
     {
-        std::lock_guard<std::mutex> guard(gl);
         flfs_w->getxattr(req, ino, name, size);
     }
 
     void FuseLFSWrapper::setxattr(fuse_req_t req, fuse_ino_t ino,
         const char *name, const char *value, size_t size, int flags)
     {
-        std::lock_guard<std::mutex> guard(gl);
         flfs_w->setxattr(req, ino, name, value, size, flags);
     }
 
     void FuseLFSWrapper::listxattr(fuse_req_t req, fuse_ino_t ino,
         size_t size)
     {
-        std::lock_guard<std::mutex> guard(gl);
         flfs_w->listxattr(req, ino, size);
     }
 
     void FuseLFSWrapper::removexattr(fuse_req_t req, fuse_ino_t ino,
         const char *name)
     {
-        std::lock_guard<std::mutex> guard(gl);
         flfs_w->removexattr(req, ino, name);
     }
 

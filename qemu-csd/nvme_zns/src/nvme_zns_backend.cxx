@@ -74,6 +74,8 @@ namespace qemucsd::nvme_zns {
     /**
      * Concrete implementation of virtual void function, recommended to just
      * call this from within the overriding function.
+     * @threadsafety: thread safe, data is constant and does not change during
+     *                object lifetime.
      */
     void NvmeZnsBackend::get_nvme_zns_info(struct nvme_zns_info* info) {
         *info = this->info;
