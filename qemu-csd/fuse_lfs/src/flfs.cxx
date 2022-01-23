@@ -256,6 +256,16 @@ namespace qemucsd::fuse_lfs {
         return ret ? 1 : 0;
     }
 
+    void FuseLFS::gl_lock(const char *name) {
+        //output.debug("Lock ", name);
+        pthread_rwlock_wrlock(&gl);
+    }
+
+    void FuseLFS::gl_unlock(const char *name) {
+        //output.debug("unlock ", name);
+        pthread_rwlock_unlock(&gl);
+    }
+
     /**
      * Compute the position of data from a Logical Block Address (LBA).
      * @threadsafety: thread safe
@@ -1863,7 +1873,7 @@ namespace qemucsd::fuse_lfs {
             }
         }
 
-        pthread_rwlock_unlock(&gl);
+        gl_unlock("setattr_regular");
         getattr(req, ino, fi);
     }
 
@@ -2211,7 +2221,8 @@ namespace qemucsd::fuse_lfs {
 
         conn->want &= ~(FUSE_CAP_SPLICE_READ);
 
-        conn->want |= FUSE_CAP_AUTO_INVAL_DATA;
+        if(conn->capable & FUSE_CAP_AUTO_INVAL_DATA)
+            conn->want |= FUSE_CAP_AUTO_INVAL_DATA;
     }
 
     /**
@@ -2242,12 +2253,12 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::lookup(fuse_req_t req, fuse_ino_t parent, const char *name) {
         struct fuse_entry_param e = {0};
 
-        pthread_rwlock_wrlock(&gl);
+        gl_lock("lookup");
 
         // Check if parent exists
         if(ino_stat(parent, &e.attr) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENOENT);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("lookup");
             return;
         }
 
@@ -2257,7 +2268,7 @@ namespace qemucsd::fuse_lfs {
         auto result = path_inode_map->find(parent)->second->find(name);
         if(result == path_inode_map->find(parent)->second->end()) {
             fuse_reply_err(req, ENOENT);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("lookup");
             return;
         }
 
@@ -2271,7 +2282,7 @@ namespace qemucsd::fuse_lfs {
         else
             lookup_regular(req, result->second);
 
-        pthread_rwlock_unlock(&gl);
+        gl_unlock("lookup");
     }
 
     /**
@@ -2290,7 +2301,7 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::getattr(fuse_req_t req, fuse_ino_t ino,
         struct fuse_file_info *fi)
     {
-        pthread_rwlock_wrlock(&gl);
+        gl_lock("getattr");
 
         csd_unique_t context = std::make_pair(ino, fuse_req_ctx(req)->pid);
         if(has_snapshot(&context, SNAP_FILE))
@@ -2298,7 +2309,7 @@ namespace qemucsd::fuse_lfs {
         else
             getattr_regular(req, ino, fi);
 
-        pthread_rwlock_unlock(&gl);
+        gl_unlock("getattr");
     }
 
     /**
@@ -2308,7 +2319,7 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
         int to_set, struct fuse_file_info *fi)
     {
-        pthread_rwlock_wrlock(&gl);
+        gl_lock("setattr");
 
         csd_unique_t context = std::make_pair(ino, fuse_req_ctx(req)->pid);
         if(has_snapshot(&context, SNAP_FILE))
@@ -2320,7 +2331,7 @@ namespace qemucsd::fuse_lfs {
             return;
         }
 
-        pthread_rwlock_unlock(&gl);
+        gl_unlock("setattr");
     }
 
     /**
@@ -2332,19 +2343,19 @@ namespace qemucsd::fuse_lfs {
     {
         struct stat stbuf = {0};
 
-        pthread_rwlock_wrlock(&gl);
+        gl_lock("readdir");
 
         // Check if the inode exists
         if (ino_stat(ino, &stbuf) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENOENT);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("readdir");
             return;
         }
 
         // Check if it is a directory
         if(!(stbuf.st_mode & S_IFDIR)) {
             fuse_reply_err(req, ENOTDIR);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("readdir");
             return;
         }
 
@@ -2360,7 +2371,7 @@ namespace qemucsd::fuse_lfs {
         reply_buf_limited(req, buf.p, buf.size, offset, size);
         free(buf.p);
 
-        pthread_rwlock_unlock(&gl);
+        gl_unlock("readdir");
     }
 
     /**
@@ -2372,19 +2383,19 @@ namespace qemucsd::fuse_lfs {
     {
         struct stat stbuf = {0};
 
-        pthread_rwlock_wrlock(&gl);
+        gl_lock("open");
 
         // Check if the inode exists
         if(ino_stat(ino, &stbuf) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENONET);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("open");
             return;
         }
 
         // Check if directory
         if (stbuf.st_mode & S_IFDIR) {
             fuse_reply_err(req, EISDIR);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("open");
             return;
         }
 
@@ -2392,7 +2403,7 @@ namespace qemucsd::fuse_lfs {
         int flag_result = check_flags(fi->flags);
         if(flag_result != 0) {
             fuse_reply_err(req, flag_result);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("open");
             return;
         }
 
@@ -2404,7 +2415,7 @@ namespace qemucsd::fuse_lfs {
 
         fuse_reply_open(req, fi);
 
-        pthread_rwlock_unlock(&gl);
+        gl_unlock("open");
     }
 
     /**
@@ -2417,7 +2428,7 @@ namespace qemucsd::fuse_lfs {
         struct open_file_entry open_entry = {0};
         struct fuse_entry_param e = {0};
 
-        pthread_rwlock_wrlock(&gl);
+        gl_lock("release");
 
         #ifdef FLFS_DBG_FI
         output_fi("release", fi);
@@ -2426,14 +2437,14 @@ namespace qemucsd::fuse_lfs {
         // Check that inode exists and retrieve its basic information
         if(ino_stat(ino, &e.attr) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENOENT);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("release");
             return;
         }
 
         // If directory release is finished
         if(e.attr.st_mode & S_IFDIR) {
             fuse_reply_err(req, 0);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("release");
             return;
         }
 
@@ -2442,7 +2453,7 @@ namespace qemucsd::fuse_lfs {
         // FUSE context to retrieve pid.
         if(get_file_handle(fi->fh, &open_entry) != FLFS_RET_NONE) {
             fuse_reply_err(req, EIO);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("release");
             return;
         }
 
@@ -2458,7 +2469,7 @@ namespace qemucsd::fuse_lfs {
             output.warning("File with inode ", open_entry.ino, " released "
                 "while opened multiple times by process ", open_entry.pid);
             fuse_reply_err(req, 0);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("release");
             return;
         }
 
@@ -2467,7 +2478,7 @@ namespace qemucsd::fuse_lfs {
 
         fuse_reply_err(req, 0);
 
-        pthread_rwlock_unlock(&gl);
+        gl_unlock("release");
     }
 
     /**
@@ -2480,7 +2491,7 @@ namespace qemucsd::fuse_lfs {
         struct fuse_entry_param e = {0};
         e.ino = parent;
 
-        pthread_rwlock_wrlock(&gl);
+        gl_lock("create");
 
         #ifdef FLFS_DBG_FI
         if(fi)
@@ -2491,14 +2502,14 @@ namespace qemucsd::fuse_lfs {
         // inode_entry size.
         if(strlen(name) > MAX_NAME_SIZE) {
             fuse_reply_err(req, ENAMETOOLONG);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("create");
             return;
         }
 
         // Verify parent exists
         if(ino_stat(e.ino, &e.attr) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENOENT);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("create");
             return;
         }
 
@@ -2507,7 +2518,7 @@ namespace qemucsd::fuse_lfs {
         #ifdef QEMUCSD_DEBUG
         if(e.attr.st_mode & S_IFREG) {
             fuse_reply_err(req, ENOTDIR);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("create");
             return;
         }
         #endif
@@ -2517,7 +2528,7 @@ namespace qemucsd::fuse_lfs {
             int flag_result = check_flags(fi->flags);
             if (flag_result != 0) {
                 fuse_reply_err(req, flag_result);
-                pthread_rwlock_unlock(&gl);
+                gl_unlock("create");
                 return;
             }
         }
@@ -2528,7 +2539,7 @@ namespace qemucsd::fuse_lfs {
             path_inode_map->find(parent)->second->end())
         {
             fuse_reply_err(req, EEXIST);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("create");
             return;
         }
 
@@ -2557,7 +2568,7 @@ namespace qemucsd::fuse_lfs {
             fuse_reply_err(req, EOPNOTSUPP);
         }
 
-        pthread_rwlock_unlock(&gl);
+        gl_unlock("create");
     }
 
     /**
@@ -2588,8 +2599,8 @@ namespace qemucsd::fuse_lfs {
         struct fuse_entry_param e = {0};
         const fuse_ctx* context = fuse_req_ctx(req);
 
-//        pthread_rwlock_rdlock(&gl);
-        pthread_rwlock_wrlock(&gl);
+        pthread_rwlock_rdlock(&gl);
+//        gl_lock("read");
 
         #ifdef FLFS_DBG_FI
         output_fi("read", fi);
@@ -2598,14 +2609,14 @@ namespace qemucsd::fuse_lfs {
         // Check if inode exists and lock
         if(lock_inode(ino) != FLFS_RET_NONE) {
             fuse_reply_err(req, ENOENT);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("read");
             return;
         }
 
         // Check if inode exists
         if(ino_stat(ino, &e.attr) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENOENT);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("read");
             return;
         }
 
@@ -2613,7 +2624,7 @@ namespace qemucsd::fuse_lfs {
         // Verify inode is regular file
         if(!(e.attr.st_mode & S_IFREG)) {
             fuse_reply_err(req, EISDIR);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("read");
             return;
         }
 
@@ -2624,7 +2635,7 @@ namespace qemucsd::fuse_lfs {
             output.error("File handle ", fi->fh, " not found in ",
                          "open_inode_map!");
             fuse_reply_err(req, EIO);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("read");
             return;
         }
         #endif
@@ -2634,13 +2645,13 @@ namespace qemucsd::fuse_lfs {
             // Snapshot reads and writes can happen concurrently
             unlock_inode(ino);
             read_csd(req, &csd_context, size, offset, fi);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("read");
             return;
         }
 
         read_regular(req, &e.attr, size, offset, fi);
         unlock_inode(ino);
-        pthread_rwlock_unlock(&gl);
+        gl_unlock("read");
     }
 
     /**
@@ -2653,8 +2664,8 @@ namespace qemucsd::fuse_lfs {
         struct fuse_entry_param e = {0};
         const fuse_ctx* context = fuse_req_ctx(req);
 
-//        pthread_rwlock_rdlock(&gl);
-        pthread_rwlock_wrlock(&gl);
+        pthread_rwlock_rdlock(&gl);
+//        gl_lock("write");
 
         #ifdef FLFS_DBG_FI
         output_fi("write", fi);
@@ -2663,7 +2674,7 @@ namespace qemucsd::fuse_lfs {
         // Check if inode exists and lock
         if(lock_inode(ino) != FLFS_RET_NONE) {
             fuse_reply_err(req, ENOENT);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("write");
             return;
         }
 
@@ -2671,7 +2682,7 @@ namespace qemucsd::fuse_lfs {
         if(ino_stat(ino, &e.attr) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENOENT);
             unlock_inode(ino);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("write");
             return;
         }
 
@@ -2680,7 +2691,7 @@ namespace qemucsd::fuse_lfs {
         if(!(e.attr.st_mode & S_IFREG)) {
             fuse_reply_err(req, EISDIR);
             unlock_inode(ino);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("write");
             return;
         }
 
@@ -2692,7 +2703,7 @@ namespace qemucsd::fuse_lfs {
                          "open_inode_map!");
             fuse_reply_err(req, EIO);
             unlock_inode(ino);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("write");
             return;
         }
         #endif
@@ -2718,13 +2729,13 @@ namespace qemucsd::fuse_lfs {
         if(has_snapshot(&csd_context, SNAP_WRITE)) {
             unlock_inode(ino);
             write_csd(req, &csd_context, buffer, size, off, &wr_context, fi);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("write");
             return;
         }
 
         write_regular(req, ino, buffer, size, off, &wr_context, fi);
         unlock_inode(ino);
-        pthread_rwlock_unlock(&gl);
+        gl_unlock("write");
     }
 
     /**
@@ -2763,7 +2774,7 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::fsync(fuse_req_t req, fuse_ino_t ino, int datasync,
         struct fuse_file_info *fi)
     {
-        pthread_rwlock_wrlock(&gl);
+        gl_lock("fsync");
         int result = 0;
 
         #ifdef FLFS_DBG_FI
@@ -2774,7 +2785,7 @@ namespace qemucsd::fuse_lfs {
         csd_unique_t context = std::make_pair(ino, fuse_req_ctx(req)->pid);
         if(has_snapshot(&context, SNAP_FILE)) {
             fuse_reply_err(req, 0);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("fsync");
             return;
         }
 
@@ -2783,13 +2794,13 @@ namespace qemucsd::fuse_lfs {
         if(result == FLFS_RET_LOGZ_FULL) {
             if(log_garbage_collect() != FLFS_RET_NONE) {
                 fuse_reply_err(req, EIO);
-                pthread_rwlock_unlock(&gl);
+                gl_unlock("fsync");
                 return;
             }
 
             if(flush_data_blocks() != FLFS_RET_NONE) {
                 fuse_reply_err(req, EIO);
-                pthread_rwlock_unlock(&gl);
+                gl_unlock("fsync");
                 return;
             }
         }
@@ -2799,19 +2810,19 @@ namespace qemucsd::fuse_lfs {
         if(result == FLFS_RET_LOGZ_FULL) {
             if(log_garbage_collect() != FLFS_RET_NONE) {
                 fuse_reply_err(req, EIO);
-                pthread_rwlock_unlock(&gl);
+                gl_unlock("fsync");
                 return;
             }
 
             if(flush_inodes() != FLFS_RET_NONE) {
                 fuse_reply_err(req, EIO);
-                pthread_rwlock_unlock(&gl);
+                gl_unlock("fsync");
                 return;
             }
         }
         else if (result != FLFS_RET_NONE) {
             fuse_reply_err(req, EIO);
-            pthread_rwlock_unlock(&gl);
+            gl_unlock("fsync");
             return;
         }
 
@@ -2820,17 +2831,17 @@ namespace qemucsd::fuse_lfs {
         if(result == FLFS_RET_RANDZ_FULL) {
             if(rewrite_random_blocks() != FLFS_RET_NONE) {
                 fuse_reply_err(req, EIO);
-                pthread_rwlock_unlock(&gl);
+                gl_unlock("fsync");
                 return;
             }
             if(update_nat_blocks(nat_update_set) != FLFS_RET_NONE) {
                 fuse_reply_err(req, EIO);
-                pthread_rwlock_unlock(&gl);
+                gl_unlock("fsync");
                 return;
             }
         }
 
-        pthread_rwlock_unlock(&gl);
+        gl_unlock("fsync");
     }
 
     /**
@@ -2840,9 +2851,9 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::rename(fuse_req_t req, fuse_ino_t parent, const char *name,
        fuse_ino_t newparent, const char *newname, unsigned int flags)
     {
-        pthread_rwlock_wrlock(&gl);
+        gl_lock("rename");
         fuse_reply_err(req, ENOSYS);
-        pthread_rwlock_unlock(&gl);
+        gl_unlock("rename");
     }
 
     /**
@@ -2850,9 +2861,9 @@ namespace qemucsd::fuse_lfs {
      * @threadsafety: thread safe, strongly synchronized with other FUSE calls
      */
     void FuseLFS::unlink(fuse_req_t req, fuse_ino_t parent, const char *name) {
-        pthread_rwlock_wrlock(&gl);
+        gl_lock("unlink");
         fuse_reply_err(req, ENOSYS);
-        pthread_rwlock_unlock(&gl);
+        gl_unlock("unlink");
     }
 
     /**
@@ -2860,9 +2871,9 @@ namespace qemucsd::fuse_lfs {
      * @threadsafety: thread safe, strongly synchronized with other FUSE calls
      */
     void FuseLFS::rmdir(fuse_req_t req, fuse_ino_t parent, const char *name) {
-        pthread_rwlock_wrlock(&gl);
+        gl_lock("rmdir");
         fuse_reply_err(req, ENOSYS);
-        pthread_rwlock_unlock(&gl);
+        gl_unlock("rmdir");
     }
 
     /**
@@ -2872,9 +2883,9 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
         size_t size)
     {
-        pthread_rwlock_wrlock(&gl);
+        gl_lock("getxattr");
         xattr(req, ino, name, nullptr, size, 0);
-        pthread_rwlock_unlock(&gl);
+        gl_unlock("getxattr");
     }
 
     /**
@@ -2884,9 +2895,9 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
         const char *value, size_t size, int flags)
     {
-        pthread_rwlock_wrlock(&gl);
+        gl_lock("setxattr");
         xattr(req, ino, name, value, size, flags, true);
-        pthread_rwlock_unlock(&gl);
+        gl_unlock("setxattr");
     }
 
     /**
@@ -2894,9 +2905,9 @@ namespace qemucsd::fuse_lfs {
      * @threadsafety: thread safe, strongly synchronized with other FUSE calls
      */
     void FuseLFS::listxattr(fuse_req_t req, fuse_ino_t ino, size_t size) {
-        pthread_rwlock_wrlock(&gl);
+        gl_lock("listxattr");
         fuse_reply_err(req, ENOSYS);
-        pthread_rwlock_unlock(&gl);
+        gl_unlock("listxattr");
     }
 
     /**
@@ -2906,8 +2917,8 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::removexattr(fuse_req_t req, fuse_ino_t ino,
         const char *name)
     {
-        pthread_rwlock_wrlock(&gl);
+        gl_lock("removexattr");
         fuse_reply_err(req, ENOSYS);
-        pthread_rwlock_unlock(&gl);
+        gl_unlock("removexattr");
     }
 }

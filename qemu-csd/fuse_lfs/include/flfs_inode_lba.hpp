@@ -61,8 +61,6 @@ namespace qemucsd::fuse_lfs {
 
         void update_inode_lba(fuse_ino_t ino, struct lba_inode *data);
 
-//        void update_inode_lba(fuse_ino_t ino, uint64_t lba);
-
         void update_inode_lba_map(std::vector<fuse_ino_t> *inodes,
             uint64_t lba);
     };

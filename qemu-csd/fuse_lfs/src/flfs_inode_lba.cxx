@@ -67,7 +67,9 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
-     *
+     * Get the inode_lba_map information of an inode and populate the callers
+     * field with it.
+     * @threadsafety: thread safe
      * @return FLFS_RET_NONE upon success, FLFS_RET_ENOENT if not found
      */
     int FuseLFSInodeLba::get_inode_lba(
@@ -83,9 +85,15 @@ namespace qemucsd::fuse_lfs {
 
         *data = it->second;
 
+        pthread_rwlock_unlock(&inode_map_lck);
         return FLFS_RET_NONE;
     }
 
+    /**
+     * Lock a given inode
+     * @threadsafety: thread safe
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ENOENT if not found
+     */
     int FuseLFSInodeLba::lock_inode(fuse_ino_t ino) {
         struct lba_inode cur_lba;
         if(get_inode_lba(ino, &cur_lba) != FLFS_RET_NONE)
@@ -95,6 +103,11 @@ namespace qemucsd::fuse_lfs {
         return FLFS_RET_NONE;
     }
 
+    /**
+     * Unlock a given inode
+     * @threadsafety: thread safe
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ENOENT if not found
+     */
     int FuseLFSInodeLba::unlock_inode(fuse_ino_t ino) {
         struct lba_inode cur_lba;
         if(get_inode_lba(ino, &cur_lba) != FLFS_RET_NONE)
@@ -104,6 +117,11 @@ namespace qemucsd::fuse_lfs {
         return FLFS_RET_NONE;
     }
 
+    /**
+     * Update an lba_inode in the inode_lba_map. the shared_ptr mutex is always
+     * retained and subsequently exposed to the caller.
+     * @threadsafety: thread safe, course grained concurrency
+     */
     void FuseLFSInodeLba::update_inode_lba(fuse_ino_t ino,
         struct lba_inode *data)
     {
@@ -128,23 +146,9 @@ namespace qemucsd::fuse_lfs {
         pthread_rwlock_unlock(&inode_map_lck);
     }
 
-//    void FuseLFSInodeLba::update_inode_lba(fuse_ino_t ino, uint64_t lba) {
-//        struct lba_inode cur_lba = {0, 0, std::make_shared<std::mutex>()};
-//
-//        pthread_rwlock_wrlock(&inode_map_lck);
-//
-//        auto it = inode_lba_map.find(ino);
-//        if(it != inode_lba_map.end())
-//            cur_lba = it->second;
-//
-//        cur_lba.lba = lba;
-//        inode_lba_map.insert_or_assign(ino, cur_lba);
-//
-//        pthread_rwlock_unlock(&inode_map_lck);
-//    }
-
     /**
      * Update an inode_lba_map_t with the provided lba for the vector of inodes
+     * @threadsafety: thread safe, course grained concurrency
      */
     void FuseLFSInodeLba::update_inode_lba_map(std::vector<fuse_ino_t> *inodes,
         uint64_t lba)

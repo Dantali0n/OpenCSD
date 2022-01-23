@@ -85,6 +85,9 @@ namespace qemucsd::fuse_lfs {
 
         /** Inode lba map interface methods */
 
+        void gl_lock(const char *name);
+        void gl_unlock(const char *name);
+
         /** Nlookup interface methods */
 
         // TODO(Dantali0n): Use nlookup count to drive path_inode_map caching
