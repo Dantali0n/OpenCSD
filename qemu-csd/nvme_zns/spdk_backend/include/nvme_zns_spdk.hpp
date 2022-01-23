@@ -27,8 +27,9 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <iostream>
+#include <mutex>
 
+#include "output.hpp"
 #include "nvme_zns_backend.hpp"
 #include "spdk_init.hpp"
 
@@ -36,12 +37,17 @@ using qemucsd::spdk_init::ns_entry;
 
 namespace qemucsd::nvme_zns {
 
+    static output::Output output = output::Output(
+        "[NVME_ZNS_SPDK] ", output::INFO);
+
     class NvmeZnsSpdkBackend : public NvmeZnsBackend {
     protected:
         // Write pointers for each zone have to be maintained in memory as it is
         // extremely costly to query this at runtime from SPDK
         // (see spdk_nvme_zns_report_zones)
         std::vector<uint64_t> write_pointers;
+
+        std::mutex gl;
 
         struct ns_entry* entry;
     public:

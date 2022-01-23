@@ -79,6 +79,8 @@ namespace qemucsd::nvme_zns {
         uint64_t zone, uint64_t sector, uint64_t offset, void* buffer,
         uint64_t size)
     {
+        std::lock_guard<std::mutex> guard(gl);
+
         uintptr_t address;
         // Determine address offset and verify in range
         if(compute_address(zone, sector, offset, size, address) != 0)
@@ -99,6 +101,8 @@ namespace qemucsd::nvme_zns {
         uint64_t zone, uint64_t& sector, uint64_t offset, void* buffer,
         uint64_t size)
     {
+        std::lock_guard<std::mutex> guard(gl);
+
         uint64_t remainder = (offset + size) % info.sector_size;
         uintptr_t address;
         // Determine address offset and verify in range
@@ -135,6 +139,8 @@ namespace qemucsd::nvme_zns {
     }
 
     int NvmeZnsMemoryBackend::reset(uint64_t zone) {
+        std::lock_guard<std::mutex> guard(gl);
+
         uintptr_t address = zone * info.zone_capacity * info.sector_size;
         if(memory_limit < (uintptr_t) data + address + zone_byte_size)
             return -1;

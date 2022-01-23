@@ -47,6 +47,7 @@ extern "C" {
 #include "flfs_dirtyblock.hpp"
 #include "flfs_disc.hpp"
 #include "flfs_memory.hpp"
+#include "flfs_nlookup.hpp"
 #include "flfs_snapshot.hpp"
 #include "flfs_superblock.hpp"
 #include "flfs_write.hpp"
@@ -55,15 +56,17 @@ extern "C" {
 
 namespace qemucsd::fuse_lfs {
 
+    static output::Output output = output::Output(
+        FUSE_LFS_NAME_PREFIX, output::INFO);
+
     /**
      * FUSE LFS filesystem for Zoned Namespaces SSDs (FluffleFS).
      */
-    class FuseLFS : public FuseLFSCSD, FuseLFSDirtyBlock, FuseLFSSnapShot,
-        FuseLFSSuperBlock, FuseLFSWrite
+    class FuseLFS : public FuseLFSCSD, public FuseLFSDirtyBlock,
+        public FuseLFSNlookup, public FuseLFSSnapShot, public FuseLFSSuperBlock,
+        public FuseLFSWrite
     {
     protected:
-        output::Output *output;
-
         arguments::options *options;
 
         struct fuse_conn_info *connection;
@@ -78,25 +81,21 @@ namespace qemucsd::fuse_lfs {
         inode_lba_map_t *inode_lba_map;
 
         static const char *FUSE_LFS_NAME_PREFIX;
-        static const char *FUSE_SEQUENTIAL_PARAM;
 
-        /** nlookup helpers */
-
-        // Keep track of nlookup count per inode
-        inode_nlookup_map_t *inode_nlookup_map;
+        /** Nlookup interface methods */
 
         // TODO(Dantali0n): Use nlookup count to drive path_inode_map caching
         //                  and response to memory pressure
 
-        void inode_nlookup_increment(fuse_ino_t ino);
-        void inode_nlookup_decrement(fuse_ino_t ino, uint64_t count);
+        void inode_nlookup_increment(fuse_ino_t ino) override;
+        void inode_nlookup_decrement(fuse_ino_t ino, uint64_t count) override;
 
         void fuse_reply_entry_nlookup(
-            fuse_req_t req, struct fuse_entry_param *e);
+            fuse_req_t req, struct fuse_entry_param *e) override;
 
         void fuse_reply_create_nlookup(
             fuse_req_t req, struct fuse_entry_param *e,
-            const struct fuse_file_info *f);
+            const struct fuse_file_info *f) override;
 
         /** Inode, path and data position helper functions */
 

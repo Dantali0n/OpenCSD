@@ -71,4 +71,4 @@ namespace qemucsd::fuse_lfs {
         return FLFS_RET_NONE;
     }
 
-}
+};

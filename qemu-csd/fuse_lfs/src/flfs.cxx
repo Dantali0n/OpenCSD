@@ -27,9 +27,6 @@
 
 namespace qemucsd::fuse_lfs {
 
-    const char *FuseLFS::FUSE_LFS_NAME_PREFIX = "[FUSE LFS] ";
-    const char *FuseLFS::FUSE_SEQUENTIAL_PARAM = "-s";
-
     FuseLFS::FuseLFS(arguments::options *options,
         nvme_zns::NvmeZnsBackend *nvme) : FuseLFSCSD(options, nvme),
         nvme_info({0}), cblock_pos({0, 0, 0, 0}), random_pos({0, 0, 0, 0}),
@@ -46,10 +43,6 @@ namespace qemucsd::fuse_lfs {
         // Will be set to at least 2 upon initialization as 0 is invalid and
         // 1 is root inode.
         this->ino_ptr = 0;
-
-        this->output = new output::Output(FuseLFS::FUSE_LFS_NAME_PREFIX);
-
-        this->inode_nlookup_map = new inode_nlookup_map_t();
 
         this->path_inode_map = new path_inode_map_t();
 
@@ -71,8 +64,6 @@ namespace qemucsd::fuse_lfs {
         delete this->nat_update_set;
         delete this->inode_lba_map;
         delete this->path_inode_map;
-        delete this->inode_nlookup_map;
-        delete this->output;
     }
 
     int FuseLFS::run(int argc, char* argv[],
@@ -89,39 +80,39 @@ namespace qemucsd::fuse_lfs {
 
         // Check sequential performance mode
         // TODO(Dantali0n): Remove this once concurrency is supported
-        bool safe = false;
-        for(int i = 0; i < argc; i++) {
-            if(strcmp(FUSE_SEQUENTIAL_PARAM, argv[i]) == 0) {
-                safe = true;
-                break;
-            }
-        }
-        if(!safe) {
-            output->error("requires -s sequential mode\n");
-            ret = -1;
-            goto err_out1;
-        }
+//        bool safe = false;
+//        for(int i = 0; i < argc; i++) {
+//            if(strcmp(FUSE_SEQUENTIAL_PARAM, argv[i]) == 0) {
+//                safe = true;
+//                break;
+//            }
+//        }
+//        if(!safe) {
+//            output->error("requires -s sequential mode\n");
+//            ret = -1;
+//            goto err_out1;
+//        }
 
         if (fuse_parse_cmdline(&args, &opts) != 0) {
             ret = -1;
             goto err_out1;
         }
         if (opts.show_help) {
-            output->info("usage: ", argv[0], " [options] <mountpoint>\n\n");
+            output.info("usage: ", argv[0], " [options] <mountpoint>\n\n");
             fuse_cmdline_help();
             fuse_lowlevel_help();
             ret = 0;
             goto err_out1;
         } else if (opts.show_version) {
-            output->info("FUSE library version ", fuse_pkgversion(), "\n");
+            output.info("FUSE library version ", fuse_pkgversion(), "\n");
             fuse_lowlevel_version();
             ret = 0;
             goto err_out1;
         }
 
         if(opts.mountpoint == nullptr) {
-            output->info("usage: ", argv[0], " [options] <mountpoint>\n");
-            output->info("       ", argv[0], " --help\n");
+            output.info("usage: ", argv[0], " [options] <mountpoint>\n");
+            output.info("       ", argv[0], " --help\n");
             ret = 1;
             goto err_out1;
         }
@@ -131,7 +122,7 @@ namespace qemucsd::fuse_lfs {
 
         /** Check compiled sector size matches device sector size */
         if(SECTOR_SIZE != nvme_info.sector_size) {
-            output->error("Compiled sector size ", SECTOR_SIZE, " does not ",
+            output.error("Compiled sector size ", SECTOR_SIZE, " does not ",
                          "match device sector size ", nvme_info.sector_size);
             ret = 1;
             goto err_out1;
@@ -139,32 +130,32 @@ namespace qemucsd::fuse_lfs {
 
         // TODO(Dantali0n): Only create filesystem when a certain command line
         //                  argument is supplied. See fuse hello_ll for example.
-        output->info("Creating filesystem..");
+        output.info("Creating filesystem..");
         if(mkfs() != FLFS_RET_NONE) {
             ret = 1;
             goto err_out1;
         }
 
-        output->info("Checking super block..");
+        output.info("Checking super block..");
         if(verify_superblock() != FLFS_RET_NONE) {
-            output->error("Failed to verify super block, are you ",
+            output.error("Failed to verify super block, are you ",
                    "sure the partition does not contain another filesystem?");
             ret = 1;
             goto err_out1;
         }
 
         // TODO(Dantali0n): Filesystem cleanup / recovery from dirty state
-        output->info("Checking dirty block..");
+        output.info("Checking dirty block..");
         if(verify_dirtyblock() != FLFS_RET_NONE) {
-            output->error("Filesystem dirty, no recovery methods yet",
+            output.error("Filesystem dirty, no recovery methods yet",
                    " unable to continue :(");
             ret = 1;
             goto err_out1;
         }
 
-        output->info("Writing dirty block..");
+        output.info("Writing dirty block..");
         if(write_dirtyblock() != FLFS_RET_NONE) {
-            output->error("Unable to write dirty block to drive, "
+            output.error("Unable to write dirty block to drive, "
                               "check that drive is writeable");
             ret = 1;
             goto err_out1;
@@ -177,7 +168,7 @@ namespace qemucsd::fuse_lfs {
 
         /** Determine random_ptr now that random_pos is known */
         if(determine_random_ptr() == FLFS_RET_RANDZ_FULL) {
-            output->warning("Filesystem initialized while random zone still ",
+            output.warning("Filesystem initialized while random zone still ",
                            "full, unclean shutdown attempting recovery..");
             if(rewrite_random_blocks() != FLFS_RET_NONE) {
                 ret = 1;
@@ -191,7 +182,7 @@ namespace qemucsd::fuse_lfs {
         }
 
         // Root inode
-        output->info("Creating root inode..");
+        output.info("Creating root inode..");
         path_inode_map->insert(std::make_pair(1, new path_map_t()));
 
         /** Now that random_pos is known reconstruct inode lba map */
@@ -255,69 +246,6 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
-     * Increment nlookup for the given inode by either creating the map
-     * entry or incrementing the existing one.
-     */
-    void FuseLFS::inode_nlookup_increment(fuse_ino_t ino) {
-        auto it = inode_nlookup_map->find(ino);
-        if(it == inode_nlookup_map->end())
-            inode_nlookup_map->insert(std::make_pair(ino, 1));
-        else
-            it->second += 1;
-    }
-
-    void FuseLFS::inode_nlookup_decrement(fuse_ino_t ino, uint64_t count) {
-        auto it = inode_nlookup_map->find(ino);
-
-        if(it == inode_nlookup_map->end()) {
-            output->error("Requested to decrease nlookup count of inode that ",
-                "has already reached count zero!");
-            return;
-        }
-
-        #ifdef QEMUCSD_DEBUG
-        if(count > it->second) {
-            output->error("Attempting to decrease nlookup count more than ",
-                         "current value!");
-            // Can only subtract the current count maximum
-            count = it->second;
-        }
-        #endif
-
-        it->second -= count;
-
-        // TODO(Dantali0n): Implement forget callbacks (unlink, rename, rmdir)
-        //                  and fire these once this count reaches zero.
-        if(it->second == 0)
-            inode_nlookup_map->erase(it);
-    }
-
-    /**
-     * Perform the necessary cache count management for inodes by tracking
-     * the nlookup value by wrapping fuse_reply_entry.
-     */
-    void FuseLFS::fuse_reply_entry_nlookup(
-        fuse_req_t req, struct fuse_entry_param *e)
-    {
-        inode_nlookup_increment(e->ino);
-        //e->attr.st_nlink = inode_nlookup_map.find(e->ino)->second;
-        fuse_reply_entry(req, e);
-    }
-
-    /**
-     * Perform the necessary cache count management for inodes by tracking
-     * the nlookup value by wrapping fuse_reply_create.
-     */
-    void FuseLFS::fuse_reply_create_nlookup(
-        fuse_req_t req, struct fuse_entry_param *e,
-        const struct fuse_file_info *f)
-    {
-        inode_nlookup_increment(e->ino);
-        //e->attr.st_nlink = inode_nlookup_map.find(e->ino)->second;
-        fuse_reply_create(req, e, f);
-    }
-
-    /**
      * Compute the position of data from a Logical Block Address (LBA).
      */
     void FuseLFS::lba_to_position(
@@ -347,7 +275,7 @@ namespace qemucsd::fuse_lfs {
             // Inode 0 is regarded as invalid
             // Inode 1 is hardcoded for root and should not be updated
             if(ino < 2) {
-                output->error("Invalid attempt to insert inode ", ino, " into ",
+                output.error("Invalid attempt to insert inode ", ino, " into ",
                              "a inode_lba_map_t");
                 continue;
             }
@@ -361,7 +289,7 @@ namespace qemucsd::fuse_lfs {
      * using output level debug.
      */
     void FuseLFS::output_fi(const char *name, struct fuse_file_info *fi) {
-        output->debug(
+        output.debug(
             "[", name, "] cache_readdir ", fi->cache_readdir ? 1 : 0,
             " writepage ", fi->writepage ? 1 : 0, " direct_io ",
             fi->direct_io ? 1 : 0, " keep_cache ", fi->keep_cache ? 1 : 0,
@@ -410,7 +338,7 @@ namespace qemucsd::fuse_lfs {
         else if(entry.first.type == INO_T_DIR)
             goto ino_stat_dir;
         else {
-            output->error("get_inode_entry_t returned entry with type",
+            output.error("get_inode_entry_t returned entry with type",
                           "INO_T_NONE");
             goto ino_stat_enoent;
         }
@@ -458,19 +386,19 @@ namespace qemucsd::fuse_lfs {
      * @return 0 upon success, < 0 upon failure
      */
     int FuseLFS::mkfs() {
-        output->info("erasing device..");
+        output.info("erasing device..");
 
         for(uint64_t i = 0; i < nvme_info.num_zones; i++) {
             if(nvme->reset(i) != 0) {
-                output->error("Failed to reset device zone ", i);
+                output.error("Failed to reset device zone ", i);
                 return FLFS_RET_ERR;
             }
         }
 
-        output->info("writing super block..");
+        output.info("writing super block..");
 
         if(write_superblock() != FLFS_RET_NONE) {
-            output->error("Failed to write super block, check NvmeZns backend");
+            output.error("Failed to write super block, check NvmeZns backend");
             return FLFS_RET_ERR;
         }
 
@@ -484,13 +412,13 @@ namespace qemucsd::fuse_lfs {
         struct checkpoint_block cblock = {randz_lba, logz_lba};
         if(nvme->append(CBLOCK_POS.zone, res_sector, CBLOCK_POS.offset,
                         &cblock, sizeof(cblock)) != 0) {
-            output->error("Failed to write checkpoint block, check",
+            output.error("Failed to write checkpoint block, check",
                 "NvmeZns backend");
             return FLFS_RET_ERR;
         }
 
         if(res_sector != CBLOCK_POS.sector) {
-            output->error("Initial checkpoint block written to wrong"
+            output.error("Initial checkpoint block written to wrong"
                 "location, check append operations");
             return FLFS_RET_ERR;
         }
@@ -609,7 +537,7 @@ namespace qemucsd::fuse_lfs {
                 if(nvme->read(CBLOCK_POS.zone + 1, CBLOCK_POS.sector,
                            CBLOCK_POS.offset, &tmp_cblock, sizeof(cblock)) == 0)
                 {
-                    output->warning("Restored checkpoint block from "
+                    output.warning("Restored checkpoint block from "
                         "power loss");
                     tmp_cblock_pos = {CBLOCK_POS.zone + 1, CBLOCK_POS.sector,
                                       0, CBLOCK_POS.size};
@@ -1120,7 +1048,7 @@ namespace qemucsd::fuse_lfs {
         }
 
         if(!random_ptr.valid()) {
-            output->fatal("Insufficient random zone space! linear rewrite ",
+            output.fatal("Insufficient random zone space! linear rewrite ",
                 "occupied entire zone!!");
             return FLFS_RET_RANDZ_INSUFFICIENT;
         }
@@ -1610,7 +1538,7 @@ namespace qemucsd::fuse_lfs {
         open_inode_vect_t::iterator it;
         csd_unique_t csd_uni = std::make_pair(ino, context->pid);
         if(find_file_handle(&csd_uni, &it) != 0) {
-            output->warning("Opening the same file multiple times within the ",
+            output.warning("Opening the same file multiple times within the ",
                 "same process can lead to undefined behavior regarding CSD ",
                 "operations!");
         }
@@ -1625,7 +1553,7 @@ namespace qemucsd::fuse_lfs {
         open_inode_vect->push_back(file_entry);
 
         if(fh_ptr == UINT64_MAX)
-            output->fatal("Exhausted all possible file handles!");
+            output.fatal("Exhausted all possible file handles!");
         fh_ptr += 1;
     }
 
@@ -1980,7 +1908,7 @@ namespace qemucsd::fuse_lfs {
         auto *blk = (struct data_block *) malloc(sizeof(data_block));
         if(get_data_block(entry.first, db_block_num, blk) != FLFS_RET_NONE) {
             uint64_t error_lba = entry.first.data_lba;
-            output->error(
+            output.error(
                 "Failed to get data_block at lba ", error_lba,
                 " for inode ", stbuf->st_ino, " in read");
             free(blk);
@@ -2008,7 +1936,7 @@ namespace qemucsd::fuse_lfs {
                    FLFS_RET_NONE)
                 {
                     uint64_t error_lba = entry.first.data_lba;
-                    output->error(
+                    output.error(
                         "Failed to get data_block at lba ", error_lba,
                         " for inode ", stbuf->st_ino, " in read");
                     free(buffer);
@@ -2026,7 +1954,7 @@ namespace qemucsd::fuse_lfs {
                 buffer + buffer_offset, SECTOR_SIZE) != 0)
             {
                 uint64_t data_lba = blk->data_lbas[db_lba_index];
-                output->error(
+                output.error(
                     "Failed to retrieve data at at data_block index ",
                     db_lba_index, " with lba ", data_lba, " for inode ",
                     stbuf->st_ino);
@@ -2091,7 +2019,7 @@ namespace qemucsd::fuse_lfs {
             {
                 fuse_ino_t inode = snap->inode_data.first.inode;
                 uint64_t data_lba = blk->data_lbas[db_lba_index];
-                output->error(
+                output.error(
                     "Failed to retrieve data at at data_block index ",
                     db_lba_index, " with lba ", data_lba, " for inode ",
                     inode);
@@ -2126,7 +2054,7 @@ namespace qemucsd::fuse_lfs {
         }
 
         if(ino_stat(ino, &stbuf) != FLFS_RET_NONE) {
-            output->error("Failed to find configured kernel inode ", ino);
+            output.error("Failed to find configured kernel inode ", ino);
             fuse_reply_err(req, EIO);
             return;
         }
@@ -2276,12 +2204,12 @@ namespace qemucsd::fuse_lfs {
     }
 
     void FuseLFS::destroy(void *userdata) {
-        output->info("Tearing down filesystem");
+        output.info("Tearing down filesystem");
 
         //TODO(Dantali0n): flush all pending datastructures to drive.
 
         if(remove_dirtyblock() != FLFS_RET_NONE) {
-            output->error("Failed to remove dirty block from drive",
+            output.error("Failed to remove dirty block from drive",
                 " this will cause issues on subsequent mounts!");
         }
     }
@@ -2442,7 +2370,7 @@ namespace qemucsd::fuse_lfs {
         open_inode_vect_t::iterator it;
         csd_unique_t context = {open_entry.ino, open_entry.pid};
         if(find_file_handle(&context, &it)) {
-            output->warning("File with inode ", open_entry.ino, " released "
+            output.warning("File with inode ", open_entry.ino, " released "
                 "while opened multiple times by process ", open_entry.pid);
             fuse_reply_err(req, 0);
             return;
@@ -2563,7 +2491,7 @@ namespace qemucsd::fuse_lfs {
         open_inode_vect_t::iterator open_ino_it;
         find_file_handle(fi->fh, &open_ino_it);
         if(open_ino_it == open_inode_vect->end()) {
-            output->error("File handle ", fi->fh, " not found in ",
+            output.error("File handle ", fi->fh, " not found in ",
                          "open_inode_map!");
             fuse_reply_err(req, EIO);
             return;
@@ -2604,7 +2532,7 @@ namespace qemucsd::fuse_lfs {
         open_inode_vect_t::iterator open_ino_it;
         find_file_handle(fi->fh, &open_ino_it);
         if(open_ino_it == open_inode_vect->end()) {
-            output->error("File handle ", fi->fh, " not found in",
+            output.error("File handle ", fi->fh, " not found in",
                          "open_inode_map!");
             fuse_reply_err(req, EIO);
             return;
@@ -2612,7 +2540,7 @@ namespace qemucsd::fuse_lfs {
         #endif
 
         if(fi->flags & O_APPEND && off != e.attr.st_size) {
-            output->warning("External call requested O_APPEND with offset ",
+            output.warning("External call requested O_APPEND with offset ",
                 "different from size! fixing offset..");
             off = e.attr.st_size;
         }

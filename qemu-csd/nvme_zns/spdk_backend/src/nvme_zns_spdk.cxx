@@ -35,7 +35,7 @@ namespace qemucsd::nvme_zns {
         if(entry->qpair == nullptr || entry->ns == nullptr ||
            entry->ctrlr == nullptr)
         {
-           std::cerr << "SPDK ns_entry not properly initialized" << std::endl;
+           output.error("SPDK ns_entry not properly initialized");
            exit(1);
         }
 
@@ -89,6 +89,8 @@ namespace qemucsd::nvme_zns {
         uint64_t zone, uint64_t sector, uint64_t offset, void *buffer,
         uint64_t size)
     {
+        std::lock_guard<std::mutex> guard(gl);
+
         uint64_t lba;
         struct ns_entry entry = *this->entry;
 
@@ -119,6 +121,8 @@ namespace qemucsd::nvme_zns {
         uint64_t zone, uint64_t &sector, uint64_t offset, void *buffer,
         uint64_t size)
     {
+        std::lock_guard<std::mutex> guard(gl);
+
         uint64_t lba;
         struct ns_entry entry = *this->entry;
 
@@ -157,6 +161,8 @@ namespace qemucsd::nvme_zns {
     }
 
     int NvmeZnsSpdkBackend::reset(uint64_t zone) {
+        std::lock_guard<std::mutex> guard(gl);
+
         uint64_t lba;
         struct ns_entry entry = *this->entry;
 
@@ -166,7 +172,7 @@ namespace qemucsd::nvme_zns {
         position_to_lba(zone, 0, lba);
 
         spdk_nvme_zns_reset_zone(entry.ns, entry.qpair, lba, false,
-                                 spdk_init::error_print, &entry);
+            spdk_init::error_print, &entry);
 
         spdk_init::spin_complete(&entry);
 

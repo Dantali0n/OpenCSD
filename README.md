@@ -664,6 +664,13 @@ see source files such as `fuse_lfs_disc.hpp` until design is frozen.
 - random zone can only be rewritten once it is completely full.
 - compaction is only performed upon garbage collection, initial writes might use
   only partially filled data blocks.
+- A kernel _CAN NOT_ return more data than the snapshotted size of
+  the file it is reading.
+- A kernel _CAN NOT_ return more data than is specified in the read request.
+
+#### Threading and concurrency
+
+-
 
 #### Non-persistent Conditional Extended Attributes in FUSE
 
@@ -683,3 +690,17 @@ The state of these extended attributes is managed through the use of
 hooks except release / releasedir. To combat this limitation FluffleFS generates
 a unique  filehandle for each open file. The pid is only used at the moment the
 first extended attribute is set.
+
+#### Circumventing return data limitations
+
+Circumventing return data can be achieved by using
+`FUSE_CAP_EXPLICIT_INVAL_DATA` and `fuse_lowlevel_notify_inval_inode` but this
+requires a major overhaul because the call to `fuse_lowlevel_notify_inval_inode`
+must be performed manually throughout the entire code base.
+
+The alternative is by enabling `FUSE_CAP_AUTO_INVAL_DATA` (as is already the
+case) and ensuring the size returned by `getattr` is sufficient for the return
+data. In addition `struct stat` their timeout parameters need to be sufficiently
+low such that the request is invalid by the time the next one comes in (so 0).
+The problem with this is `getattr` is called before the kernel is run so the
+size of the return data is still unknown.

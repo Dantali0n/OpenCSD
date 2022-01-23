@@ -41,7 +41,7 @@ namespace qemucsd::fuse_lfs {
 
         // Check if snapshot for context file already exists
         if(snapshots.find(*context) != snapshots.end()) {
-            output->warning("Updating existing snapshot for ",
+            output.warning("Updating existing snapshot for ",
                "ino ", context->first, " with pid ", context->second);
 
             if(get_snapshot(context, &snap.file, SNAP_FILE) != FLFS_RET_NONE)

@@ -51,7 +51,7 @@ namespace qemucsd::fuse_lfs {
         }
         #ifdef QEMUCSD_DEBUG
         else if(offset != 0) {
-            output->warning("[write_sector] No pre-existing data but offset ",
+            output.warning("[write_sector] No pre-existing data but offset ",
                             "is non zero. In debug this buffer will be zerosd...");
             memset(buffer, 0, offset);
         }
@@ -79,7 +79,7 @@ namespace qemucsd::fuse_lfs {
         if(entry.first.size > 0 && get_data_block(entry.first,
             wr_context->cur_db_blk_num, &cur_db_blk) != FLFS_RET_NONE)
         {
-            output->error("Failed to get data_block ",
+            output.error("Failed to get data_block ",
                 wr_context->cur_db_blk_num, " for inode", ino);
             fuse_reply_err(req, EIO);
             return;
@@ -123,7 +123,7 @@ namespace qemucsd::fuse_lfs {
                 if(get_data_block(entry.first, wr_context->cur_db_blk_num,
                                   &cur_db_blk) != FLFS_RET_NONE)
                 {
-                    output->error("Failed to get data_block ",
+                    output.error("Failed to get data_block ",
                         wr_context->cur_db_blk_num, " for inode", ino);
                     fuse_reply_err(req, EIO);
                     return;

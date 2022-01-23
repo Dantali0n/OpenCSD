@@ -46,7 +46,7 @@ namespace qemucsd::nvme_csd {
 		if(vm_mem != nullptr) free(vm_mem);
 	}
 
-    void NvmeCsd::initialize() {
+    void NvmeCsd::vm_init() {
         /** uBPF Initialization */
         this->vm = ubpf_create();
         this->vm_mem = malloc(this->vm_mem_size);
@@ -59,15 +59,20 @@ namespace qemucsd::nvme_csd {
         ubpf_register(vm, 6, "bpf_get_mem_info", (void*)bpf_get_mem_info);
     }
 
+    void NvmeCsd::vm_destroy() {
+        ubpf_destroy(this->vm);
+        free(vm_mem);
+    }
+
 	uint64_t NvmeCsd::nvm_cmd_bpf_run(void *bpf_elf, uint64_t bpf_elf_size) {
+        vm_init();
+
 		char *msg_buf = nullptr;
 		if(ubpf_load_elf(this->vm, bpf_elf, bpf_elf_size, &msg_buf) < 0) {
 			std::cerr << msg_buf << std::endl;
 			free(msg_buf);
 			return -1;
 		}
-
-		free(msg_buf);
 
 		// Jit compilation path
 		if(this->vm_jit) {
@@ -77,9 +82,10 @@ namespace qemucsd::nvme_csd {
             auto stop = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
             std::cout << "Jit compilation: " << duration.count() << "us." << std::endl;
-            if ((int)exec(this->vm_mem, this->vm_mem_size) < 0)
+            if ((int64_t)exec(this->vm_mem, this->vm_mem_size) < 0)
                 return -1;
 
+            vm_destroy();
             return return_size;
         }
 
@@ -88,6 +94,7 @@ namespace qemucsd::nvme_csd {
 		if(ubpf_exec(this->vm, this->vm_mem, this->vm_mem_size, &result) < 0)
 			return -1;
 
+        vm_destroy();
 		return return_size;
 	}
 

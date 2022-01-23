@@ -29,6 +29,7 @@
 #include <cstring>
 #include <iostream>
 #include <vector>
+#include <mutex>
 
 #include "output.hpp"
 #include "nvme_zns_backend.hpp"
@@ -41,6 +42,8 @@ namespace qemucsd::nvme_zns {
     class NvmeZnsMemoryBackend : public NvmeZnsBackend {
     protected:
         std::vector<uint64_t> write_pointers;
+
+        std::mutex gl;
 
         uintptr_t memory_limit;
 

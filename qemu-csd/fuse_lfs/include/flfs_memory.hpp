@@ -25,6 +25,7 @@
 #ifndef QEMU_CSD_FLFS_MEMORY_HPP
 #define QEMU_CSD_FLFS_MEMORY_HPP
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 
@@ -68,7 +69,7 @@ namespace qemucsd::fuse_lfs {
     // Decreases by calls to forget.
     // Scheduled unlink, rmdir or rename operations can only be flushed when
     // count reaches 0.
-    typedef std::map<fuse_ino_t, uint64_t> inode_nlookup_map_t;
+    typedef std::map<fuse_ino_t, std::atomic<uint64_t>> inode_nlookup_map_t;
 
     // Names and their inodes for use in path_inode_map_t
     // TODO(Dantali0n): Investigate if memory consumption will be beyond control
