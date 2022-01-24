@@ -99,15 +99,19 @@ void Output::error(Head &&head, Tail&&... tail) {
 template<typename F>
 void Output::fatal(F &&t) {
     output(std::cerr, FATAL, t);
+    #ifdef QEMUCSD_DEBUG
     StackTrace st; st.load_here(32);
     Printer p; p.print(st);
+    #endif
 }
 
 template<typename HeadF, typename... TailF>
 void Output::fatal(HeadF &&head, TailF&&... tail) {
     output(std::cerr, FATAL, head, std::forward<TailF>(tail)...);
+    #ifdef QEMUCSD_DEBUG
     StackTrace st; st.load_here(32);
     Printer p; p.print(st);
+    #endif
 }
 
 template<typename I>

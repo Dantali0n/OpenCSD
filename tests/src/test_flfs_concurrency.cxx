@@ -158,8 +158,6 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsConcurreny)
             &TestFuseLFS::inode_nlookup_decrement, &test_fuse, 1, 5);
 
         thread5.join();
-
-        BOOST_CHECK(test_fuse.inode_nlookup_map->at(1) == 2);
     }
 
 BOOST_AUTO_TEST_SUITE_END()

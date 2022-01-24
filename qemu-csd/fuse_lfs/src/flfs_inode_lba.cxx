@@ -166,10 +166,12 @@ namespace qemucsd::fuse_lfs {
             }
             #endif
 
+            // It is absolutely critical that the mutex be constructed inside
+            // the loop. Otherwise, multiple inodes would share the same mutex!
             struct lba_inode cur_lba = {0, 0, std::make_shared<std::mutex>()};
 
             auto it = inode_lba_map.find(ino);
-            if(it == inode_lba_map.end())
+            if(it != inode_lba_map.end())
                 cur_lba = it->second;
 
             cur_lba.lba = lba;

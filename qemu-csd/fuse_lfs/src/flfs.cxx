@@ -342,7 +342,7 @@ namespace qemucsd::fuse_lfs {
         else if(entry.first.type == INO_T_DIR)
             goto ino_stat_dir;
         else {
-            output.error("get_inode_entry_t returned entry with type",
+            output.error("get_inode_entry_t returned entry with type ",
                           "INO_T_NONE");
             goto ino_stat_enoent;
         }
