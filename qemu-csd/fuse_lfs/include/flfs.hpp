@@ -59,9 +59,6 @@ extern "C" {
 
 namespace qemucsd::fuse_lfs {
 
-    static output::Output output = output::Output(
-        FUSE_LFS_NAME_PREFIX, output::INFO);
-
     /**
      * FUSE LFS filesystem for Zoned Namespaces SSDs (FluffleFS).
      */

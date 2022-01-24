@@ -34,6 +34,7 @@ extern "C" {
 #include <cstdint>
 #include <vector>
 
+#include "synchronization/flfs_rwlock.hpp"
 #include "flfs_memory.hpp"
 
 namespace qemucsd::fuse_lfs {
@@ -44,15 +45,15 @@ namespace qemucsd::fuse_lfs {
     class FuseLFSFileHandle {
     protected:
         // File handle pointer for open files
-        uint64_t fh_ptr;
+        uint64_t fh_ptr = 0;
 
         // Keep track of open files and directories using unique handles for
         // respective inodes and caller pids.
         open_inode_vect_t open_inode_vect;
 
         // Concurrency management for open_inode_vect
-        pthread_rwlock_t open_inode_lck;
-        pthread_rwlockattr_t open_inode_attr;
+        pthread_rwlock_t open_inode_lck = {};
+        pthread_rwlockattr_t open_inode_attr = {};
 
         void find_file_handle(uint64_t fh, open_inode_vect_t::iterator *it);
     public:
@@ -67,6 +68,8 @@ namespace qemucsd::fuse_lfs {
         int get_file_handle(uint64_t fh, struct open_file_entry *entry);
 
         int update_file_handle(uint64_t fh, struct open_file_entry *entry);
+
+        int find_file_handle_unsafe(csd_unique_t *uni_t);
 
         int find_file_handle(csd_unique_t *uni_t);
 

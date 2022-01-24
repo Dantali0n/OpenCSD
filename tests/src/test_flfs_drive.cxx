@@ -877,12 +877,12 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
         // Test insert and uniqueness
         test_fuse.inode_nlookup_increment(1);
-        BOOST_CHECK(test_fuse.inode_nlookup_map->size() == 1);
+        BOOST_CHECK(test_fuse.inode_nlookup_map.size() == 1);
         test_fuse.inode_nlookup_increment(1);
-        BOOST_CHECK(test_fuse.inode_nlookup_map->size() == 1);
+        BOOST_CHECK(test_fuse.inode_nlookup_map.size() == 1);
 
         // Test incremented count
-        BOOST_CHECK(test_fuse.inode_nlookup_map->find(1)->second == 2);
+        BOOST_CHECK(test_fuse.inode_nlookup_map.find(1)->second == 2);
 
         // Try decrementing more than is incremented (when debug build)
         #ifdef QEMUCSD_DEBUG
@@ -892,7 +892,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         #endif
 
         // Decrementing an inode to 0 should remove it
-        BOOST_CHECK(test_fuse.inode_nlookup_map->size() == 0);
+        BOOST_CHECK(test_fuse.inode_nlookup_map.size() == 0);
     }
 
     /**

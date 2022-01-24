@@ -33,6 +33,7 @@ extern "C" {
 #include <cstddef>
 #include <vector>
 
+#include "synchronization/flfs_rwlock.hpp"
 #include "flfs_memory.hpp"
 
 namespace qemucsd::fuse_lfs {
@@ -46,8 +47,8 @@ namespace qemucsd::fuse_lfs {
         inode_lba_map_t inode_lba_map;
 
         // Concurrency management for inode_lba_map
-        pthread_rwlock_t inode_map_lck;
-        pthread_rwlockattr_t inode_map_attr;
+        pthread_rwlock_t inode_map_lck = {};
+        pthread_rwlockattr_t inode_map_attr = {};
     public:
         FuseLFSInodeLba();
         virtual ~FuseLFSInodeLba();

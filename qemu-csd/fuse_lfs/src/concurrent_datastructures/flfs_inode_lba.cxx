@@ -27,35 +27,11 @@
 namespace qemucsd::fuse_lfs {
 
     FuseLFSInodeLba::FuseLFSInodeLba() {
-        // Initialize the lock attributes
-        if(pthread_rwlockattr_init(&inode_map_attr) != 0) {
-            output.error("Failed to initialize inode_lba_map lock"
-                         "attributes");
-        }
-
-        // Disable support for recursive reads but enable writer preference
-        if(pthread_rwlockattr_setkind_np(&inode_map_attr,
-             PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP) != 0)
-        {
-            output.error("Invalid arguments for configuring inode_lba_map ",
-                         "reader writer lock");
-        }
-
-        // Initialize the reader writer lock
-        if(pthread_rwlock_init(&inode_map_lck, &inode_map_attr) != 0) {
-            output.error("Failed to initialize inode_nlookup_map reader ",
-                         "writer lock");
-        }
+        rwlock_init(&inode_map_lck, &inode_map_attr, "inode_lba_map");
     }
 
     FuseLFSInodeLba::~FuseLFSInodeLba() {
-        if(pthread_rwlockattr_destroy(&inode_map_attr) != 0) {
-            output.error("Failed to destroy inode_map_attr");
-        }
-
-        if(pthread_rwlock_destroy(&inode_map_lck)!= 0) {
-            output.error("Failed to destroy inode_map_lck");
-        }
+        rwlock_destroy(&inode_map_lck, &inode_map_attr, "inode_lba_map");
     }
 
     uint64_t FuseLFSInodeLba::inode_lba_size() {

@@ -27,40 +27,13 @@
 namespace qemucsd::fuse_lfs {
 
     FuseLFSNlookup::FuseLFSNlookup() {
-        this->inode_nlookup_map = new inode_nlookup_map_t();
-
-        // Initialize the lock attributes
-        if(pthread_rwlockattr_init(&inode_nlookup_attr) != 0) {
-            output.error("Failed to initialize inode_nlookup_map lock"
-                         "attributes");
-        }
-
-        // Disable support for recursive reads but enable writer preference
-        if(pthread_rwlockattr_setkind_np(&inode_nlookup_attr,
-            PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP) != 0)
-        {
-            output.error("Invalid arguments for configuring inode_nlookup_map ",
-                         "reader writer lock");
-        }
-
-        // Initialize the reader writer lock
-        if(pthread_rwlock_init(&inode_nlookup_lck, &inode_nlookup_attr) != 0) {
-            output.error("Failed to initialize inode_nlookup_map reader ",
-                         "writer lock");
-        }
-
+        rwlock_init(&inode_nlookup_lck, &inode_nlookup_attr,
+                    "inode_nlookup_map");
     }
 
     FuseLFSNlookup::~FuseLFSNlookup() {
-        if(pthread_rwlockattr_destroy(&inode_nlookup_attr) != 0) {
-            output.error("Failed to destroy inode_nlookup_attr");
-        }
-
-        if(pthread_rwlock_destroy(&inode_nlookup_lck)!= 0) {
-            output.error("Failed to destroy inode_nlookup_lck");
-        }
-
-        delete this->inode_nlookup_map;
+        rwlock_destroy(&inode_nlookup_lck, &inode_nlookup_attr,
+                       "inode_nlookup_map");
     }
 
     /**
@@ -71,17 +44,17 @@ namespace qemucsd::fuse_lfs {
         // Get read lock
         pthread_rwlock_rdlock(&inode_nlookup_lck);
 
-        auto it = inode_nlookup_map->find(ino);
-        if(it == inode_nlookup_map->end()) {
+        auto it = inode_nlookup_map.find(ino);
+        if(it == inode_nlookup_map.end()) {
 
             // Elevate lock to write
             pthread_rwlock_unlock(&inode_nlookup_lck);
             pthread_rwlock_wrlock(&inode_nlookup_lck);
 
             // Verify inode still not inserted, now x waits for infinity...
-            it = inode_nlookup_map->find(ino);
-            if(it == inode_nlookup_map->end())
-                inode_nlookup_map->insert(std::make_pair(ino, 1));
+            it = inode_nlookup_map.find(ino);
+            if(it == inode_nlookup_map.end())
+                inode_nlookup_map.insert(std::make_pair(ino, 1));
             else
                 // Increments are safe regardless of lock as they are atomics
                 it->second += 1;
@@ -102,9 +75,9 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::inode_nlookup_decrement(fuse_ino_t ino, uint64_t count) {
         // Get read lock
         pthread_rwlock_rdlock(&inode_nlookup_lck);
-        auto it = inode_nlookup_map->find(ino);
+        auto it = inode_nlookup_map.find(ino);
 
-        if(it == inode_nlookup_map->end()) {
+        if(it == inode_nlookup_map.end()) {
             output.error("Requested to decrease nlookup count of inode that ",
                           "has already reached count zero!");
             pthread_rwlock_unlock(&inode_nlookup_lck);
@@ -136,7 +109,7 @@ namespace qemucsd::fuse_lfs {
             pthread_rwlock_wrlock(&inode_nlookup_lck);
 
             if(it->second == 0)
-                inode_nlookup_map->erase(it);
+                inode_nlookup_map.erase(it);
         }
 
         pthread_rwlock_unlock(&inode_nlookup_lck);

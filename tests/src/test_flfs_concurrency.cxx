@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsConcurreny)
         thread3.join();
         thread4.join();
 
-        BOOST_CHECK(test_fuse.inode_nlookup_map->at(1) == 4);
+        BOOST_CHECK(test_fuse.inode_nlookup_map.at(1) == 4);
     }
 
     BOOST_AUTO_TEST_CASE(Test_FuseLFS_nlookup_insert_multi,
@@ -106,8 +106,8 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsConcurreny)
         thread3.join();
         thread4.join();
 
-        BOOST_CHECK(test_fuse.inode_nlookup_map->at(1) == 2);
-        BOOST_CHECK(test_fuse.inode_nlookup_map->at(2) == 2);
+        BOOST_CHECK(test_fuse.inode_nlookup_map.at(1) == 2);
+        BOOST_CHECK(test_fuse.inode_nlookup_map.at(2) == 2);
     }
 
     BOOST_AUTO_TEST_CASE(Test_FuseLFS_nlookup_updown,
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsConcurreny)
                 1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
 
-        test_fuse.inode_nlookup_map->insert(std::make_pair(1, 2));
+        test_fuse.inode_nlookup_map.insert(std::make_pair(1, 2));
 
         std::thread thread1(
             &TestFuseLFS::inode_nlookup_decrement, &test_fuse, 1, 2);
@@ -130,7 +130,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsConcurreny)
         thread2.join();
         thread3.join();
 
-        BOOST_CHECK(test_fuse.inode_nlookup_map->at(1) == 2);
+        BOOST_CHECK(test_fuse.inode_nlookup_map.at(1) == 2);
     }
 
     BOOST_AUTO_TEST_CASE(Test_FuseLFS_nlookup_over_decrease,

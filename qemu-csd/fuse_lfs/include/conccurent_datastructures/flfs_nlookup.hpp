@@ -32,6 +32,7 @@ extern "C" {
 
 #include <cstddef>
 
+#include "synchronization/flfs_rwlock.hpp"
 #include "flfs_memory.hpp"
 
 namespace qemucsd::fuse_lfs {
@@ -42,7 +43,7 @@ namespace qemucsd::fuse_lfs {
     class FuseLFSNlookup {
     protected:
         // Keep track of nlookup count per inode
-        inode_nlookup_map_t *inode_nlookup_map;
+        inode_nlookup_map_t inode_nlookup_map;
 
         // Concurrency management for inode_lnookup_map
         pthread_rwlock_t inode_nlookup_lck;

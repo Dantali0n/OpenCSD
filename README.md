@@ -671,6 +671,11 @@ see source files such as `fuse_lfs_disc.hpp` until design is frozen.
 #### Threading and concurrency
 
 - Parallelism is managed through coarse grained locking.
+  - Almost all FUSE operations are subject to lock a rwlock in either read or
+    write mode. Operations requiring exclusive locking such as create / mkdir
+    and fsync take the writers lock. While open / readdir / write / read and
+    truncate take the readers lock. Some FUSE operations might be able to
+    operate lockless such as statfs
   - Any operations regarding a particular inode must first obtain a lock for
     this inode.
   - All individual datastructures are protected using reader writer locks with

@@ -300,6 +300,7 @@ namespace qemucsd::fuse_lfs {
      * Find and fill the stbuf information for the given inode. Every FUSE call
      * that needs to determine if an inode exists should use this method.
      * TODO(Dantali0n): Cache these lookups as much as possible.
+     * TODO(Dantali0n): Make this thread safe
      * @return FLFS_RET_NONE upon success, FLFS_RET_ENOENT upon not found
      */
     int FuseLFS::ino_stat(fuse_ino_t ino, struct stat *stbuf) {
@@ -1191,6 +1192,7 @@ namespace qemucsd::fuse_lfs {
     /**
      * Find and populate the inode_entry_t (inode entry + name) for a given
      * inode.
+     * TODO(Dantali0n): Make this thread safe
      * @threadsafety: thread safe
      * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon error or
      *         FLFS_RET_ENOENT if the inode_entry could not be found
@@ -2524,7 +2526,6 @@ namespace qemucsd::fuse_lfs {
         const fuse_ctx* context = fuse_req_ctx(req);
 
         pthread_rwlock_rdlock(&gl);
-//        gl_lock("write");
 
         #ifdef FLFS_DBG_FI
         output_fi("write", fi);
