@@ -42,14 +42,15 @@ extern "C" {
 
 #include "output.hpp"
 #include "arguments.hpp"
+#include "conccurent_datastructures/flfs_file_handle.hpp"
+#include "conccurent_datastructures/flfs_inode_lba.hpp"
+#include "conccurent_datastructures/flfs_nlookup.hpp"
 #include "nvme_csd.hpp"
 #include "flfs_constants.hpp"
 #include "flfs_csd.hpp"
 #include "flfs_dirtyblock.hpp"
 #include "flfs_disc.hpp"
-#include "flfs_inode_lba.hpp"
 #include "flfs_memory.hpp"
-#include "flfs_nlookup.hpp"
 #include "flfs_snapshot.hpp"
 #include "flfs_superblock.hpp"
 #include "flfs_write.hpp"
@@ -65,8 +66,8 @@ namespace qemucsd::fuse_lfs {
      * FUSE LFS filesystem for Zoned Namespaces SSDs (FluffleFS).
      */
     class FuseLFS : public FuseLFSCSD, public FuseLFSDirtyBlock,
-        public FuseLFSInodeLba, public FuseLFSNlookup, public FuseLFSSnapShot,
-        public FuseLFSSuperBlock, public FuseLFSWrite
+        public FuseLFSFileHandle, public FuseLFSInodeLba, public FuseLFSNlookup,
+        public FuseLFSSnapShot, public FuseLFSSuperBlock, public FuseLFSWrite
     {
     protected:
         arguments::options *options;
@@ -301,31 +302,6 @@ namespace qemucsd::fuse_lfs {
         int get_snapshot(csd_unique_t *context, struct snapshot *snap,
             enum snapshot_store_type snap_t) override;
         int delete_snapshot(csd_unique_t *context) override;
-
-        // TODO(Dantali0n): Move open file handle methods to separate interface
-
-        // File handle pointer for open files
-        uint64_t fh_ptr;
-
-        // Keep track of open files and directories using unique handles for
-        // respective inodes and caller pids.
-        open_inode_vect_t *open_inode_vect;
-
-        void create_file_handle(
-            fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi);
-
-        int get_file_handle(csd_unique_t *uni_t, struct open_file_entry *entry);
-
-        int get_file_handle(uint64_t fh, struct open_file_entry *entry);
-
-        int update_file_handle(uint64_t fh, struct open_file_entry *entry);
-
-        int find_file_handle(csd_unique_t *uni_t,
-                             open_inode_vect_t::iterator *it);
-
-        int find_file_handle(uint64_t fh, open_inode_vect_t::iterator *it);
-
-        void release_file_handle(uint64_t fh);
 
         // TODO(Dantali0n): Move Garbage Collection methods to separate
         //                  interface

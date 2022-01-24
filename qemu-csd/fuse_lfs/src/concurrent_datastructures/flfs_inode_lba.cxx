@@ -46,7 +46,6 @@ namespace qemucsd::fuse_lfs {
             output.error("Failed to initialize inode_nlookup_map reader ",
                          "writer lock");
         }
-
     }
 
     FuseLFSInodeLba::~FuseLFSInodeLba() {

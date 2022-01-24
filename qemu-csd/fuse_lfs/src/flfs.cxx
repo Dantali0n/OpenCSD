@@ -37,9 +37,6 @@ namespace qemucsd::fuse_lfs {
         this->nvme = nvme;
         this->connection = nullptr;
 
-        // In memory session so this always start at 1.
-        this->fh_ptr = 1;
-
         // Will be set to at least 2 upon initialization as 0 is invalid and
         // 1 is root inode.
         this->ino_ptr = 0;
@@ -66,8 +63,6 @@ namespace qemucsd::fuse_lfs {
         this->data_blocks = new data_blocks_t();
 
         this->inode_entries = new inode_entries_t();
-
-        this->open_inode_vect = new open_inode_vect_t();
     }
 
     FuseLFS::~FuseLFS() {
@@ -79,7 +74,6 @@ namespace qemucsd::fuse_lfs {
             output.error("Failed to destroy global lock");
         }
 
-        delete this->open_inode_vect;
         delete this->inode_entries;
         delete this->data_blocks;
         delete this->nat_update_set;
@@ -1544,138 +1538,6 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
-     * Create a uniquely identifying file handle for the inode and calling pid.
-     * These are necessary for state management such as CSD operations and in
-     * memory snapshots.
-     */
-    void FuseLFS::create_file_handle(
-        fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
-    {
-        const fuse_ctx *context = fuse_req_ctx(req);
-        struct open_file_entry file_entry = {0};
-
-        #ifdef QEMUCSD_DEBUG
-        // Check for opening the same file multiple times within the same
-        // process.
-        open_inode_vect_t::iterator it;
-        csd_unique_t csd_uni = std::make_pair(ino, context->pid);
-        if(find_file_handle(&csd_uni, &it) != 0) {
-            output.warning("Opening the same file multiple times within the ",
-                "same process can lead to undefined behavior regarding CSD ",
-                "operations!");
-        }
-        #endif
-
-        fi->fh = fh_ptr;
-
-        file_entry.fh = fi->fh;
-        file_entry.ino = ino;
-        file_entry.pid = context->pid;
-        file_entry.flags = fi->flags;
-        open_inode_vect->push_back(file_entry);
-
-        if(fh_ptr == UINT64_MAX)
-            output.fatal("Exhausted all possible file handles!");
-        fh_ptr += 1;
-    }
-
-    /**
-     * Use a csd_unique_t pair of inode and pid to find the iterator index in
-     * the open_inode_vect and return this to the caller.
-     * @return 1 if the file handle was found, 0 otherwise
-     */
-    int FuseLFS::find_file_handle(csd_unique_t *uni_t,
-        open_inode_vect_t::iterator *it)
-    {
-        *it = std::find_if(
-            open_inode_vect->begin(), open_inode_vect->end(),
-            [&uni_t](const struct open_file_entry& entry)
-        {
-            return uni_t->first == entry.ino && uni_t->second == entry.pid;
-        });
-
-        return *it == open_inode_vect->end() ? 0 : 1;
-    }
-
-    /**
-     * Use a csd_unique_t pair of inode and pid to find and return the
-     * open_file_entry to the caller.
-     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
-     */
-    int FuseLFS::get_file_handle(csd_unique_t *uni_t,
-        struct open_file_entry *entry)
-    {
-        for(auto &f_entry : *open_inode_vect) {
-            if(uni_t->first == f_entry.ino && uni_t->second == f_entry.pid) {
-                *entry = f_entry;
-                return FLFS_RET_NONE;
-            }
-        }
-
-        return FLFS_RET_ERR;
-    }
-
-    /**
-     * Use a filehandle to find and return the open_file_entry to the caller.
-     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
-     */
-    int FuseLFS::get_file_handle(uint64_t fh, struct open_file_entry *entry) {
-        for(auto &f_entry : *open_inode_vect) {
-            if(fh == f_entry.fh) {
-                *entry = f_entry;
-                return FLFS_RET_NONE;
-            }
-        }
-
-        return FLFS_RET_ERR;
-    }
-
-    /**
-     *
-     * FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
-     */
-    int FuseLFS::update_file_handle(uint64_t fh,
-        struct open_file_entry *entry)
-    {
-        open_inode_vect_t::iterator it;
-        if(!find_file_handle(fh, &it))
-            return FLFS_RET_ERR;
-
-        open_inode_vect->at(
-            std::distance(open_inode_vect->begin(), it)) = *entry;
-
-        return FLFS_RET_NONE;
-    }
-
-    /**
-     * Use an open filehandle to find the iterator index in the
-     * open_inode_Vect and return this to the caller.
-     * @return 1 if the file handle was found, 0 otherwise
-     */
-    int FuseLFS::find_file_handle(uint64_t fh, open_inode_vect_t::iterator *it)
-    {
-        *it = std::find_if(
-            open_inode_vect->begin(), open_inode_vect->end(),
-            [&fh](const struct open_file_entry& entry)
-        {
-            return fh == entry.fh;
-        });
-
-        return *it == open_inode_vect->end() ? 0 : 1;
-    }
-
-    /**
-     * Called be release to remove the session for a file handle
-     */
-    void FuseLFS::release_file_handle(uint64_t fh) {
-        open_inode_vect_t::iterator del_key;
-        find_file_handle(fh, &del_key);
-
-        if(del_key != open_inode_vect->end())
-            open_inode_vect->erase(del_key);
-    }
-
-    /**
      * Perform log zone garbage collection and compaction.
      */
     int FuseLFS::log_garbage_collect() {
@@ -2463,9 +2325,8 @@ namespace qemucsd::fuse_lfs {
 
         // Check if the file is opened multiple times by the same process
         // If so nothing left to do
-        open_inode_vect_t::iterator it;
         csd_unique_t context = {open_entry.ino, open_entry.pid};
-        if(find_file_handle(&context, &it)) {
+        if(find_file_handle(&context)) {
             output.warning("File with inode ", open_entry.ino, " released "
                 "while opened multiple times by process ", open_entry.pid);
             fuse_reply_err(req, 0);
@@ -2629,9 +2490,7 @@ namespace qemucsd::fuse_lfs {
         }
 
         // Verify file handle (session) exists
-        open_inode_vect_t::iterator open_ino_it;
-        find_file_handle(fi->fh, &open_ino_it);
-        if(open_ino_it == open_inode_vect->end()) {
+        if(!find_file_handle(fi->fh)) {
             output.error("File handle ", fi->fh, " not found in ",
                          "open_inode_map!");
             fuse_reply_err(req, EIO);
@@ -2696,9 +2555,7 @@ namespace qemucsd::fuse_lfs {
         }
 
         // Verify file handle (session) exists
-        open_inode_vect_t::iterator open_ino_it;
-        find_file_handle(fi->fh, &open_ino_it);
-        if(open_ino_it == open_inode_vect->end()) {
+        if(!find_file_handle(fi->fh)) {
             output.error("File handle ", fi->fh, " not found in",
                          "open_inode_map!");
             fuse_reply_err(req, EIO);

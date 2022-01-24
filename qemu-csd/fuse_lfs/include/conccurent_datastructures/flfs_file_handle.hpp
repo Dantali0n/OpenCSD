@@ -22,15 +22,16 @@
 * SOFTWARE.
 */
 
-#ifndef QEMU_CSD_FLFS_INODE_LBA_HPP
-#define QEMU_CSD_FLFS_INODE_LBA_HPP
+#ifndef QEMU_CSD_FLFS_FILE_HANDLE_HPP
+#define QEMU_CSD_FLFS_FILE_HANDLE_HPP
 
 extern "C" {
-    #include <fuse3/fuse_lowlevel.h>
+    #include "fuse3/fuse_lowlevel.h"
     #include <pthread.h>
 }
 
 #include <cstddef>
+#include <cstdint>
 #include <vector>
 
 #include "flfs_memory.hpp"
@@ -38,33 +39,42 @@ extern "C" {
 namespace qemucsd::fuse_lfs {
 
     /**
-     * Interface for inode_lba_map methods
+     * Interface for open_inode_vect file handle methods
      */
-    class FuseLFSInodeLba {
+    class FuseLFSFileHandle {
     protected:
-        // Keep track of nlookup count per inode
-        inode_lba_map_t inode_lba_map;
+        // File handle pointer for open files
+        uint64_t fh_ptr;
 
-        // Concurrency management for inode_lba_map
-        pthread_rwlock_t inode_map_lck;
-        pthread_rwlockattr_t inode_map_attr;
+        // Keep track of open files and directories using unique handles for
+        // respective inodes and caller pids.
+        open_inode_vect_t open_inode_vect;
+
+        // Concurrency management for open_inode_vect
+        pthread_rwlock_t open_inode_lck;
+        pthread_rwlockattr_t open_inode_attr;
+
+        void find_file_handle(uint64_t fh, open_inode_vect_t::iterator *it);
     public:
-        FuseLFSInodeLba();
-        virtual ~FuseLFSInodeLba();
+        FuseLFSFileHandle();
+        virtual ~FuseLFSFileHandle();
 
-        uint64_t inode_lba_size();
+        void create_file_handle(fuse_req_t req, fuse_ino_t ino,
+            struct fuse_file_info *fi);
 
-        int get_inode_lba(fuse_ino_t ino, struct lba_inode *data);
+        int get_file_handle(csd_unique_t *uni_t, struct open_file_entry *entry);
 
-        int lock_inode(fuse_ino_t ino);
-        int unlock_inode(fuse_ino_t ino);
+        int get_file_handle(uint64_t fh, struct open_file_entry *entry);
 
-        void update_inode_lba(fuse_ino_t ino, struct lba_inode *data);
+        int update_file_handle(uint64_t fh, struct open_file_entry *entry);
 
-        void update_inode_lba_map(std::vector<fuse_ino_t> *inodes,
-            uint64_t lba);
+        int find_file_handle(csd_unique_t *uni_t);
+
+        int find_file_handle(uint64_t fh);
+
+        void release_file_handle(uint64_t fh);
     };
 
 }
 
-#endif // QEMU_CSD_FLFS_INODE_LBA_HPP
+#endif // QEMU_CSD_FLFS_FILE_HANDLE_HPP

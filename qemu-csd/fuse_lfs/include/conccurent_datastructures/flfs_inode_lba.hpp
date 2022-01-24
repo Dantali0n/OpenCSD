@@ -22,47 +22,49 @@
 * SOFTWARE.
 */
 
-#ifndef QEMU_CSD_FLFS_NLOOKUP_HPP
-#define QEMU_CSD_FLFS_NLOOKUP_HPP
+#ifndef QEMU_CSD_FLFS_INODE_LBA_HPP
+#define QEMU_CSD_FLFS_INODE_LBA_HPP
 
 extern "C" {
-    #include <fuse3/fuse_lowlevel.h>
+    #include "fuse3/fuse_lowlevel.h"
     #include <pthread.h>
 }
 
 #include <cstddef>
+#include <vector>
 
 #include "flfs_memory.hpp"
 
 namespace qemucsd::fuse_lfs {
 
     /**
-     * Interface for nlookup methods
+     * Interface for inode_lba_map methods
      */
-    class FuseLFSNlookup {
+    class FuseLFSInodeLba {
     protected:
         // Keep track of nlookup count per inode
-        inode_nlookup_map_t *inode_nlookup_map;
+        inode_lba_map_t inode_lba_map;
 
-        // Concurrency management for inode_lnookup_map
-        pthread_rwlock_t inode_nlookup_lck;
-        pthread_rwlockattr_t inode_nlookup_attr;
+        // Concurrency management for inode_lba_map
+        pthread_rwlock_t inode_map_lck;
+        pthread_rwlockattr_t inode_map_attr;
     public:
-        FuseLFSNlookup();
-        virtual ~FuseLFSNlookup();
+        FuseLFSInodeLba();
+        virtual ~FuseLFSInodeLba();
 
-        virtual void inode_nlookup_increment(fuse_ino_t ino) = 0;
+        uint64_t inode_lba_size();
 
-        virtual void inode_nlookup_decrement(fuse_ino_t ino, uint64_t count) = 0;
+        int get_inode_lba(fuse_ino_t ino, struct lba_inode *data);
 
-        virtual void fuse_reply_entry_nlookup(
-            fuse_req_t req, struct fuse_entry_param *e) = 0;
+        int lock_inode(fuse_ino_t ino);
+        int unlock_inode(fuse_ino_t ino);
 
-        virtual void fuse_reply_create_nlookup(
-            fuse_req_t req, struct fuse_entry_param *e,
-            const struct fuse_file_info *f) = 0;
+        void update_inode_lba(fuse_ino_t ino, struct lba_inode *data);
+
+        void update_inode_lba_map(std::vector<fuse_ino_t> *inodes,
+            uint64_t lba);
     };
 
 }
 
-#endif // QEMU_CSD_FLFS_NLOOKUP_HPP
+#endif // QEMU_CSD_FLFS_INODE_LBA_HPP
