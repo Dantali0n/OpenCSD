@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         using FuseLFS::position_to_lba;
         using FuseLFS::update_inode_lba_map;
 
-        using FuseLFS::ino_stat;
+        using FuseLFS::inode_stat;
 
         using FuseLFS::mkfs;
 
@@ -100,8 +100,8 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         using FuseLFS::rewrite_random_blocks;
 
         using FuseLFS::determine_log_ptr;
-
-        using FuseLFS::get_inode_entry_t;
+        
+        using FuseLFS::get_inode;
         using FuseLFS::create_inode;
     };
 
@@ -964,14 +964,14 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         struct stat stbuf = {0};
 
         // Inode 0 is invalid and should never exist
-        BOOST_CHECK(test_fuse.ino_stat(0, &stbuf) ==
-            qemucsd::fuse_lfs::FLFS_RET_ENOENT);
+        BOOST_CHECK(test_fuse.inode_stat(0, &stbuf) ==
+                    qemucsd::fuse_lfs::FLFS_RET_ENOENT);
 
         memset(&stbuf, 0, sizeof(struct stat));
 
         // Root inode should always exist
-        BOOST_CHECK(test_fuse.ino_stat(1, &stbuf) ==
-            qemucsd::fuse_lfs::FLFS_RET_NONE);
+        BOOST_CHECK(test_fuse.inode_stat(1, &stbuf) ==
+                    qemucsd::fuse_lfs::FLFS_RET_NONE);
         BOOST_CHECK(stbuf.st_ino == 1);
         BOOST_CHECK(stbuf.st_mode & S_IFDIR);
         BOOST_CHECK(stbuf.st_mode & 0755);
@@ -996,18 +996,18 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         entry.parent = 1;
 
         // Check that unkown inodes return FLFS_RET_ENOENT
-        BOOST_CHECK(test_fuse.ino_stat(2, &stbuf) ==
+        BOOST_CHECK(test_fuse.inode_stat(2, &stbuf) ==
                     qemucsd::fuse_lfs::FLFS_RET_ENOENT);
 
         // Insert inode 2 entry
         cur_lba.lba = 0;
         cur_lba.parent = 1;
         test_fuse.update_inode_lba(2, &cur_lba);
-        test_fuse.inode_entries->insert(
+        test_fuse.inode_entries.insert(
             std::make_pair(2, std::make_pair(entry, "test")));
 
         // Newly added file should exist
-        BOOST_CHECK(test_fuse.ino_stat(2, &stbuf) ==
+        BOOST_CHECK(test_fuse.inode_stat(2, &stbuf) ==
                     qemucsd::fuse_lfs::FLFS_RET_NONE);
         BOOST_CHECK(stbuf.st_ino == 2);
         BOOST_CHECK(stbuf.st_mode & S_IFREG);
@@ -1026,11 +1026,11 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         // mutexes need to be unique per inode
         cur_lba.l = std::make_shared<std::mutex>();
         test_fuse.update_inode_lba(3, &cur_lba);
-        test_fuse.inode_entries->insert(
+        test_fuse.inode_entries.insert(
             std::make_pair(3, std::make_pair(entry, "directory")));
 
         // Newly added directory should exist
-        BOOST_CHECK(test_fuse.ino_stat(3, &stbuf) ==
+        BOOST_CHECK(test_fuse.inode_stat(3, &stbuf) ==
                     qemucsd::fuse_lfs::FLFS_RET_NONE);
         BOOST_CHECK(stbuf.st_ino == 3);
         BOOST_CHECK(stbuf.st_mode & S_IFDIR);
@@ -1047,12 +1047,12 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         // Insert inode 4 entry
         cur_lba.l = std::make_shared<std::mutex>();
         test_fuse.update_inode_lba(4, &cur_lba);
-        test_fuse.inode_entries->insert(
+        test_fuse.inode_entries.insert(
             std::make_pair(4, std::make_pair(entry, "none")));
 
         // None type should not exist
-        BOOST_CHECK(test_fuse.ino_stat(4, &stbuf) ==
-            qemucsd::fuse_lfs::FLFS_RET_ENOENT);
+        BOOST_CHECK(test_fuse.inode_stat(4, &stbuf) ==
+                    qemucsd::fuse_lfs::FLFS_RET_ENOENT);
     }
 
     /**
@@ -1120,19 +1120,19 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
         // Now get the inode entry for inode 3
         qemucsd::fuse_lfs::inode_entry_t inode_entry;
-        BOOST_CHECK(test_fuse.get_inode_entry_t(3, &inode_entry) ==
+        BOOST_CHECK(test_fuse.get_inode(3, &inode_entry) ==
                     qemucsd::fuse_lfs::FLFS_RET_NONE);
         BOOST_CHECK(inode_entry.first.inode == 3);
         BOOST_CHECK(inode_entry.second == filename);
 
         // And get the inode entry for inode 4
-        BOOST_CHECK(test_fuse.get_inode_entry_t(4, &inode_entry) ==
+        BOOST_CHECK(test_fuse.get_inode(4, &inode_entry) ==
                     qemucsd::fuse_lfs::FLFS_RET_NONE);
         BOOST_CHECK(inode_entry.first.inode == 4);
         BOOST_CHECK(inode_entry.second == filename);
 
         // And get the entry that does not exist
-        BOOST_CHECK(test_fuse.get_inode_entry_t(5, &inode_entry) ==
+        BOOST_CHECK(test_fuse.get_inode(5, &inode_entry) ==
                     qemucsd::fuse_lfs::FLFS_RET_ENOENT);
 
         // Add this invalid entry to the map
@@ -1140,7 +1140,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         test_fuse.update_inode_lba(5, &cur_lba);
 
         // Failing to find this entry now should return an error
-        BOOST_CHECK(test_fuse.get_inode_entry_t(5, &inode_entry) ==
+        BOOST_CHECK(test_fuse.get_inode(5, &inode_entry) ==
                     qemucsd::fuse_lfs::FLFS_RET_ERR);
 
         free(ino_blk_ptr);

@@ -95,7 +95,7 @@ namespace qemucsd::fuse_lfs {
     /**
      * Update an lba_inode in the inode_lba_map. the shared_ptr mutex is always
      * retained and subsequently exposed to the caller.
-     * @threadsafety: thread safe, course grained concurrency
+     * @threadsafety: thread safe
      */
     void FuseLFSInodeLba::update_inode_lba(fuse_ino_t ino,
         struct lba_inode *data)
@@ -123,7 +123,7 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Update an inode_lba_map_t with the provided lba for the vector of inodes
-     * @threadsafety: thread safe, course grained concurrency
+     * @threadsafety: thread safe
      */
     void FuseLFSInodeLba::update_inode_lba_map(std::vector<fuse_ino_t> *inodes,
         uint64_t lba)

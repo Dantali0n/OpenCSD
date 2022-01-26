@@ -681,6 +681,15 @@ see source files such as `fuse_lfs_disc.hpp` until design is frozen.
   - All individual datastructures are protected using reader writer locks with
     writer preference.
 
+#### Beyond queue depth 1 / concurrent reads / writes
+
+- Have the SPDK backend create a qpair for every unique thread id it encounters
+  `std::this_thread::get_id()` strongly binding this new qpair to the id. Each
+  I/O request from this thread id is only queued to this qpair.
+- Having concurrent appends will cause some appends to fail due to the zone
+  being full. The SPDK backend will raise an error in this case and functions
+  in FluffleFS must be tuned to handle this, Primarily log_append.
+
 #### Non-persistent Conditional Extended Attributes in FUSE
 
 Extended filesystem attributes support various namespaces with different

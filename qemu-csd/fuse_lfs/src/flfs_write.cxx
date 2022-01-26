@@ -69,7 +69,7 @@ namespace qemucsd::fuse_lfs {
         struct write_context *wr_context, struct fuse_file_info *fi)
     {
         inode_entry_t entry;
-        if(get_inode_entry_t(ino, &entry) != FLFS_RET_NONE) {
+        if(get_inode(ino, &entry) != FLFS_RET_NONE) {
             fuse_reply_err(req, EIO);
             return;
         }
@@ -142,7 +142,7 @@ namespace qemucsd::fuse_lfs {
             assign_data_block(ino, wr_context->cur_db_blk_num, &cur_db_blk);
         entry.first.size = entry.first.size > off + size ?
             entry.first.size : off + size;
-        update_inode_entry_t(&entry);
+        update_inode_entry(&entry);
         fuse_reply_write(req, size);
     }
 

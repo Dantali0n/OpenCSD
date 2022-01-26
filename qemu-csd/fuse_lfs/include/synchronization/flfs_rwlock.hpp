@@ -33,6 +33,9 @@ extern "C" {
 
 namespace qemucsd::fuse_lfs {
 
+    /**
+     * STL equivalent of lock_guard to work with pthread reader writer locks
+     */
     template<typename pthread_mutex>
     class lock_guard {
     public:
@@ -54,6 +57,9 @@ namespace qemucsd::fuse_lfs {
         pthread_mutex &_pm;
     };
 
+    /**
+     * Manage rwlock initialization and error reporting to reduce duplicate code
+     */
     inline void rwlock_init(pthread_rwlock_t *lck, pthread_rwlockattr_t *attr,
         const char* name)
     {
@@ -74,7 +80,9 @@ namespace qemucsd::fuse_lfs {
             output.error("Failed to initialize ", name, " lock");
         }
     }
-
+    /**
+     * Manage rwlock destruction and error reporting to reduce duplicate code
+     */
     inline void rwlock_destroy(pthread_rwlock_t *lck,
         pthread_rwlockattr_t *attr, const char* name)
     {

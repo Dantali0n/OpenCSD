@@ -98,7 +98,7 @@ namespace qemucsd::fuse_lfs {
     }
 
     int FuseLFS::create_snapshot(fuse_ino_t ino, struct snapshot *snap) {
-        if(get_inode_entry_t(ino, &snap->inode_data) != FLFS_RET_NONE)
+        if(get_inode(ino, &snap->inode_data) != FLFS_RET_NONE)
             return FLFS_RET_ERR;
 
         uint64_t blocks;

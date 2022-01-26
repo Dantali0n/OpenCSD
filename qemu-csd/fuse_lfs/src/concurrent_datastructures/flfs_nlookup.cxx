@@ -39,6 +39,7 @@ namespace qemucsd::fuse_lfs {
     /**
      * Increment nlookup for the given inode by either creating the map
      * entry or incrementing the existing one.
+     * @threadsafety: thread safe
      */
     void FuseLFS::inode_nlookup_increment(fuse_ino_t ino) {
         // Get read lock
@@ -71,6 +72,7 @@ namespace qemucsd::fuse_lfs {
     /**
      * Decrement nlookup for the given inode by either destroying the map
      * entry or decrementing the existing one.
+     * @threadsafety: thread safe
      */
     void FuseLFS::inode_nlookup_decrement(fuse_ino_t ino, uint64_t count) {
         // Get read lock

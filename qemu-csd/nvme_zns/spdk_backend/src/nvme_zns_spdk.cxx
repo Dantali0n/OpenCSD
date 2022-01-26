@@ -147,7 +147,7 @@ namespace qemucsd::nvme_zns {
         memcpy(entry.buffer, (uint8_t*)buffer + offset, size);
 
         spdk_nvme_zns_zone_append(entry.ns, entry.qpair, entry.buffer,
-                                  lba, 1, spdk_init::error_print, &entry, 0);
+            lba, 1, spdk_init::error_print, &entry, 0);
 
         spdk_init::spin_complete(&entry);
 

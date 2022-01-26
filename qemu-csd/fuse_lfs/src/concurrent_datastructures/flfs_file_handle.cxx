@@ -43,10 +43,9 @@ namespace qemucsd::fuse_lfs {
     void FuseLFSFileHandle::create_file_handle(
         fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
     {
+        lock_guard<pthread_rwlock_t> guard(open_inode_lck, true);
         const fuse_ctx *context = fuse_req_ctx(req);
         struct open_file_entry file_entry = {0};
-
-        pthread_rwlock_wrlock(&open_inode_lck);
 
         #ifdef QEMUCSD_DEBUG
         // Check for opening the same file multiple times within the same
@@ -70,53 +69,47 @@ namespace qemucsd::fuse_lfs {
         if(fh_ptr == UINT64_MAX)
             output.fatal("Exhausted all possible file handles!");
         fh_ptr += 1;
-
-        pthread_rwlock_unlock(&open_inode_lck);
     }
 
     /**
      * Use a csd_unique_t pair of inode and pid to find and return the
      * open_file_entry to the caller.
      * @threadsafety: thread safe
-     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
+      * @return FLFS_RET_NONE upon success, FLFS_RET_ENOENT if not found
      */
     int FuseLFSFileHandle::get_file_handle(csd_unique_t *uni_t,
         struct open_file_entry *entry)
     {
-        pthread_rwlock_rdlock(&open_inode_lck);
+        lock_guard<pthread_rwlock_t> guard(open_inode_lck);
 
         for(auto &f_entry : open_inode_vect) {
             if(uni_t->first == f_entry.ino && uni_t->second == f_entry.pid) {
                 *entry = f_entry;
-                pthread_rwlock_unlock(&open_inode_lck);
                 return FLFS_RET_NONE;
             }
         }
 
-        pthread_rwlock_unlock(&open_inode_lck);
-        return FLFS_RET_ERR;
+        return FLFS_RET_ENOENT;
     }
 
     /**
      * Use a file handle to find and return the open_file_entry to the caller.
      * @threadsafety: thread safe
-     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ENOENT if not found
      */
     int FuseLFSFileHandle::get_file_handle(uint64_t fh,
         struct open_file_entry *entry)
     {
-        pthread_rwlock_rdlock(&open_inode_lck);
+        lock_guard<pthread_rwlock_t> guard(open_inode_lck);
 
         for(auto &f_entry : open_inode_vect) {
             if(fh == f_entry.fh) {
                 *entry = f_entry;
-                pthread_rwlock_unlock(&open_inode_lck);
                 return FLFS_RET_NONE;
             }
         }
 
-        pthread_rwlock_unlock(&open_inode_lck);
-        return FLFS_RET_ERR;
+        return FLFS_RET_ENOENT;
     }
 
     /**
@@ -127,18 +120,16 @@ namespace qemucsd::fuse_lfs {
     int FuseLFSFileHandle::update_file_handle(uint64_t fh,
         struct open_file_entry *entry)
     {
-        pthread_rwlock_wrlock(&open_inode_lck);
+        lock_guard<pthread_rwlock_t> guard(open_inode_lck, true);
 
         open_inode_vect_t::iterator it;
         find_file_handle(fh, &it);
         if(it == open_inode_vect.end()) {
-            pthread_rwlock_unlock(&open_inode_lck);
             return FLFS_RET_ERR;
         }
 
         open_inode_vect.at(std::distance(open_inode_vect.begin(), it)) = *entry;
 
-        pthread_rwlock_unlock(&open_inode_lck);
         return FLFS_RET_NONE;
     }
 
@@ -197,12 +188,11 @@ namespace qemucsd::fuse_lfs {
      * @return 1 if the file handle was found, 0 otherwise
      */
     int FuseLFSFileHandle::find_file_handle(uint64_t fh) {
-        pthread_rwlock_rdlock(&open_inode_lck);
+        lock_guard<pthread_rwlock_t> guard(open_inode_lck);
 
         open_inode_vect_t::iterator it;
         find_file_handle(fh, &it);
 
-        pthread_rwlock_unlock(&open_inode_lck);
         return it == open_inode_vect.end() ? 0 : 1;
     }
 
@@ -211,14 +201,12 @@ namespace qemucsd::fuse_lfs {
      * @threadsafety: thread safe
      */
     void FuseLFSFileHandle::release_file_handle(uint64_t fh) {
-        pthread_rwlock_wrlock(&open_inode_lck);
+        lock_guard<pthread_rwlock_t> guard(open_inode_lck, true);
 
         open_inode_vect_t::iterator del_key;
         find_file_handle(fh, &del_key);
 
         if(del_key != open_inode_vect.end())
             open_inode_vect.erase(del_key);
-
-        pthread_rwlock_unlock(&open_inode_lck);
     }
 }

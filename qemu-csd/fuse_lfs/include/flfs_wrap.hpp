@@ -27,6 +27,8 @@
 
 #define FUSE_USE_VERSION	36
 
+#include <thread>
+
 extern "C" {
     #include <fuse3/fuse_lowlevel.h>
 }

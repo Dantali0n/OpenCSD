@@ -42,9 +42,10 @@ extern "C" {
 
 #include "output.hpp"
 #include "arguments.hpp"
-#include "conccurent_datastructures/flfs_file_handle.hpp"
-#include "conccurent_datastructures/flfs_inode_lba.hpp"
-#include "conccurent_datastructures/flfs_nlookup.hpp"
+#include "concurrent_datastructures/flfs_file_handle.hpp"
+#include "concurrent_datastructures/flfs_inode_entry.hpp"
+#include "concurrent_datastructures/flfs_inode_lba.hpp"
+#include "concurrent_datastructures/flfs_nlookup.hpp"
 #include "nvme_csd.hpp"
 #include "flfs_constants.hpp"
 #include "flfs_csd.hpp"
@@ -63,8 +64,9 @@ namespace qemucsd::fuse_lfs {
      * FUSE LFS filesystem for Zoned Namespaces SSDs (FluffleFS).
      */
     class FuseLFS : public FuseLFSCSD, public FuseLFSDirtyBlock,
-        public FuseLFSFileHandle, public FuseLFSInodeLba, public FuseLFSNlookup,
-        public FuseLFSSnapShot, public FuseLFSSuperBlock, public FuseLFSWrite
+        public FuseLFSFileHandle, public FuseLFSInodeEntry,
+        public FuseLFSInodeLba, public FuseLFSNlookup, public FuseLFSSnapShot,
+        public FuseLFSSuperBlock, public FuseLFSWrite
     {
     protected:
         arguments::options *options;
@@ -80,11 +82,6 @@ namespace qemucsd::fuse_lfs {
 
         // Map filenames and their respective parent to inodes
         path_inode_map_t *path_inode_map;
-
-        /** Inode lba map interface methods */
-
-        void gl_lock(const char *name);
-        void gl_unlock(const char *name);
 
         /** Nlookup interface methods */
 
@@ -114,8 +111,6 @@ namespace qemucsd::fuse_lfs {
         void output_fi(const char *name, struct fuse_file_info *fi);
 
         /** FUSE helper functions */
-
-        int ino_stat(fuse_ino_t ino, struct stat *stbuf);
 
         static int reply_buf_limited(fuse_req_t req, const char *buf,
                                      size_t bufsize, off_t off, size_t maxsize);
@@ -241,9 +236,7 @@ namespace qemucsd::fuse_lfs {
             struct data_position pos, uint64_t block_num,
             struct data_block *blk);
 
-        // TODO(Dantali0n): Move inode block methods to separate interface
-
-        inode_entries_t *inode_entries;
+        /** Inode methods */
 
         // Keep track of the highest observed ino and increment it for new
         // files and directories. The ino_ptr indicates the next possible ino
@@ -255,19 +248,12 @@ namespace qemucsd::fuse_lfs {
 
 //        static int build_path_inode_map();
 
-        static int fill_inode_block(
-            struct inode_block *blck, std::vector<fuse_ino_t> *ino_remove,
-            inode_entries_t *entries);
+        int inode_stat(fuse_ino_t ino, struct stat *stbuf);
 
-        static void erase_inode_entries(
-            std::vector<fuse_ino_t> *ino_remove, inode_entries_t *entries);
-
-        int get_inode_entry_t(fuse_ino_t ino, inode_entry_t *entry);
+        int get_inode(fuse_ino_t ino, inode_entry_t *entry);
 
         int create_inode(fuse_ino_t parent, const char *name,
-                                enum inode_type type, fuse_ino_t &ino);
-
-        int update_inode_entry_t(inode_entry_t *entry);
+                         enum inode_type type, fuse_ino_t &ino);
 
         // TODO(Dantali0n): Move synchronization / flush methods to separate
         //                  interface. (These exclude those of the NAT / SIT
