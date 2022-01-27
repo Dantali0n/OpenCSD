@@ -1,7 +1,7 @@
 /**
  * MIT License
  *
- * Copyright (c) 2021 Dantali0n
+ * Copyright (c) 2022 Dantali0n
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,29 +22,12 @@
  * SOFTWARE.
  */
 
-#ifndef QEMU_CSD_BPF_HELPERS_VM_H
-#define QEMU_CSD_BPF_HELPERS_VM_H
+//#include <linux/bpf.h>
+#include <stdint.h>
 
-/**
- * These BPF helper declarations are to be used by the VM NOT inside the BPF
- * program itself. Actual definitions are to be implemented by the application
- * including this header.
- */
+#include <bpf_helpers_prog.h>
+#include <bpf_helpers_flfs.h>
 
-static void bpf_return_data(void *data, uint64_t size);
+int main() {
 
-static int bpf_read(uint64_t zone, uint64_t sector, uint64_t offset, uint64_t
-    limit, void *data);
-
-static int bpf_write(uint64_t zone, uint64_t *sector, uint64_t offset, uint64_t
-    limit, void *data);
-
-static uint64_t bpf_get_sector_size(void);
-
-static uint64_t bpf_get_zone_capacity(void);
-
-static void bpf_get_mem_info(void **mem_ptr, uint64_t *mem_size);
-
-static void bpf_get_call_info(void **call;
-
-#endif //QEMU_CSD_BPF_HELPERS_VM_H
+}

@@ -50,4 +50,10 @@ static uint64_t (*bpf_get_zone_capacity)(void) = (void *) 5;
 // Called by BPF to determine the region of memory allowed to use.
 static void (*bpf_get_mem_info)(void **mem_ptr, uint64_t *mem_size) = (void *) 6;
 
+// Called by BPF to determine the filesystem operation to perform if any
+// This call is filesystem agnostic and the contents of the pointer depend on
+// the filesystem the kernel is being run on. If no fs is being used to drive
+// the kernel the pointer will be null.
+static void (*bpf_get_call_info)(void **call) = (void *) 7;
+
 #endif //QEMU_CSD_BPF_HELPERS_PROG_H

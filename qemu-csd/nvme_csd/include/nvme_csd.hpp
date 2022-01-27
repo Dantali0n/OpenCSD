@@ -25,11 +25,13 @@
 #ifndef QEMU_CSD_NVME_CSD_HPP
 #define QEMU_CSD_NVME_CSD_HPP
 
+#include "output.hpp"
 #include "nvme_zns_backend.hpp"
 
 #include <chrono>
 #include <cstring>
 #include <iostream>
+#include <vector>
 
 extern "C" {
 	#include <ubpf.h>
@@ -38,6 +40,34 @@ extern "C" {
 
 namespace qemucsd::nvme_csd {
 
+    static output::Output output = output::Output(
+        "[NVME CSD] ", output::INFO);
+
+    /**
+     * Statistics about the kernel that has run. Used to verify the behavior
+     * of BPF kernels or reject changes if they misbehaved.
+     */
+    struct bpf_stats {
+        std::vector<uint64_t> read_lbas;
+        std::vector<uint64_t> written_lbas;
+    };
+
+    /**
+     * Emulated additions to the NVMe command set to enable BPF CSD
+     * functionality. These commands take extensive liberty in what would be
+     * really possible using such a bus interface, such as not taking into
+     * consideration any command chunking (due to fix command size) that must
+     * occur. In addition, no completions queues and completion commands are
+     * used. Finally, the commands pass arbitrary pointers as argument such that
+     * the callee can fill the datastructure with information for the caller,
+     * this is something that is only possible with shared memory which is not
+     * feasible with actual NVMe commands.
+     *
+     * The limitations of such interfaces are well understood as well as the
+     * methodologies to circumvent them. However, they greatly increase the
+     * required programming effort and thus are left out to safe on development
+     * time.
+     */
 	class NvmeCsd {
 	public:
 		NvmeCsd(size_t vm_mem_size, bool vm_jit,
@@ -50,18 +80,39 @@ namespace qemucsd::nvme_csd {
 		/**
 		 * Emulated NVMe command to pass a BPF program to a Computational
 		 * Storage Device. This command is blocking as it needs to determine
-		 * the amount of bytes if the result.
+		 * the amount of bytes in the result.
 		 *
 		 * @return below 0 for errors, otherwise number of bytes of result
 		 * data.
 		 */
 		uint64_t nvm_cmd_bpf_run(void *bpf_elf, uint64_t bpf_elf_size);
 
+        /**
+         * Emulated NVMe command to pass a BPF program tied to a running
+         * filesystem to a Computational Storage Device. This command is
+         * blocking as it needs to determine the amount of bytes in the result.
+         * @param call data with filesystem specific information to perform the
+         *             requested I/O operation.
+         * @param call_size size of the filesystem specific data.
+         * @return below 0 for errors, otherwise number of bytes of result
+		 * data.
+         */
+        uint64_t nvm_cmd_bpf_run_fs(
+            void *bpf_elf, uint64_t bpf_elf_size, void *call,
+            uint64_t call_size);
+
 		/**
 		 * Emulated NVMe command to retrieve BPF return data.
 		 * @param data The buffer the data will be placed into.
 		 */
 		void nvm_cmd_bpf_result(void *data);
+
+        /**
+		 * Emulated NVMe command to retrieve statistics of read / written device
+         * areas.
+		 * @param stats buffer to fill with read and write stats
+		 */
+        void nvm_cmd_bpf_stats(struct bpf_stats *stats);
 	protected:
         nvme_zns::NvmeZnsBackend *nvme;
 		struct ubpf_vm *vm = nullptr;
@@ -72,6 +123,8 @@ namespace qemucsd::nvme_csd {
 
         void vm_init();
         void vm_destroy();
+
+        uint64_t _nvm_cmd_bpf_run(void *bpf_elf, uint64_t bpf_elf_size);
 
 		static void bpf_return_data(void *data, uint64_t size);
 
@@ -86,6 +139,8 @@ namespace qemucsd::nvme_csd {
         static uint64_t bpf_get_zone_capacity(void);
 
 		static void bpf_get_mem_info(void **mem_ptr, uint64_t *mem_size);
+
+        static void bpf_get_call_info(void **call);
 	};
 }
 

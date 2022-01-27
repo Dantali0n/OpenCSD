@@ -34,6 +34,6 @@ add_custom_command(
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/include/bpf_helpers_prog.h
 )
 
-add_custom_target(generate_qemucsd_bpf_helpers DEPENDS ${PRJ_HEADERS}/bpf_helpers_prog.h)
+add_custom_target(generate_bpf_helpers DEPENDS ${PRJ_HEADERS}/bpf_helpers_prog.h)
 
-# target - generate_qemucsd_bpf_helpers
+# target - generate_bpf_helpers

@@ -657,7 +657,7 @@ see source files such as `fuse_lfs_disc.hpp` until design is frozen.
 - _fsync_ must actually flush to disc
 - In memory caching is only allowed if filesystem can recover to a valid state
 
-#### Limitations and potential improvements
+#### Limitations and PotentialImprovements
 
 - data_position struct and its validity and comparisons being controlled by
   their size property is clunky and counterintuitive.
@@ -668,7 +668,7 @@ see source files such as `fuse_lfs_disc.hpp` until design is frozen.
   the file it is reading.
 - A kernel _CAN NOT_ return more data than is specified in the read request.
 
-#### Threading and concurrency
+#### Threading and Concurrency
 
 - Parallelism is managed through coarse grained locking.
   - Almost all FUSE operations are subject to lock a rwlock in either read or
@@ -678,10 +678,14 @@ see source files such as `fuse_lfs_disc.hpp` until design is frozen.
     operate lockless such as statfs
   - Any operations regarding a particular inode must first obtain a lock for
     this inode.
+    - Once it is determined a read or write operation will be performed on
+      a snapshot the inode lock should be released.
+    - A potential optimizations is to have read / write check for snapshot
+      before any other operation, only grabbing the lock if necessary.
   - All individual datastructures are protected using reader writer locks with
     writer preference.
 
-#### Beyond queue depth 1 / concurrent reads / writes
+#### Beyond Queue Depth 1 / Concurrent Reads / Writes
 
 - Have the SPDK backend create a qpair for every unique thread id it encounters
   `std::this_thread::get_id()` strongly binding this new qpair to the id. Each
@@ -709,7 +713,7 @@ hooks except release / releasedir. To combat this limitation FluffleFS generates
 a unique  filehandle for each open file. The pid is only used at the moment the
 first extended attribute is set.
 
-#### Circumventing return data limitations
+#### Circumventing Return Data Limitations
 
 Circumventing return data can be achieved by using
 `FUSE_CAP_EXPLICIT_INVAL_DATA` and `fuse_lowlevel_notify_inval_inode` but this
@@ -722,3 +726,37 @@ data. In addition `struct stat` their timeout parameters need to be sufficiently
 low such that the request is invalid by the time the next one comes in (so 0).
 The problem with this is `getattr` is called before the kernel is run so the
 size of the return data is still unknown.
+
+#### Kernel Execution and Safety
+
+Several safety mechanisms are necessary during the execution of the user
+provided kernels. The static assertion, using tools such as ebpf-verifier, is
+limited due to the requirement to populate datastructures from vm calls at
+runtime.
+
+Safety mechanisms must be provided at runtime by vm. However, these safety
+mechanisms can not rely on realtime filesystem information as they are running
+on the CSD. Possible solutions fall into two categories:
+
+- Device level
+  - A min and maximum range of acceptable LBAs to operate on can be provided
+    alongside the submission of the user provided kernel. Should any request
+    fall outside this range the execution would be terminated and the error
+    would be returned to the caller (in reality this would require NVMe
+    completion status commands or similar).
+- Host level
+  - The device keeps tracks of the operations and on which LBA these are
+    performed. Essentially two vectors of read and written LBAs. Upon completion
+    of the kernel this information would be made available to the filesystem.
+    The filesystem then decides if the execution was malicious or genuine.
+
+Limitations:
+ - Both of these protections do not prevent against infinite loops.
+ - While this does not protect against arbitrary code execution it does protect
+   against overwriting any preexisting data due to lack of access to the NVMe
+   reset command.
+
+A combination of both host and device level protections seems appropriate. This
+will incur an additional runtime cost. Potentially, the filesystem could have
+a set of verified kernels it keeps internally that disable all these runtime
+checks.

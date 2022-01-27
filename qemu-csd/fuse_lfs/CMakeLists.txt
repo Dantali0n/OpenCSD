@@ -22,6 +22,17 @@
 
 project(${PRJ_PRX}_fuse_lfs)
 
+add_custom_command(
+    OUTPUT ${PRJ_HEADERS}/bpf_helpers_flfs.h
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/bpf/bpf_helpers_flfs.h
+    ${PRJ_HEADERS}/bpf_helpers_flfs.h
+    DEPENDS include/bpf/bpf_helpers_flfs.h
+)
+
+add_custom_target(generate_bpf_helpers_flfs DEPENDS ${PRJ_HEADERS}/bpf_helpers_flfs.h)
+
+add_subdirectory(src/bpf)
 
 set(QEMUCSD_FUSE_LFS_LIBRARIES
     qemucsd_output
@@ -74,7 +85,7 @@ target_link_libraries(
     ${QEMUCSD_FUSE_LFS_LIBRARIES}
 )
 
-add_dependencies(qemucsd_fuse_lfs libfuse-build)
+add_dependencies(qemucsd_fuse_lfs libfuse-build generate_bpf_helpers generate_bpf_helpers_flfs generate_flfs_bpf_read)
 
 # Add qemucsd_measurements to the modules
 add_qemucsd_module(qemucsd_fuse_lfs)

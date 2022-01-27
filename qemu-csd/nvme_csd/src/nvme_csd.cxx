@@ -25,6 +25,7 @@
 #include "nvme_csd.hpp"
 
 static qemucsd::nvme_csd::NvmeCsd *nvme_instance = nullptr;
+static uint64_t fs_call_size = 0;
 static void *return_data = nullptr;
 static uint64_t return_size = 0;
 
@@ -57,6 +58,8 @@ namespace qemucsd::nvme_csd {
         ubpf_register(vm, 4, "bpf_get_sector_size", (void*)bpf_get_sector_size);
         ubpf_register(vm, 5, "bpf_get_zone_capacity", (void*)bpf_get_zone_capacity);
         ubpf_register(vm, 6, "bpf_get_mem_info", (void*)bpf_get_mem_info);
+
+        ubpf_register(vm, 7, "bpf_get_call_info", (void*)bpf_get_mem_info);
     }
 
     void NvmeCsd::vm_destroy() {
@@ -64,39 +67,66 @@ namespace qemucsd::nvme_csd {
         free(vm_mem);
     }
 
-	uint64_t NvmeCsd::nvm_cmd_bpf_run(void *bpf_elf, uint64_t bpf_elf_size) {
-        vm_init();
+    uint64_t NvmeCsd::_nvm_cmd_bpf_run(void *bpf_elf, uint64_t bpf_elf_size) {
+        char *msg_buf = nullptr;
+        if(ubpf_load_elf(this->vm, bpf_elf, bpf_elf_size, &msg_buf) < 0) {
+            output.error(msg_buf);
+            free(msg_buf);
+            return -1;
+        }
 
-		char *msg_buf = nullptr;
-		if(ubpf_load_elf(this->vm, bpf_elf, bpf_elf_size, &msg_buf) < 0) {
-			std::cerr << msg_buf << std::endl;
-			free(msg_buf);
-			return -1;
-		}
-
-		// Jit compilation path
-		if(this->vm_jit) {
-		    // Measure jit compilation time
+        // Jit compilation path
+        if(this->vm_jit) {
+            // Measure jit compilation time
             auto start = std::chrono::high_resolution_clock::now();
             ubpf_jit_fn exec = ubpf_compile(this->vm, &msg_buf);
             auto stop = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-            std::cout << "Jit compilation: " << duration.count() << "us." << std::endl;
+            output.info("Jit compilation: ", duration.count(), "us.");
             if ((int64_t)exec(this->vm_mem, this->vm_mem_size) < 0)
                 return -1;
 
-            vm_destroy();
             return return_size;
         }
 
-		// Non jit path
-		uint64_t result;
-		if(ubpf_exec(this->vm, this->vm_mem, this->vm_mem_size, &result) < 0)
-			return -1;
+        // Non jit path
+        // TODO(Dantali0n): uint64_t is never going to be negative
+        uint64_t result;
+        if(ubpf_exec(this->vm, this->vm_mem, this->vm_mem_size, &result) < 0)
+            return -1;
+
+        return return_size;
+    }
+
+	uint64_t NvmeCsd::nvm_cmd_bpf_run(void *bpf_elf, uint64_t bpf_elf_size) {
+        vm_init();
+
+        uint64_t result = _nvm_cmd_bpf_run(bpf_elf, bpf_elf_size);
 
         vm_destroy();
-		return return_size;
+
+        return result;
 	}
+
+    uint64_t NvmeCsd::nvm_cmd_bpf_run_fs(void *bpf_elf, uint64_t bpf_elf_size,
+        void *call, uint64_t call_size)
+    {
+        vm_init();
+
+        // Copy call data into memory context accessible by uBPF vm.
+        fs_call_size = call_size;
+        if(call_size > vm_mem_size)
+            return -ENOMEM;
+        memcpy(vm_mem, call, call_size);
+
+        uint64_t result = nvm_cmd_bpf_run(bpf_elf, bpf_elf_size);
+
+        fs_call_size = 0;
+
+        vm_destroy();
+
+        return result;
+    }
 
 	void NvmeCsd::nvm_cmd_bpf_result(void *data) {
 		if(return_data == nullptr) return;
@@ -107,6 +137,11 @@ namespace qemucsd::nvme_csd {
 		return_data = nullptr;
 		return_size = 0;
 	}
+
+    // TODO(Dantali0n): Implement this call
+    void NvmeCsd::nvm_cmd_bpf_stats(struct bpf_stats *stats) {
+
+    }
 
 	void NvmeCsd::bpf_return_data(void *data, uint64_t size) {
 		if(return_data != nullptr) free(return_data);
@@ -144,7 +179,13 @@ namespace qemucsd::nvme_csd {
 
 	void NvmeCsd::bpf_get_mem_info(void **mem_ptr, uint64_t *mem_size) {
 		auto *self = nvme_instance;
-		*mem_ptr = self->vm_mem;
-		*mem_size = self->vm_mem_size;
+		*mem_ptr = (uint8_t*)self->vm_mem + fs_call_size;
+		*mem_size = self->vm_mem_size - fs_call_size;
 	}
+
+    void NvmeCsd::bpf_get_call_info(void **call) {
+        auto *self = nvme_instance;
+        if(fs_call_size)
+            *call = self->vm_mem;
+    }
 }

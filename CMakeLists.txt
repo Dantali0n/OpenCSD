@@ -29,6 +29,9 @@ set(PRJ_PRX ${CMAKE_PROJECT_NAME})
 # Root directory of engine binary
 set(PRJ_ROOT ${CMAKE_BINARY_DIR}/${PRJ_PRX})
 
+# Directory containing executable binaries
+set(PRJ_BINARIES ${PRJ_ROOT}/bin)
+
 # Directory containing shared and static library files
 set(PRJ_LIBRARIES ${PRJ_ROOT}/lib)
 

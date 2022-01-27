@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         using FuseLFS::rewrite_random_blocks;
 
         using FuseLFS::determine_log_ptr;
-        
+
         using FuseLFS::get_inode;
         using FuseLFS::create_inode;
     };
