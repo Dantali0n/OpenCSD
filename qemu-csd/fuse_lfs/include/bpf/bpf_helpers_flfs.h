@@ -39,8 +39,6 @@ enum flfs_operations {
  * FluffleFS I/O request parameters as exposed to BPF kernels
  */
 struct dimensions {
-    uint64_t zone;
-    uint64_t sector;
     uint64_t size;
     uint64_t offset;
 };
@@ -68,7 +66,7 @@ struct inode {
  * location of data blocks for that inode as exposed to BPF kernels. This is
  * the datastructure passed to bpf_get_call_info
  */
-struct flfs_call {
+struct __attribute__((packed)) flfs_call {
     enum flfs_operations op;
     struct dimensions dims;
     struct inode ino;
@@ -80,7 +78,7 @@ struct flfs_call {
  * @param cur_data_lba the current location of valid data for the given inode
  * @return 1 if has a next data block, 0 if no next data block
  */
-static int next_data_lba(uint64_t *cur_data_lba) {
+static int next_data_lba(uint64_t *&cur_data_lba) {
     if(*(cur_data_lba + 1) != 0) {
         cur_data_lba += 1;
         return 1;

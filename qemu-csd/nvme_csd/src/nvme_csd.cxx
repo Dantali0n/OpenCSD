@@ -59,7 +59,7 @@ namespace qemucsd::nvme_csd {
         ubpf_register(vm, 5, "bpf_get_zone_capacity", (void*)bpf_get_zone_capacity);
         ubpf_register(vm, 6, "bpf_get_mem_info", (void*)bpf_get_mem_info);
 
-        ubpf_register(vm, 7, "bpf_get_call_info", (void*)bpf_get_mem_info);
+        ubpf_register(vm, 7, "bpf_get_call_info", (void*)bpf_get_call_info);
     }
 
     void NvmeCsd::vm_destroy() {
@@ -119,7 +119,7 @@ namespace qemucsd::nvme_csd {
             return -ENOMEM;
         memcpy(vm_mem, call, call_size);
 
-        uint64_t result = nvm_cmd_bpf_run(bpf_elf, bpf_elf_size);
+        uint64_t result = _nvm_cmd_bpf_run(bpf_elf, bpf_elf_size);
 
         fs_call_size = 0;
 

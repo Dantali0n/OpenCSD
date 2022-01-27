@@ -326,6 +326,9 @@ namespace qemucsd::fuse_lfs {
 
         /** CSD interface method */
 
+        void create_csd_context(struct snapshot *snap, size_t size,
+            off_t off, bool write, void *&call, uint64_t &call_size) override;
+
         void read_csd(fuse_req_t req, csd_unique_t *context, size_t size,
             off_t off, struct fuse_file_info *fi) override;
 

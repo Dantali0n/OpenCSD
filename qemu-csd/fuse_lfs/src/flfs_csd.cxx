@@ -37,38 +37,105 @@ namespace qemucsd::fuse_lfs {
         delete csd_instance;
     }
 
+    void FuseLFSCSD::flatten_data_blocks(uint64_t size, uint64_t off,
+        data_map_t *blocks, std::vector<uint64_t> *flat_blocks)
+    {
+        uint64_t start_lba = off / SECTOR_SIZE;
+        uint64_t end_lba = (size + off) / SECTOR_SIZE;
+        if((size + off) % SECTOR_SIZE != 0) end_lba += 1;
+
+        uint64_t start_block = start_lba / DATA_BLK_LBA_NUM;
+
+        flat_blocks->reserve(end_lba - start_lba);
+        struct data_block *cur_blk = &blocks->at(start_block);
+        for(uint64_t i = start_lba; i < end_lba; i++) {
+            flat_blocks->push_back(cur_blk->data_lbas[i % DATA_BLK_LBA_NUM]);
+
+            if((i + 1) % DATA_BLK_LBA_NUM == 0) {
+                start_block += 1;
+                cur_blk = &blocks->at(start_block);
+            }
+        }
+    }
+
+    void FuseLFS::create_csd_context(struct snapshot *snap, size_t size,
+        off_t off, bool write, void *&call, uint64_t &call_size)
+    {
+        uint64_t fcall_size = sizeof(struct flfs_call);
+        struct flfs_call context = {};
+
+        context.dims.size = size;
+        context.dims.offset = off;
+
+        context.ino.inode = snap->inode_data.first.inode;
+        context.ino.parent = snap->inode_data.first.parent;
+        context.ino.size = snap->inode_data.first.size;
+        context.ino.type = snap->inode_data.first.type == INO_T_FILE ?
+            FLFS_FILE : FLFS_DIR;
+
+        context.op = write ? FLFS_WRITE : FLFS_READ;
+
+        std::vector<uint64_t> flat_blocks;
+        flatten_data_blocks(size, off, &snap->data_blocks,
+            &flat_blocks);
+
+        uint64_t lbas_size = flat_blocks.size() * sizeof(uint64_t);
+        call_size = lbas_size + fcall_size;
+        call = malloc(call_size);
+        memcpy(call, &context, fcall_size);
+        memcpy((uint8_t*)call + fcall_size, flat_blocks.data(), lbas_size);
+    }
+
     void FuseLFS::read_csd(fuse_req_t req, csd_unique_t *context, size_t size,
         off_t off, struct fuse_file_info *fi)
     {
-        struct snapshot snap;
+        struct snapshot kernel_snap;
 
-        if(get_snapshot(context, &snap, SNAP_READ) != FLFS_RET_NONE) {
+        /** Get the snapshot information for the read kernel */
+        if(get_snapshot(context, &kernel_snap, SNAP_READ) != FLFS_RET_NONE) {
             fuse_reply_err(req, EIO);
             return;
         }
 
-        void *kernel_data = malloc(snap.inode_data.first.size);
+        /** Allocate a buffer sufficient for the contents of the read kernel */
+        void *kernel_data = malloc(kernel_snap.inode_data.first.size);
         if(!kernel_data) {
             fuse_reply_err(req, ENOMEM);
             return;
         }
 
-        if(read_snapshot(context, snap.inode_data.first.size, 0, kernel_data,
-                         &snap) != FLFS_RET_NONE)
+        /** Read the read kernel contents from the drive */
+        if(read_snapshot(context, kernel_snap.inode_data.first.size, 0, kernel_data,
+                         &kernel_snap) != FLFS_RET_NONE)
         {
             fuse_reply_err(req, EIO);
             return;
         }
 
-        uint64_t result_size = csd_instance->nvm_cmd_bpf_run(kernel_data,
-            snap.inode_data.first.size);
+        /** Get the snapshot for the file itself */
+        struct snapshot file_snap;
+        if(get_snapshot(context, &file_snap, SNAP_FILE) != FLFS_RET_NONE) {
+            fuse_reply_err(req, EIO);
+            return;
+        }
+
+        /** Create the filesystem context to present to the kernel during
+         * execution. */
+        void *call = nullptr;
+        uint64_t call_size;
+        create_csd_context(&file_snap, size, off, false, call, call_size);
+
+        /** Launch the uBPF vm with the read kernel and filesystem context */
+        uint64_t result_size = csd_instance->nvm_cmd_bpf_run_fs(kernel_data,
+            kernel_snap.inode_data.first.size, call, call_size);
         free(kernel_data);
+        free(call);
 
         void *result_data = malloc(result_size);
         csd_instance->nvm_cmd_bpf_result(result_data);
 
         reply_buf_limited(req, (const char*) result_data, size, off,
-                          result_size);
+            result_size);
         free(result_data);
     }
 

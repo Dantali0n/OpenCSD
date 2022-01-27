@@ -29,5 +29,9 @@
 #include <bpf_helpers_flfs.h>
 
 int main() {
+    struct flfs_call *call;
+    bpf_get_call_info((void**)&call);
+    if(!call) return -1;
+
 
 }

@@ -31,9 +31,12 @@ extern "C" {
 
 #include <cstddef>
 
+#include "arguments.hpp"
+#include "bpf/bpf_helpers_flfs.h"
 #include "flfs_memory.hpp"
 #include "flfs_write.hpp"
 #include "nvme_csd.hpp"
+#include "nvme_zns_backend.hpp"
 
 namespace qemucsd::fuse_lfs {
 
@@ -46,6 +49,12 @@ namespace qemucsd::fuse_lfs {
     public:
         FuseLFSCSD(arguments::options *options, nvme_zns::NvmeZnsBackend *nvme);
         virtual ~FuseLFSCSD();
+
+        void flatten_data_blocks(uint64_t size, uint64_t off,
+            data_map_t *blocks, std::vector<uint64_t> *flat_blocks);
+
+        virtual void create_csd_context(struct snapshot *snap, size_t size,
+            off_t off, bool write, void *&call, uint64_t &call_size) = 0;
 
         virtual void read_csd(fuse_req_t req, csd_unique_t *context,
             size_t size, off_t off, struct fuse_file_info *fi) = 0;
