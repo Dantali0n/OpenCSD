@@ -40,18 +40,16 @@ namespace qemucsd::fuse_lfs {
      * memory snapshots.
      * @threadsafety: thread safe
      */
-    void FuseLFSFileHandle::create_file_handle(
-        fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi)
+    void FuseLFSFileHandle::create_file_handle(csd_unique_t *context,
+        struct fuse_file_info *fi)
     {
         lock_guard<pthread_rwlock_t> guard(open_inode_lck, true);
-        const fuse_ctx *context = fuse_req_ctx(req);
         struct open_file_entry file_entry = {0};
 
         #ifdef QEMUCSD_DEBUG
         // Check for opening the same file multiple times within the same
         // process.
-        csd_unique_t csd_uni = std::make_pair(ino, context->pid);
-        if(find_file_handle_unsafe(&csd_uni) != 0) {
+        if(find_file_handle_unsafe(context) != 0) {
             output.warning("Opening the same file multiple times within the ",
                "same process can lead to undefined behavior regarding CSD ",
                "operations!");
@@ -61,8 +59,8 @@ namespace qemucsd::fuse_lfs {
         fi->fh = fh_ptr;
 
         file_entry.fh = fi->fh;
-        file_entry.ino = ino;
-        file_entry.pid = context->pid;
+        file_entry.ino = context->first;
+        file_entry.pid = context->second;
         file_entry.flags = fi->flags;
         open_inode_vect.push_back(file_entry);
 
@@ -123,7 +121,7 @@ namespace qemucsd::fuse_lfs {
         lock_guard<pthread_rwlock_t> guard(open_inode_lck, true);
 
         open_inode_vect_t::iterator it;
-        find_file_handle(fh, &it);
+        find_file_handle_unsafe(fh, &it);
         if(it == open_inode_vect.end()) {
             return FLFS_RET_ERR;
         }
@@ -157,11 +155,10 @@ namespace qemucsd::fuse_lfs {
      */
     int FuseLFSFileHandle::find_file_handle(csd_unique_t *uni_t)
     {
-        pthread_rwlock_rdlock(&open_inode_lck);
+        lock_guard<pthread_rwlock_t> guard(open_inode_lck);
 
         int result = find_file_handle_unsafe(uni_t);
 
-        pthread_rwlock_unlock(&open_inode_lck);
         return result;
     }
 
@@ -169,9 +166,8 @@ namespace qemucsd::fuse_lfs {
      * Use an open file handle to find the iterator index in the
      * open_inode_Vect and return this to the caller.
      * @threadsafety: single threaded
-     * @return 1 if the file handle was found, 0 otherwise
      */
-    void FuseLFSFileHandle::find_file_handle(uint64_t fh,
+    void FuseLFSFileHandle::find_file_handle_unsafe(uint64_t fh,
         open_inode_vect_t::iterator *it)
     {
         *it = std::find_if(open_inode_vect.begin(), open_inode_vect.end(),
@@ -191,7 +187,7 @@ namespace qemucsd::fuse_lfs {
         lock_guard<pthread_rwlock_t> guard(open_inode_lck);
 
         open_inode_vect_t::iterator it;
-        find_file_handle(fh, &it);
+        find_file_handle_unsafe(fh, &it);
 
         return it == open_inode_vect.end() ? 0 : 1;
     }
@@ -204,7 +200,7 @@ namespace qemucsd::fuse_lfs {
         lock_guard<pthread_rwlock_t> guard(open_inode_lck, true);
 
         open_inode_vect_t::iterator del_key;
-        find_file_handle(fh, &del_key);
+        find_file_handle_unsafe(fh, &del_key);
 
         if(del_key != open_inode_vect.end())
             open_inode_vect.erase(del_key);

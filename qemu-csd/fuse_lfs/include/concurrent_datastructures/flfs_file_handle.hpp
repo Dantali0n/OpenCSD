@@ -55,12 +55,12 @@ namespace qemucsd::fuse_lfs {
         pthread_rwlock_t open_inode_lck = {};
         pthread_rwlockattr_t open_inode_attr = {};
 
-        void find_file_handle(uint64_t fh, open_inode_vect_t::iterator *it);
+        void find_file_handle_unsafe(uint64_t fh, open_inode_vect_t::iterator *it);
     public:
         FuseLFSFileHandle();
         virtual ~FuseLFSFileHandle();
 
-        void create_file_handle(fuse_req_t req, fuse_ino_t ino,
+        void create_file_handle(csd_unique_t *context,
             struct fuse_file_info *fi);
 
         int get_file_handle(csd_unique_t *uni_t, struct open_file_entry *entry);

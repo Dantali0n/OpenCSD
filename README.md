@@ -657,7 +657,7 @@ see source files such as `fuse_lfs_disc.hpp` until design is frozen.
 - _fsync_ must actually flush to disc
 - In memory caching is only allowed if filesystem can recover to a valid state
 
-#### Limitations and PotentialImprovements
+#### Limitations and Potential Improvements
 
 - data_position struct and its validity and comparisons being controlled by
   their size property is clunky and counterintuitive.
@@ -667,6 +667,8 @@ see source files such as `fuse_lfs_disc.hpp` until design is frozen.
 - A kernel _CAN NOT_ return more data than the snapshotted size of
   the file it is reading.
 - A kernel _CAN NOT_ return more data than is specified in the read request.
+- A race condition in update_file_handle can potentially remove other unrelated
+  file handles from open_inode_vect.
 
 #### Threading and Concurrency
 

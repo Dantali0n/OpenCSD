@@ -2066,7 +2066,8 @@ namespace qemucsd::fuse_lfs {
         output_fi("open", fi);
         #endif
 
-        create_file_handle(req, ino, fi);
+        csd_unique_t context = std::make_pair(ino, fuse_req_ctx(req)->pid);
+        create_file_handle(&context, fi);
 
         fuse_reply_open(req, fi);
     }
@@ -2198,7 +2199,8 @@ namespace qemucsd::fuse_lfs {
         else if(mode & S_IFREG) {
             create_inode(parent, name, INO_T_FILE, e.ino);
             inode_stat(e.ino, &e.attr);
-            create_file_handle(req, e.ino, fi);
+            csd_unique_t context = std::make_pair(e.ino, fuse_req_ctx(req)->pid);
+            create_file_handle(&context, fi);
             fuse_reply_create_nlookup(req, &e, fi);
         }
         // Symlinks, block and character devices are not supported
@@ -2236,7 +2238,6 @@ namespace qemucsd::fuse_lfs {
     {
         struct fuse_entry_param e = {0};
         const fuse_ctx* context = fuse_req_ctx(req);
-
         const lock_guard<pthread_rwlock_t> lock(gl);
 
         #ifdef FLFS_DBG_FI
