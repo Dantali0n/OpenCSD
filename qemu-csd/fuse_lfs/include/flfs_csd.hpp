@@ -46,15 +46,17 @@ namespace qemucsd::fuse_lfs {
     class FuseLFSCSD {
     protected:
         nvme_csd::NvmeCsd *csd_instance;
-    public:
-        FuseLFSCSD(arguments::options *options, nvme_zns::NvmeZnsBackend *nvme);
-        virtual ~FuseLFSCSD();
 
         void flatten_data_blocks(uint64_t size, uint64_t off,
             data_map_t *blocks, std::vector<uint64_t> *flat_blocks);
 
         virtual void create_csd_context(struct snapshot *snap, size_t size,
             off_t off, bool write, void *&call, uint64_t &call_size) = 0;
+    public:
+        FuseLFSCSD(arguments::options *options, nvme_zns::NvmeZnsBackend *nvme);
+        virtual ~FuseLFSCSD();
+
+        virtual void lookup_csd(fuse_req_t req, csd_unique_t *context) = 0;
 
         virtual void read_csd(fuse_req_t req, csd_unique_t *context,
             size_t size, off_t off, struct fuse_file_info *fi) = 0;
@@ -62,6 +64,12 @@ namespace qemucsd::fuse_lfs {
         virtual void write_csd(fuse_req_t req, csd_unique_t *context,
             const char *buf, size_t size, off_t off,
             struct write_context *wr_context, struct fuse_file_info *fi) = 0;
+
+        virtual void getattr_csd(fuse_req_t req, csd_unique_t *context,
+            struct fuse_file_info *fi) = 0;
+
+        virtual void setattr_csd(fuse_req_t req, csd_unique_t *context,
+            struct stat *attr, int to_set, struct fuse_file_info *fi) = 0;
     };
 
 }

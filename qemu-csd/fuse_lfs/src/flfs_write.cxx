@@ -147,8 +147,8 @@ namespace qemucsd::fuse_lfs {
     }
 
     void FuseLFS::write_snapshot(fuse_req_t req, csd_unique_t *context,
-                                 const char *buffer, size_t size, off_t off,
-                                 struct write_context *wr_context, struct fuse_file_info *fi)
+        const char *buffer, size_t size, off_t off,
+        struct write_context *wr_context, struct fuse_file_info *fi)
     {
         struct snapshot snap;
 

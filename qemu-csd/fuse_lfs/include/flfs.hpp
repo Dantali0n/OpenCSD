@@ -52,6 +52,7 @@ extern "C" {
 #include "flfs_dirtyblock.hpp"
 #include "flfs_disc.hpp"
 #include "flfs_init.hpp"
+#include "flfs_read.hpp"
 #include "flfs_memory.hpp"
 #include "flfs_snapshot.hpp"
 #include "flfs_superblock.hpp"
@@ -65,9 +66,9 @@ namespace qemucsd::fuse_lfs {
      * FUSE LFS filesystem for Zoned Namespaces SSDs (FluffleFS).
      */
     class FuseLFS : public FuseLFSCSD, public FuseLFSDirtyBlock,
-        public FuseLFSInit, public FuseLFSFileHandle, public FuseLFSInodeEntry,
-        public FuseLFSInodeLba, public FuseLFSNlookup, public FuseLFSSnapShot,
-        public FuseLFSSuperBlock, public FuseLFSWrite
+        public FuseLFSInit, public FuseLFSRead, public FuseLFSFileHandle,
+        public FuseLFSInodeEntry, public FuseLFSInodeLba, public FuseLFSNlookup,
+        public FuseLFSSnapShot, public FuseLFSSuperBlock, public FuseLFSWrite
     {
     protected:
         arguments::options *options;
@@ -121,11 +122,6 @@ namespace qemucsd::fuse_lfs {
                                      size_t bufsize, off_t off, size_t maxsize);
         static void dir_buf_add(fuse_req_t req, struct dir_buf* buf,
                                 const char *name, fuse_ino_t ino);
-
-        // TODO(Dantali0n): Move filesystem initialization methods to separate
-        //                  interface
-
-
 
         // TODO(Dantali0n): Move filesystem creation methods to separate
         //                  interface
@@ -224,6 +220,7 @@ namespace qemucsd::fuse_lfs {
 
         data_blocks_t *data_blocks;
 
+        // TODO(Dantali0n): Get rid of this error prone method
         static void compute_data_block_num(uint64_t num_lbas, uint64_t &blocks);
 
         void assign_data_blocks(fuse_ino_t ino, data_map_t *blocks); //, std::vector<data_block> *blocks);
@@ -258,7 +255,7 @@ namespace qemucsd::fuse_lfs {
         int get_inode(fuse_ino_t ino, inode_entry_t *entry);
 
         int create_inode(fuse_ino_t parent, const char *name,
-                         enum inode_type type, fuse_ino_t &ino);
+            enum inode_type type, fuse_ino_t &ino);
 
         // TODO(Dantali0n): Move synchronization / flush methods to separate
         //                  interface. (These exclude those of the NAT / SIT
@@ -309,33 +306,40 @@ namespace qemucsd::fuse_lfs {
 
         void lookup_regular(fuse_req_t req, fuse_ino_t ino);
 
-        void lookup_csd(fuse_req_t req, csd_unique_t *context);
-
         void getattr_regular(fuse_req_t req, fuse_ino_t ino,
-            struct fuse_file_info *fi);
-
-        void getattr_csd(fuse_req_t req, csd_unique_t *context,
             struct fuse_file_info *fi);
 
         void setattr_regular(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
             int to_set, struct fuse_file_info *fi);
-
-        void setattr_csd(fuse_req_t req, csd_unique_t *context,
-            struct stat *attr, int to_set, struct fuse_file_info *fi);
-
-        void read_regular(fuse_req_t req, struct stat *stbuf,
-            size_t size, off_t off, struct fuse_file_info *fi);
-
-        int read_snapshot(csd_unique_t *context, size_t size,
-            off_t off, void *buffer, struct snapshot *snap);
 
         /** CSD interface method */
 
         void create_csd_context(struct snapshot *snap, size_t size,
             off_t off, bool write, void *&call, uint64_t &call_size) override;
 
+        void lookup_csd(fuse_req_t req, csd_unique_t *context) override;
+
         void read_csd(fuse_req_t req, csd_unique_t *context, size_t size,
             off_t off, struct fuse_file_info *fi) override;
+
+        void write_csd(fuse_req_t req, csd_unique_t *context,
+           const char *buf, size_t size, off_t off,
+           struct write_context *wr_context,
+           struct fuse_file_info *fi) override;
+
+        void getattr_csd(fuse_req_t req, csd_unique_t *context,
+            struct fuse_file_info *fi) override;
+
+        void setattr_csd(fuse_req_t req, csd_unique_t *context,
+            struct stat *attr, int to_set, struct fuse_file_info *fi) override;
+
+        /** Read interface methods */
+
+        void read_regular(fuse_req_t req, struct stat *stbuf,
+            size_t size, off_t off, struct fuse_file_info *fi) override;
+
+        int read_snapshot(csd_unique_t *context, size_t size,
+            off_t off, void *buffer, struct snapshot *snap) override;
 
         /** Write interface methods */
 
@@ -346,13 +350,6 @@ namespace qemucsd::fuse_lfs {
             size_t size, off_t off, struct write_context *wr_context,
             struct fuse_file_info *fi) override;
         void write_snapshot(fuse_req_t req, csd_unique_t *context,
-            const char *buf, size_t size, off_t off,
-            struct write_context *wr_context,
-            struct fuse_file_info *fi) override;
-
-        /** CSD interface method */
-
-        void write_csd(fuse_req_t req, csd_unique_t *context,
             const char *buf, size_t size, off_t off,
             struct write_context *wr_context,
             struct fuse_file_info *fi) override;

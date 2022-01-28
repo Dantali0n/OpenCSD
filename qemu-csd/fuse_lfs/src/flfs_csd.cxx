@@ -86,6 +86,56 @@ namespace qemucsd::fuse_lfs {
         memcpy((uint8_t*)call + fcall_size, flat_blocks.data(), lbas_size);
     }
 
+    void FuseLFS::lookup_csd(fuse_req_t req, csd_unique_t *context) {
+        struct fuse_entry_param e = {0};
+        struct snapshot snap;
+
+        if(get_snapshot(context, &snap, SNAP_FILE) != FLFS_RET_NONE) {
+            fuse_reply_err(req, EIO);
+            return;
+        }
+
+        e.ino = context->first;
+        e.attr_timeout = 0.0;
+        e.entry_timeout = 0.0;
+        if(inode_stat(context->first, &e.attr) == FLFS_RET_ENOENT) {
+            fuse_reply_err(req, ENOENT);
+            return;
+        }
+
+        #ifdef FLFS_FAKE_PERMS
+        ino_fake_permissions(req, &e.attr);
+        #endif
+
+        e.attr.st_size = snap.inode_data.first.size;
+
+        // Do not increment nlookup for snapshot lookups
+        fuse_reply_entry(req, &e);
+    }
+
+    void FuseLFS::getattr_csd(fuse_req_t req, csd_unique_t *context,
+                              struct fuse_file_info *fi)
+    {
+        struct stat stbuf = {0};
+        struct snapshot snap;
+
+        if(get_snapshot(context, &snap, SNAP_FILE) != FLFS_RET_NONE) {
+            fuse_reply_err(req, EIO);
+            return;
+        }
+
+        if (inode_stat(context->first, &stbuf) == FLFS_RET_ENOENT)
+            fuse_reply_err(req, ENOENT);
+
+        #ifdef FLFS_FAKE_PERMS
+        ino_fake_permissions(req, &stbuf);
+        #endif
+
+        stbuf.st_size = snap.inode_data.first.size;
+
+        fuse_reply_attr(req, &stbuf, 90.0);
+    }
+
     void FuseLFS::read_csd(fuse_req_t req, csd_unique_t *context, size_t size,
         off_t off, struct fuse_file_info *fi)
     {

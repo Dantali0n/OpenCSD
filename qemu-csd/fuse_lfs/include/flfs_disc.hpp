@@ -203,6 +203,8 @@ namespace qemucsd::fuse_lfs {
     struct __attribute__((packed)) data_block {
         uint64_t data_lbas[DATA_BLK_LBA_NUM]; // LBAs of data blocks linearly
         uint64_t next_block;    // LBA for next data block or zero if none
+        // next_block is only stored on drive, in-memory datastructures do not
+        // set it
     };
     static_assert(sizeof(data_block) == SECTOR_SIZE);
     static_assert(std::is_trivially_copyable<data_block>::value);

@@ -1306,6 +1306,7 @@ namespace qemucsd::fuse_lfs {
     /**
      * Flush one or more inode_blocks to the drive with the first regardless
      * of how full it is.
+     * @threadsafety: single threaded
      * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon error and
      *         FLFS_RET_LOGZ_FULL if log zone full.
      */
@@ -1331,6 +1332,7 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Flush all data_blocks to drive in the correct order
+     * @threadsafety: single threaded
      * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
      */
     int FuseLFS::flush_data_blocks() {
@@ -1346,6 +1348,7 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Perform log zone garbage collection and compaction.
+     * @threadsafety: single threaded
      */
     int FuseLFS::log_garbage_collect() {
         return FLFS_RET_NONE;
@@ -1399,6 +1402,7 @@ namespace qemucsd::fuse_lfs {
     /**
      * Truncate the inode changing its size to what was requested. Can be
      * used to increase and decrease file size.
+     * @threadsafety: thread safe
      * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure,
      *         FLFS_RET_ENOENT if the inode could not be found and
      *         FLFS_RET_EISDIR if the inode is a directory
@@ -1449,33 +1453,6 @@ namespace qemucsd::fuse_lfs {
         fuse_reply_entry_nlookup(req, &e);
     }
 
-    void FuseLFS::lookup_csd(fuse_req_t req, csd_unique_t *context) {
-        struct fuse_entry_param e = {0};
-        struct snapshot snap;
-
-        if(get_snapshot(context, &snap, SNAP_FILE) != FLFS_RET_NONE) {
-            fuse_reply_err(req, EIO);
-            return;
-        }
-
-        e.ino = context->first;
-        e.attr_timeout = 0.0;
-        e.entry_timeout = 0.0;
-        if(inode_stat(context->first, &e.attr) == FLFS_RET_ENOENT) {
-            fuse_reply_err(req, ENOENT);
-            return;
-        }
-
-        #ifdef FLFS_FAKE_PERMS
-        ino_fake_permissions(req, &e.attr);
-        #endif
-
-        e.attr.st_size = snap.inode_data.first.size;
-
-        // Do not increment nlookup for snapshot lookups
-        fuse_reply_entry(req, &e);
-    }
-
     void FuseLFS::getattr_regular(fuse_req_t req, fuse_ino_t ino,
         struct fuse_file_info *fi)
     {
@@ -1489,29 +1466,6 @@ namespace qemucsd::fuse_lfs {
 
             fuse_reply_attr(req, &stbuf, 0.0);
         }
-    }
-
-    void FuseLFS::getattr_csd(fuse_req_t req, csd_unique_t *context,
-        struct fuse_file_info *fi)
-    {
-        struct stat stbuf = {0};
-        struct snapshot snap;
-
-        if(get_snapshot(context, &snap, SNAP_FILE) != FLFS_RET_NONE) {
-            fuse_reply_err(req, EIO);
-            return;
-        }
-
-        if (inode_stat(context->first, &stbuf) == FLFS_RET_ENOENT)
-            fuse_reply_err(req, ENOENT);
-
-        #ifdef FLFS_FAKE_PERMS
-        ino_fake_permissions(req, &stbuf);
-        #endif
-
-        stbuf.st_size = snap.inode_data.first.size;
-
-        fuse_reply_attr(req, &stbuf, 90.0);
     }
 
     void FuseLFS::setattr_regular(fuse_req_t req, fuse_ino_t ino,
@@ -1573,158 +1527,6 @@ namespace qemucsd::fuse_lfs {
         update_snapshot(context, &snap, SNAP_FILE);
 
         getattr_csd(req, context, fi);
-    }
-
-    void FuseLFS::read_regular(fuse_req_t req, struct stat *stbuf,
-        size_t size, off_t offset, struct fuse_file_info *fi)
-    {
-        // Inode is of size 0
-        if(stbuf->st_size == 0) {
-            reply_buf_limited(req, nullptr, 0, offset, size);
-            return;
-        }
-
-        // Actual read starts here
-        inode_entry_t entry;
-        get_inode(stbuf->st_ino, &entry);
-
-        // Variables corresponding to initial data_block
-        uint64_t db_block_num;
-        uint64_t db_num_lbas = offset / SECTOR_SIZE;
-        compute_data_block_num(db_num_lbas, db_block_num);
-
-        auto *blk = (struct data_block *) malloc(sizeof(data_block));
-        if(get_data_block(entry.first, db_block_num, blk) != FLFS_RET_NONE) {
-            uint64_t error_lba = entry.first.data_lba;
-            output.error(
-                "Failed to get data_block at lba ", error_lba,
-                " for inode ", stbuf->st_ino, " in read");
-            free(blk);
-            return;
-        }
-
-        uint64_t data_limit = flfs_min(size, stbuf->st_size);
-        // Initial lba index in the data_block
-        uint64_t db_lba_index = db_num_lbas % DATA_BLK_LBA_NUM;
-
-        // Round buffer size to nearest higher multiple of SECTOR_SIZE
-        auto buffer = (uint8_t*) malloc(
-            data_limit + (SECTOR_SIZE-1) & (-SECTOR_SIZE));
-
-        // Loop through the data until the buffer is filled to the required size
-        uint64_t buffer_offset = 0;
-        struct data_position data_pos = {0};
-        while(buffer_offset < data_limit) {
-
-            // Detect db_lba_index overflow and fetch next data_block
-            if(db_lba_index >= DATA_BLK_LBA_NUM) {
-                db_lba_index = 0;
-                db_block_num += 1;
-                if(get_data_block(entry.first, db_block_num, blk) !=
-                   FLFS_RET_NONE)
-                {
-                    uint64_t error_lba = entry.first.data_lba;
-                    output.error(
-                        "Failed to get data_block at lba ", error_lba,
-                        " for inode ", stbuf->st_ino, " in read");
-                    free(buffer);
-                    free(blk);
-                    return;
-                }
-            }
-
-            // Convert the data_block lba at the current index to a position
-            lba_to_position(blk->data_lbas[db_lba_index], data_pos);
-
-            // Read the data from this position into the buffer given the
-            // currently accumulated offset
-            if(nvme->read(data_pos.zone, data_pos.sector, data_pos.offset,
-                buffer + buffer_offset, SECTOR_SIZE) != 0)
-            {
-                uint64_t data_lba = blk->data_lbas[db_lba_index];
-                output.error(
-                    "Failed to retrieve data at at data_block index ",
-                    db_lba_index, " with lba ", data_lba, " for inode ",
-                    stbuf->st_ino);
-                fuse_reply_err(req, EIO);
-                free(buffer);
-                free(blk);
-                return;
-            }
-
-            buffer_offset += SECTOR_SIZE;
-            db_lba_index += 1;
-        }
-
-        reply_buf_limited(req, (const char*)buffer, data_limit, offset, size);
-
-        free(buffer);
-        free(blk);
-    }
-
-    int FuseLFS::read_snapshot(csd_unique_t *context, size_t size, off_t off,
-        void *buffer, struct snapshot *snap)
-    {
-        // Inode is of size 0
-        if(snap->inode_data.first.size == 0) {
-            return FLFS_RET_NONE;
-        }
-
-        // Variables corresponding to initial data_block
-        uint64_t db_block_num;
-        uint64_t db_num_lbas = off / SECTOR_SIZE;
-        compute_data_block_num(db_num_lbas, db_block_num);
-
-        struct data_block *blk = &snap->data_blocks.at(db_block_num);
-
-        uint64_t data_limit = flfs_min(size, snap->inode_data.first.size);
-        // Initial lba index in the data_block
-        uint64_t db_lba_index = db_num_lbas % DATA_BLK_LBA_NUM;
-
-        // Round buffer size to nearest higher multiple of SECTOR_SIZE
-        auto internal_buffer = (uint8_t*) malloc(
-            data_limit + (SECTOR_SIZE-1) & (-SECTOR_SIZE));
-
-        // Loop through the data until the buffer is filled to the required size
-        uint64_t buffer_offset = 0;
-        struct data_position data_pos = {0};
-        while(buffer_offset < data_limit) {
-
-            // Detect db_lba_index overflow and fetch next data_block
-            if(db_lba_index >= DATA_BLK_LBA_NUM) {
-                db_lba_index = 0;
-                db_block_num += 1;
-                blk = &snap->data_blocks.at(db_block_num);
-            }
-
-            // Convert the data_block lba at the current index to a position
-            lba_to_position(blk->data_lbas[db_lba_index], data_pos);
-
-            // Read the data from this position into the buffer given the
-            // currently accumulated offset
-            if(nvme->read(data_pos.zone, data_pos.sector, data_pos.offset,
-                          internal_buffer + buffer_offset, SECTOR_SIZE) != 0)
-            {
-                fuse_ino_t inode = snap->inode_data.first.inode;
-                uint64_t data_lba = blk->data_lbas[db_lba_index];
-                output.error(
-                    "Failed to retrieve data at at data_block index ",
-                    db_lba_index, " with lba ", data_lba, " for inode ",
-                    inode);
-                free(buffer);
-                free(blk);
-                return FLFS_RET_ERR;
-            }
-
-            buffer_offset += SECTOR_SIZE;
-            db_lba_index += 1;
-        }
-
-        memcpy(buffer, internal_buffer, flfs_min(data_limit, size));
-
-        free(internal_buffer);
-
-        return FLFS_RET_NONE;
     }
 
     /**
