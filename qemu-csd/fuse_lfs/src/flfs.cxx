@@ -73,8 +73,6 @@ namespace qemucsd::fuse_lfs {
         struct fuse_cmdline_opts opts = {0};
         struct fuse_loop_config loop_config = {0};
 
-        struct checkpoint_block cblock = {0};
-
         int ret = -1;
 
         if (fuse_parse_cmdline(&args, &opts) != 0) {
@@ -101,93 +99,10 @@ namespace qemucsd::fuse_lfs {
             goto err_out1;
         }
 
-        /** Fill nvme_info struct */
-        nvme->get_nvme_zns_info(&nvme_info);
-
-        /** Check compiled sector size matches device sector size */
-        if(SECTOR_SIZE != nvme_info.sector_size) {
-            output.error("Compiled sector size ", SECTOR_SIZE, " does not ",
-                         "match device sector size ", nvme_info.sector_size);
+        if(run_init() != FLFS_RET_NONE) {
             ret = 1;
             goto err_out1;
         }
-
-        // TODO(Dantali0n): Only create filesystem when a certain command line
-        //                  argument is supplied. See fuse hello_ll for example.
-        output.info("Creating filesystem..");
-        if(mkfs() != FLFS_RET_NONE) {
-            ret = 1;
-            goto err_out1;
-        }
-
-        output.info("Checking super block..");
-        if(verify_superblock() != FLFS_RET_NONE) {
-            output.error("Failed to verify super block, are you ",
-                   "sure the partition does not contain another filesystem?");
-            ret = 1;
-            goto err_out1;
-        }
-
-        // TODO(Dantali0n): Filesystem cleanup / recovery from dirty state
-        output.info("Checking dirty block..");
-        if(verify_dirtyblock() != FLFS_RET_NONE) {
-            output.error("Filesystem dirty, no recovery methods yet",
-                   " unable to continue :(");
-            ret = 1;
-            goto err_out1;
-        }
-
-        output.info("Writing dirty block..");
-        if(write_dirtyblock() != FLFS_RET_NONE) {
-            output.error("Unable to write dirty block to drive, "
-                              "check that drive is writeable");
-            ret = 1;
-            goto err_out1;
-        }
-
-        /** Set the random_pos and log_pos to the correct position */
-        get_checkpointblock(cblock);
-        lba_to_position(cblock.randz_lba, random_pos);
-        lba_to_position(cblock.logz_lba, log_pos);
-
-        /** Determine random_ptr now that random_pos is known */
-        if(determine_random_ptr() == FLFS_RET_RANDZ_FULL) {
-            output.warning("Filesystem initialized while random zone still ",
-                           "full, unclean shutdown attempting recovery..");
-            if(rewrite_random_blocks() != FLFS_RET_NONE) {
-                ret = 1;
-                goto err_out1;
-            }
-
-            if(determine_random_ptr() != FLFS_RET_NONE) {
-                ret = 1;
-                goto err_out1;
-            }
-        }
-
-        // Root inode
-        output.info("Creating root inode..");
-        path_inode_map->insert(std::make_pair(1, new path_map_t()));
-
-        /** Now that random_pos is known reconstruct inode lba map */
-        // TODO(Dantali0n): Make this also reconstruct SIT blocks
-        read_random_zone(&inode_lba_map);
-
-        /** Find highest free inode number and keep track */
-        ino_ptr = 2;
-        for(auto &ino : inode_lba_map) {
-            if(ino.first > ino_ptr) ino_ptr = ino.first + 1;
-        }
-
-        /** Determine the log write pointer */
-        determine_log_ptr();
-
-        /** With inodes available build path_inode_map now */
-        // TODO(Dantali0n): Build path_inode_map
-//        if(build_path_inode_map() != FLFS_RET_NONE) {
-//            ret = 1;
-//            goto err_out1;
-//        }
 
         session = fuse_session_new(
             &args, operations, sizeof(*operations), this);
@@ -196,13 +111,12 @@ namespace qemucsd::fuse_lfs {
             goto err_out1;
         }
 
-        if (fuse_set_signal_handlers(session) != FLFS_RET_NONE) {
+        if (fuse_set_signal_handlers(session) != 0) {
             ret = 1;
             goto err_out2;
         }
 
-        if (fuse_session_mount(session, opts.mountpoint) !=
-            FLFS_RET_NONE) {
+        if (fuse_session_mount(session, opts.mountpoint) != 0) {
             ret = 1;
             goto err_out3;
         }
@@ -1323,7 +1237,9 @@ namespace qemucsd::fuse_lfs {
             return FLFS_RET_MAX_INO;
         ino_ptr += 1;
 
+
         // Use insert_or_assign to prevent having to unpack packed field entry
+        // TODO(Dantali0n): threadsafety
         inode_entries.insert_or_assign(entry.inode,
             std::make_pair(entry, std::string(name)));
 
@@ -1336,6 +1252,7 @@ namespace qemucsd::fuse_lfs {
         // handled by lookup only when a file is looked up and nlookup becomes
         // non zero but since this inode is not flushed to drive yet a call to
         // lookup would fail otherwise as the lba for this inode is still 0.
+        // TODO(Dantali0n): threadsafety
         path_inode_map->find(parent)->second->insert(
             std::make_pair(name, entry_inode));
         if(type == INO_T_DIR)

@@ -51,6 +51,7 @@ extern "C" {
 #include "flfs_csd.hpp"
 #include "flfs_dirtyblock.hpp"
 #include "flfs_disc.hpp"
+#include "flfs_init.hpp"
 #include "flfs_memory.hpp"
 #include "flfs_snapshot.hpp"
 #include "flfs_superblock.hpp"
@@ -64,7 +65,7 @@ namespace qemucsd::fuse_lfs {
      * FUSE LFS filesystem for Zoned Namespaces SSDs (FluffleFS).
      */
     class FuseLFS : public FuseLFSCSD, public FuseLFSDirtyBlock,
-        public FuseLFSFileHandle, public FuseLFSInodeEntry,
+        public FuseLFSInit, public FuseLFSFileHandle, public FuseLFSInodeEntry,
         public FuseLFSInodeLba, public FuseLFSNlookup, public FuseLFSSnapShot,
         public FuseLFSSuperBlock, public FuseLFSWrite
     {
@@ -82,6 +83,10 @@ namespace qemucsd::fuse_lfs {
 
         // Map filenames and their respective parent to inodes
         path_inode_map_t *path_inode_map;
+
+        /** Initialization / Run methods */
+
+        int run_init() override;
 
         /** Nlookup interface methods */
 

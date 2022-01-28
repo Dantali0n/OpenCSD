@@ -93,7 +93,7 @@ namespace qemucsd::fuse_lfs {
     {
         lock_guard<pthread_rwlock_t> guard(inode_entries_lck);
 
-        ino_remove->reserve(INODE_ENTRY_SIZE / INODE_BLOCK_SIZE);
+        ino_remove->reserve(INODE_BLOCK_SIZE / INODE_ENTRY_SIZE);
 
         // Keep track of the occupied size by the current inode_entries
         uint32_t occupied_size = 0;

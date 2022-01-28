@@ -78,7 +78,7 @@ struct __attribute__((packed)) flfs_call {
  * @param cur_data_lba the current location of valid data for the given inode
  * @return 1 if has a next data block, 0 if no next data block
  */
-static int next_data_lba(uint64_t *&cur_data_lba) {
+static int next_data_lba(uint64_t **cur_data_lba) {
     if(*(cur_data_lba + 1) != 0) {
         cur_data_lba += 1;
         return 1;

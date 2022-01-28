@@ -45,10 +45,24 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
     static qemucsd::arguments::options opts = {};
 
     class TestFuseLFS : public FuseLFS {
+    protected:
+        static void free_data_structure_heap_memory(TestFuseLFS *test_fuse) {
+            for(auto &entry : *test_fuse->path_inode_map) {
+                delete entry.second;
+            }
+
+            for(auto &entry : *test_fuse->data_blocks) {
+                delete entry.second;
+            }
+        }
     public:
         TestFuseLFS(qemucsd::nvme_zns::NvmeZnsBackend* nvme) :
             FuseLFS(&opts, nvme) {
 
+        }
+
+        virtual ~TestFuseLFS() {
+            free_data_structure_heap_memory(this);
         }
 
         using FuseLFS::nvme_info;
@@ -72,6 +86,8 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         using FuseLFS::inode_entries;
 
         using FuseLFS::data_blocks;
+
+        using FuseLFS::run_init;
 
         using FuseLFS::inode_nlookup_increment;
         using FuseLFS::inode_nlookup_decrement;
@@ -132,19 +148,9 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         BOOST_CHECK(test_fuse->random_ptr == test_fuse->random_pos);
     }
 
-    void free_data_structure_heap_memory(TestFuseLFS *test_fuse) {
-        for(auto &entry : *test_fuse->path_inode_map) {
-            delete entry.second;
-        }
-
-        for(auto &entry : *test_fuse->data_blocks) {
-            delete entry.second;
-        }
-    }
-
     BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_mkfs, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
 
         setup_memory_backend(&test_fuse);
@@ -152,7 +158,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
     BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_super_block, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
 
         test_fuse.nvme = &nvme_memory;
@@ -166,7 +172,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
     BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_dirty_block, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         setup_memory_backend(&test_fuse);
 
@@ -181,7 +187,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
     BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_checkpoint_block, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         setup_memory_backend(&test_fuse);
 
@@ -197,7 +203,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                             TestFuseLFSFixture)
     {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         setup_memory_backend(&test_fuse);
 
@@ -226,7 +232,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                             TestFuseLFSFixture)
     {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         setup_memory_backend(&test_fuse);
 
@@ -262,7 +268,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                             TestFuseLFSFixture)
     {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         setup_memory_backend(&test_fuse);
 
@@ -282,7 +288,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                             TestFuseLFSFixture)
     {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         setup_memory_backend(&test_fuse);
 
@@ -311,7 +317,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                             TestFuseLFSFixture)
     {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         setup_memory_backend(&test_fuse);
 
@@ -338,7 +344,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                             TestFuseLFSFixture)
     {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-                1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         setup_memory_backend(&test_fuse);
 
@@ -357,7 +363,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 
     BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_determine_random_ptr_base, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         setup_rewrite_random_blocks(&test_fuse);
     }
@@ -367,7 +373,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
      */
     BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_determine_random_ptr_restore_zone_end, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         setup_rewrite_random_blocks(&test_fuse);
 
@@ -389,7 +395,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
      */
     BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_determine_random_ptr_restore_half, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         setup_rewrite_random_blocks(&test_fuse);
 
@@ -416,7 +422,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
      */
     BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_determine_random_ptr_restore_full, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         setup_rewrite_random_blocks(&test_fuse);
 
@@ -458,7 +464,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
      */
 
 //    BOOST_AUTO_TEST_CASE(Test_FuseLFS_rewrite_random_zone_two) {
-//        qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
+//        qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(16, 256, 512);
 //        setup_rewrite_random_blocks(&nvme_memory);
 //
 //        // These nat blocks are empty so upon rewriting the occupy 0 space
@@ -485,7 +491,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
 //    }
 //
 //    BOOST_AUTO_TEST_CASE(Test_FuseLFS_rewrite_random_zone_three) {
-//        qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(1024, 256, 512);
+//        qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(16, 256, 512);
 //        setup_rewrite_random_blocks(&nvme_memory);
 //
 //        struct qemucsd::fuse_lfs::nat_block nt_blk = {0};
@@ -514,7 +520,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                             TestFuseLFSFixture)
     {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         setup_rewrite_random_blocks(&test_fuse);
 
@@ -535,7 +541,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                             TestFuseLFSFixture)
     {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         setup_rewrite_random_blocks(&test_fuse);
 
@@ -592,7 +598,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                             TestFuseLFSFixture)
     {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         setup_rewrite_random_blocks(&test_fuse);
 
@@ -639,7 +645,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                             TestFuseLFSFixture)
     {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         setup_rewrite_random_blocks(&test_fuse);
 
@@ -698,7 +704,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                             TestFuseLFSFixture)
     {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         setup_rewrite_random_blocks(&test_fuse);
 
@@ -753,7 +759,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                             TestFuseLFSFixture)
     {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         setup_rewrite_random_blocks(&test_fuse);
 
@@ -812,7 +818,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                             TestFuseLFSFixture)
     {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         setup_rewrite_random_blocks(&test_fuse);
 
@@ -872,7 +878,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
     BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_nlookup, TestFuseLFSFixture)
     {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
 
         // Test insert and uniqueness
@@ -902,7 +908,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                             TestFuseLFSFixture)
     {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         uint64_t initial_size = test_fuse.inode_lba_size();
 
@@ -959,7 +965,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
      */
     BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_ino_stat, TestFuseLFSFixture) {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
         struct stat stbuf = {0};
 
@@ -1062,11 +1068,9 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                             TestFuseLFSFixture)
     {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
-        setup_memory_backend(&test_fuse);
-
-        test_fuse.determine_log_ptr();
+        BOOST_CHECK(test_fuse.run_init() == qemucsd::fuse_lfs::FLFS_RET_NONE);
 
         uint64_t lba;
         test_fuse.position_to_lba(test_fuse.log_ptr, lba);
@@ -1144,7 +1148,6 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                     qemucsd::fuse_lfs::FLFS_RET_ERR);
 
         free(ino_blk_ptr);
-        free_data_structure_heap_memory(&test_fuse);
     }
 
     /**
@@ -1154,13 +1157,10 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
                             TestFuseLFSFixture)
     {
         qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
-            1024, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
         TestFuseLFS test_fuse(&nvme_memory);
+        BOOST_CHECK(test_fuse.run_init() == qemucsd::fuse_lfs::FLFS_RET_NONE);
         fuse_ino_t ino;
-
-        test_fuse.ino_ptr = 3;
-        test_fuse.path_inode_map->insert(
-            std::make_pair(1, new qemucsd::fuse_lfs::path_map_t()));
 
         // Create a file in the root directory
         BOOST_CHECK(test_fuse.create_inode(1, "testfile1",
@@ -1177,8 +1177,6 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
         BOOST_CHECK(test_fuse.create_inode(13373, "testfile1",
             qemucsd::fuse_lfs::INO_T_FILE, ino) == qemucsd::fuse_lfs::FLFS_RET_ERR);
         #endif
-
-        free_data_structure_heap_memory(&test_fuse);
     }
 
     /**
@@ -1187,7 +1185,141 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
     BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_update_inode,
                             TestFuseLFSFixture)
     {
+        qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+        TestFuseLFS test_fuse(&nvme_memory);
+        BOOST_CHECK(test_fuse.run_init() == qemucsd::fuse_lfs::FLFS_RET_NONE);
 
+        fuse_ino_t ino;
+        BOOST_CHECK(test_fuse.create_inode(1, "test",
+            qemucsd::fuse_lfs::INO_T_FILE, ino) ==
+            qemucsd::fuse_lfs::FLFS_RET_NONE);
+
+        qemucsd::fuse_lfs::inode_entry_t entry;
+        BOOST_CHECK(test_fuse.get_inode_entry(ino, &entry) ==
+            qemucsd::fuse_lfs::FLFS_RET_NONE);
+
+        // This should in practice such as with ftruncate also create the data
+        // blocks required for the additional size
+        entry.first.size = 512;
+
+        test_fuse.update_inode_entry(&entry);
+
+        qemucsd::fuse_lfs::inode_entry_t test_entry;
+        BOOST_CHECK(test_fuse.get_inode_entry(ino, &test_entry) ==
+                    qemucsd::fuse_lfs::FLFS_RET_NONE);
+
+        BOOST_CHECK(entry.first.size == test_entry.first.size);
+    }
+
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_erase_inode_entries,
+        TestFuseLFSFixture)
+    {
+        qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+        TestFuseLFS test_fuse(&nvme_memory);
+        BOOST_CHECK(test_fuse.run_init() == qemucsd::fuse_lfs::FLFS_RET_NONE);
+
+        std::vector<fuse_ino_t> entries;
+        entries.push_back(2);
+        test_fuse.erase_inode_entries(&entries);
+
+        fuse_ino_t ino;
+        BOOST_CHECK(test_fuse.create_inode(1, "test",
+            qemucsd::fuse_lfs::INO_T_FILE, ino) ==
+            qemucsd::fuse_lfs::FLFS_RET_NONE);
+
+        qemucsd::fuse_lfs::inode_entry_t entry;
+        BOOST_CHECK(test_fuse.get_inode_entry(ino, &entry) ==
+            qemucsd::fuse_lfs::FLFS_RET_NONE);
+
+        entries.clear();
+        entries.push_back(ino);
+        test_fuse.erase_inode_entries(&entries);
+
+        // Use get_inode_entry instead of get_inode as the inode will still be
+        // in inode_lba_map after erasure from inode_entries
+        BOOST_CHECK(test_fuse.get_inode_entry(ino, &entry) ==
+            qemucsd::fuse_lfs::FLFS_RET_ENOENT);
+    }
+
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_fill_inode_block,
+        TestFuseLFSFixture)
+    {
+        qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+        TestFuseLFS test_fuse(&nvme_memory);
+        BOOST_CHECK(test_fuse.run_init() == qemucsd::fuse_lfs::FLFS_RET_NONE);
+
+        // Just enough spare for one more inode_entry
+        uint64_t block_size = (qemucsd::fuse_lfs::INODE_BLOCK_SIZE /
+            qemucsd::fuse_lfs::INODE_ENTRY_SIZE) - 2;
+        block_size -= (block_size * 1) / qemucsd::fuse_lfs::INODE_ENTRY_SIZE;
+
+        qemucsd::fuse_lfs::inode_entry_t entry = {};
+        for(uint64_t i = 0; i < block_size; i++) {
+            entry.first.inode = i + 2;
+            test_fuse.update_inode_entry(&entry);
+        }
+
+        std::vector<fuse_ino_t> remove;
+        struct qemucsd::fuse_lfs::inode_block blk;
+        BOOST_CHECK(test_fuse.fill_inode_block(&remove, &blk) ==
+            qemucsd::fuse_lfs::FLFS_RET_NONE);
+    }
+
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_fill_inode_block_full,
+        TestFuseLFSFixture)
+    {
+        qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+        TestFuseLFS test_fuse(&nvme_memory);
+        BOOST_CHECK(test_fuse.run_init() == qemucsd::fuse_lfs::FLFS_RET_NONE);
+
+        uint64_t min_block_size = (qemucsd::fuse_lfs::INODE_BLOCK_SIZE /
+            qemucsd::fuse_lfs::INODE_ENTRY_SIZE) + 1;
+
+        qemucsd::fuse_lfs::inode_entry_t entry = {};
+        for(uint64_t i = 0; i < min_block_size; i++) {
+            entry.first.inode = i + 2;
+            test_fuse.update_inode_entry(&entry);
+        }
+
+        std::vector<fuse_ino_t> remove;
+        struct qemucsd::fuse_lfs::inode_block blk;
+        BOOST_CHECK(test_fuse.fill_inode_block(&remove, &blk) ==
+            qemucsd::fuse_lfs::FLFS_RET_INO_BLK_FULL);
+    }
+
+    /**
+     *
+     */
+    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_fill_inode_block_fill_borderline,
+        TestFuseLFSFixture)
+    {
+        qemucsd::nvme_zns::NvmeZnsMemoryBackend nvme_memory(
+            16, 256, qemucsd::fuse_lfs::SECTOR_SIZE);
+        TestFuseLFS test_fuse(&nvme_memory);
+        BOOST_CHECK(test_fuse.run_init() == qemucsd::fuse_lfs::FLFS_RET_NONE);
+
+        // -1 so not quite full but names will push it over the limit to fit
+        // an additional entry
+        uint64_t block_size = (qemucsd::fuse_lfs::INODE_BLOCK_SIZE /
+            qemucsd::fuse_lfs::INODE_ENTRY_SIZE) - 1;
+
+        // Empty names should occupy 1 bytes each
+        block_size -= (block_size * 1) / qemucsd::fuse_lfs::INODE_ENTRY_SIZE;
+
+        qemucsd::fuse_lfs::inode_entry_t entry = {};
+        for(uint64_t i = 0; i < block_size; i++) {
+            entry.first.inode = i + 2;
+            test_fuse.update_inode_entry(&entry);
+        }
+
+        std::vector<fuse_ino_t> remove;
+        struct qemucsd::fuse_lfs::inode_block blk;
+        BOOST_CHECK(test_fuse.fill_inode_block(&remove, &blk) ==
+            qemucsd::fuse_lfs::FLFS_RET_INO_BLK_FULL);
     }
 
     /**
@@ -1203,24 +1335,6 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsDrive)
      *
      */
     BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_log_ptr,
-                            TestFuseLFSFixture)
-    {
-
-    }
-
-    /**
-     *
-     */
-    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_fill_inode_block,
-                            TestFuseLFSFixture)
-    {
-
-    }
-
-    /**
-     *
-     */
-    BOOST_FIXTURE_TEST_CASE(Test_FuseLFS_erase_inode_entries,
                             TestFuseLFSFixture)
     {
 

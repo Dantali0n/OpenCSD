@@ -22,16 +22,19 @@
  * SOFTWARE.
  */
 
-//#include <linux/bpf.h>
-#include <stdint.h>
+#ifndef QEMU_CSD_FLFS_INIT_HPP
+#define QEMU_CSD_FLFS_INIT_HPP
 
-#include <bpf_helpers_prog.h>
-#include <bpf_helpers_flfs.h>
+#include "flfs_constants.hpp"
+#include "flfs_memory.hpp"
 
-int main() {
-    struct flfs_call *call;
-    bpf_get_call_info((void**)call);
-    if(!call) return -1;
+namespace qemucsd::fuse_lfs {
 
+    class FuseLFSInit {
+    protected:
+        virtual int run_init() = 0;
+    };
 
 }
+
+#endif // QEMU_CSD_FLFS_INIT_HPP
