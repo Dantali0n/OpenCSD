@@ -82,11 +82,7 @@ static void find_data_lba(uint64_t **call_info) {
  * @param cur_data_lba the current location of valid data for the given inode
  */
 static void next_data_lba(uint64_t **cur_data_lba) {
-    if(*(*cur_data_lba + 1) != 0) {
-        *cur_data_lba += 1;
-    }
-
-    *cur_data_lba = 0;
+    *cur_data_lba += 1;
 }
 
 /**

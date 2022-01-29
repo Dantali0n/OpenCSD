@@ -70,7 +70,7 @@ int main() {
     while(buffer_offset < data_limit) {
         lba_to_position(*cur_data_lba, zone_size, &zone, &sector);
         bpf_read(zone, sector, 0, sector_size, buffer + buffer_offset);
-        buffer_offset += sector_size;
+        buffer_offset = buffer_offset + sector_size;
         next_data_lba(&cur_data_lba);
     }
 
