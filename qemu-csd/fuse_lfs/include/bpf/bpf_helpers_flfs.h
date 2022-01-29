@@ -70,20 +70,34 @@ struct __attribute__((packed)) flfs_call {
     enum flfs_operations op;
     struct dimensions dims;
     struct inode ino;
-    uint64_t *initial_data_lba;
+    // After this struct is initial_data_lba
 };
+
+static void find_data_lba(uint64_t **call_info) {
+    *call_info = (uint64_t*)((uint8_t*)*call_info + sizeof(struct flfs_call));
+}
 
 /**
  * Increment the cur_data_lba pointer and indicate if next data block exists
  * @param cur_data_lba the current location of valid data for the given inode
- * @return 1 if has a next data block, 0 if no next data block
  */
-static int next_data_lba(uint64_t **cur_data_lba) {
-    if(*(cur_data_lba + 1) != 0) {
-        cur_data_lba += 1;
-        return 1;
+static void next_data_lba(uint64_t **cur_data_lba) {
+    if(*(*cur_data_lba + 1) != 0) {
+        *cur_data_lba += 1;
     }
-    return 0;
+
+    *cur_data_lba = 0;
+}
+
+/**
+ * Convert the lba to the zone and sector required to perform read / write
+ * operations.
+ */
+static void lba_to_position(uint64_t lba, uint64_t zone_size, uint64_t *zone,
+                            uint64_t *sector)
+{
+    *zone = lba / zone_size;
+    *sector = lba % zone_size;
 }
 
 #endif

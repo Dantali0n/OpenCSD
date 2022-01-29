@@ -43,8 +43,12 @@ static uint64_t bpf_get_sector_size(void);
 
 static uint64_t bpf_get_zone_capacity(void);
 
+static uint64_t bpf_get_zone_size(void);
+
 static void bpf_get_mem_info(void **mem_ptr, uint64_t *mem_size);
 
-static void bpf_get_call_info(void **call;
+static void bpf_get_call_info(void **call);
+
+static void bpf_debug(const char *string);
 
 #endif //QEMU_CSD_BPF_HELPERS_VM_H

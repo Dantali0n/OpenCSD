@@ -85,7 +85,7 @@ namespace qemucsd::nvme_csd {
 		 * @return below 0 for errors, otherwise number of bytes of result
 		 * data.
 		 */
-		uint64_t nvm_cmd_bpf_run(void *bpf_elf, uint64_t bpf_elf_size);
+        int64_t nvm_cmd_bpf_run(void *bpf_elf, uint64_t bpf_elf_size);
 
         /**
          * Emulated NVMe command to pass a BPF program tied to a running
@@ -97,7 +97,7 @@ namespace qemucsd::nvme_csd {
          * @return below 0 for errors, otherwise number of bytes of result
 		 * data.
          */
-        uint64_t nvm_cmd_bpf_run_fs(
+        int64_t nvm_cmd_bpf_run_fs(
             void *bpf_elf, uint64_t bpf_elf_size, void *call,
             uint64_t call_size);
 
@@ -124,7 +124,7 @@ namespace qemucsd::nvme_csd {
         void vm_init();
         void vm_destroy();
 
-        uint64_t _nvm_cmd_bpf_run(void *bpf_elf, uint64_t bpf_elf_size);
+        int64_t _nvm_cmd_bpf_run(void *bpf_elf, uint64_t bpf_elf_size);
 
 		static void bpf_return_data(void *data, uint64_t size);
 
@@ -138,9 +138,13 @@ namespace qemucsd::nvme_csd {
 
         static uint64_t bpf_get_zone_capacity(void);
 
+        static uint64_t bpf_get_zone_size(void);
+
 		static void bpf_get_mem_info(void **mem_ptr, uint64_t *mem_size);
 
         static void bpf_get_call_info(void **call);
+
+        static void bpf_debug(const char *string);
 	};
 }
 

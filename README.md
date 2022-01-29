@@ -669,6 +669,12 @@ see source files such as `fuse_lfs_disc.hpp` until design is frozen.
 - A kernel _CAN NOT_ return more data than is specified in the read request.
 - A race condition in update_file_handle can potentially remove other unrelated
   file handles from open_inode_vect.
+- Since invalidating FUSE internal caches depends on lookup / getattr their
+  modification time; Reading a file regularly, setting the extended attributes
+  and then reading the file again to get a snapshotted read will result in the
+  read becoming a regular read if all these operations are performed within the
+  same second. Potentially we can hjiack mtime by having all modification times
+  of regular files life in the past.
 
 #### Threading and Concurrency
 

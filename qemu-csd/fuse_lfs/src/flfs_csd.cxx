@@ -37,6 +37,9 @@ namespace qemucsd::fuse_lfs {
         delete csd_instance;
     }
 
+    /**
+     *
+     */
     void FuseLFSCSD::flatten_data_blocks(uint64_t size, uint64_t off,
         data_map_t *blocks, std::vector<uint64_t> *flat_blocks)
     {
@@ -58,6 +61,9 @@ namespace qemucsd::fuse_lfs {
         }
     }
 
+    /**
+     *
+     */
     void FuseLFS::create_csd_context(struct snapshot *snap, size_t size,
         off_t off, bool write, void *&call, uint64_t &call_size)
     {
@@ -176,10 +182,16 @@ namespace qemucsd::fuse_lfs {
         create_csd_context(&file_snap, size, off, false, call, call_size);
 
         /** Launch the uBPF vm with the read kernel and filesystem context */
-        uint64_t result_size = csd_instance->nvm_cmd_bpf_run_fs(kernel_data,
+        int64_t result_size = csd_instance->nvm_cmd_bpf_run_fs(kernel_data,
             kernel_snap.inode_data.first.size, call, call_size);
         free(kernel_data);
         free(call);
+
+        if(result_size < 0) {
+            output.error("Kernel encountered error ", result_size);
+            fuse_reply_err(req, EIO);
+            return;
+        }
 
         void *result_data = malloc(result_size);
         csd_instance->nvm_cmd_bpf_result(result_data);

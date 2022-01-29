@@ -1096,7 +1096,7 @@ namespace qemucsd::fuse_lfs {
      * Find and fill the stbuf information for the given inode. Every FUSE call
      * that needs to determine if an inode exists should use this method.
      * TODO(Dantali0n): Cache these lookups as much as possible.
-     * TODO(Dantali0n): Make this thread safe
+     * @threadsafety: thread safe
      * @return FLFS_RET_NONE upon success, FLFS_RET_ENOENT upon not found
      */
     int FuseLFS::inode_stat(fuse_ino_t ino, struct stat *stbuf) {
@@ -1106,6 +1106,8 @@ namespace qemucsd::fuse_lfs {
         stbuf->st_blocks = 0;
         stbuf->st_blksize = SECTOR_SIZE;
 
+        // TODO(Dantali0n): Ensure these times are always older for regular
+        //                  getattr / lookup compared to csd requests.
         stbuf->st_atime = time(nullptr);
         stbuf->st_mtime = time(nullptr);
         stbuf->st_ctime = time(nullptr);

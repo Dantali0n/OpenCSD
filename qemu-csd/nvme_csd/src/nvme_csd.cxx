@@ -27,7 +27,7 @@
 static qemucsd::nvme_csd::NvmeCsd *nvme_instance = nullptr;
 static uint64_t fs_call_size = 0;
 static void *return_data = nullptr;
-static uint64_t return_size = 0;
+static int64_t return_size = 0;
 
 namespace qemucsd::nvme_csd {
 
@@ -57,9 +57,10 @@ namespace qemucsd::nvme_csd {
         ubpf_register(vm, 3, "bpf_write", (void*)bpf_write);
         ubpf_register(vm, 4, "bpf_get_sector_size", (void*)bpf_get_sector_size);
         ubpf_register(vm, 5, "bpf_get_zone_capacity", (void*)bpf_get_zone_capacity);
-        ubpf_register(vm, 6, "bpf_get_mem_info", (void*)bpf_get_mem_info);
+        ubpf_register(vm, 6, "bpf_get_zone_size", (void*)bpf_get_zone_size);
+        ubpf_register(vm, 7, "bpf_get_mem_info", (void*)bpf_get_mem_info);
 
-        ubpf_register(vm, 7, "bpf_get_call_info", (void*)bpf_get_call_info);
+        ubpf_register(vm, 8, "bpf_get_call_info", (void*)bpf_get_call_info);
     }
 
     void NvmeCsd::vm_destroy() {
@@ -67,7 +68,7 @@ namespace qemucsd::nvme_csd {
         free(vm_mem);
     }
 
-    uint64_t NvmeCsd::_nvm_cmd_bpf_run(void *bpf_elf, uint64_t bpf_elf_size) {
+    int64_t NvmeCsd::_nvm_cmd_bpf_run(void *bpf_elf, uint64_t bpf_elf_size) {
         char *msg_buf = nullptr;
         if(ubpf_load_elf(this->vm, bpf_elf, bpf_elf_size, &msg_buf) < 0) {
             output.error(msg_buf);
@@ -83,7 +84,7 @@ namespace qemucsd::nvme_csd {
             auto stop = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
             output.info("Jit compilation: ", duration.count(), "us.");
-            if ((int64_t)exec(this->vm_mem, this->vm_mem_size) < 0)
+            if ((int)exec(this->vm_mem, this->vm_mem_size) < 0)
                 return -1;
 
             return return_size;
@@ -95,20 +96,23 @@ namespace qemucsd::nvme_csd {
         if(ubpf_exec(this->vm, this->vm_mem, this->vm_mem_size, &result) < 0)
             return -1;
 
+        if((int)result < 0)
+            return int(result);
+
         return return_size;
     }
 
-	uint64_t NvmeCsd::nvm_cmd_bpf_run(void *bpf_elf, uint64_t bpf_elf_size) {
+    int64_t NvmeCsd::nvm_cmd_bpf_run(void *bpf_elf, uint64_t bpf_elf_size) {
         vm_init();
 
-        uint64_t result = _nvm_cmd_bpf_run(bpf_elf, bpf_elf_size);
+        int64_t result = _nvm_cmd_bpf_run(bpf_elf, bpf_elf_size);
 
         vm_destroy();
 
         return result;
 	}
 
-    uint64_t NvmeCsd::nvm_cmd_bpf_run_fs(void *bpf_elf, uint64_t bpf_elf_size,
+    int64_t NvmeCsd::nvm_cmd_bpf_run_fs(void *bpf_elf, uint64_t bpf_elf_size,
         void *call, uint64_t call_size)
     {
         vm_init();
@@ -119,7 +123,7 @@ namespace qemucsd::nvme_csd {
             return -ENOMEM;
         memcpy(vm_mem, call, call_size);
 
-        uint64_t result = _nvm_cmd_bpf_run(bpf_elf, bpf_elf_size);
+        int64_t result = _nvm_cmd_bpf_run(bpf_elf, bpf_elf_size);
 
         fs_call_size = 0;
 
@@ -138,7 +142,12 @@ namespace qemucsd::nvme_csd {
 		return_size = 0;
 	}
 
-    // TODO(Dantali0n): Implement this call
+    /**
+     * Stats reports the lbas of read and written sectors as executed by the
+     * BPF kernel. The VM is incomplete control over these operations so the
+     * kernel has no potential mechanism to lie about these stats.
+     * TODO(Dantali0n): Implement this call
+     */
     void NvmeCsd::nvm_cmd_bpf_stats(struct bpf_stats *stats) {
 
     }
@@ -177,15 +186,33 @@ namespace qemucsd::nvme_csd {
         return info.zone_capacity;
     }
 
+    uint64_t NvmeCsd::bpf_get_zone_size() {
+        nvme_zns::nvme_zns_info info = {0};
+        nvme_instance->nvme->get_nvme_zns_info(&info);
+
+        return info.zone_size;
+    }
+
+    /**
+     * Appoint the heap area to the running BPF kernel taking into account the
+     * potential filesystem context which is stored on top of the actual heap.
+     */
 	void NvmeCsd::bpf_get_mem_info(void **mem_ptr, uint64_t *mem_size) {
 		auto *self = nvme_instance;
 		*mem_ptr = (uint8_t*)self->vm_mem + fs_call_size;
 		*mem_size = self->vm_mem_size - fs_call_size;
 	}
 
+    /**
+     * Present the filesystem context to the running BPF kernel if any
+     */
     void NvmeCsd::bpf_get_call_info(void **call) {
         auto *self = nvme_instance;
         if(fs_call_size)
             *call = self->vm_mem;
+    }
+
+    void NvmeCsd::bpf_debug(const char *string) {
+        output.info(string);
     }
 }
