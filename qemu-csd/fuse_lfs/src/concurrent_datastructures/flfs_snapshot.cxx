@@ -26,10 +26,19 @@
 
 namespace qemucsd::fuse_lfs {
 
+    FuseLFSSnapShot::FuseLFSSnapShot() {
+        rwlock_init(&snapshot_lck, &snapshot_attr, "snapshot");
+    }
+
+    FuseLFSSnapShot::~FuseLFSSnapShot() {
+        rwlock_destroy(&snapshot_lck, &snapshot_attr, "snapshot");
+    }
+
     /**
      * Create a new csd_snapshot identified by the csd context. This overarching
      * snapshot keeps track of both the inode activated for CSD functionality
      * but also its read and / or write kernels
+     * @threadsafety: thread safe
      * @param write False to update the read kernel, true to update the write
      *              kernel.
      * @return FLFS_RET_NONE upon success, < FLFS_RET_ERR upon failure
@@ -40,7 +49,7 @@ namespace qemucsd::fuse_lfs {
         struct csd_snapshot snap = {inode_entry_t(), data_map_t()};
 
         // Check if snapshot for context file already exists
-        if(snapshots.find(*context) != snapshots.end()) {
+        if(has_snapshot(context, SNAP_FILE)) {
             output.warning("Updating existing snapshot for ",
                "ino ", context->first, " with pid ", context->second);
 
@@ -63,6 +72,8 @@ namespace qemucsd::fuse_lfs {
             write ? &snap.write_kernel : &snap.read_kernel) != FLFS_RET_NONE)
             return FLFS_RET_ERR;
 
+        lock_guard<pthread_rwlock_t> guard(snapshot_lck, true);
+
         // Update the snapshot
         snapshots.insert_or_assign(*context, snap);
 
@@ -73,6 +84,8 @@ namespace qemucsd::fuse_lfs {
      * Update the csd_snapshot its file, read or write kernel using the provided
      * snapshot object. This method can not fail as it will create an empty
      * csd_snapshot context if no current snapshot can be found.
+     * @threadsafety: thread safe
+     * @return FLFS_RET_NONE
      */
     int FuseLFS::update_snapshot(csd_unique_t *context, struct snapshot *snap,
         enum snapshot_store_type snap_t)
@@ -89,6 +102,8 @@ namespace qemucsd::fuse_lfs {
         else if(snap_t == SNAP_WRITE)
             temp_snap.write_kernel = *snap;
 
+        lock_guard<pthread_rwlock_t> guard(snapshot_lck, true);
+
         snapshots.insert_or_assign(*context, temp_snap);
 
         // Return statement necessary because of C++ limitation:
@@ -97,6 +112,12 @@ namespace qemucsd::fuse_lfs {
         return FLFS_RET_NONE;
     }
 
+    /**
+     *
+     * @threadsafety: thread safe
+     * TODO(Dantali0n): Make get_data_block thread safe
+     * @return FLFS_RET_NONE
+     */
     int FuseLFS::create_snapshot(fuse_ino_t ino, struct snapshot *snap) {
         if(get_inode(ino, &snap->inode_data) != FLFS_RET_NONE)
             return FLFS_RET_ERR;
@@ -119,11 +140,14 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Determine if the current csd_unique context still has an active snapshot
+     * @threadsafety: thread safe
      * @return 1 if has snapshot, 0 if not
      */
     int FuseLFS::has_snapshot(csd_unique_t *context,
         enum snapshot_store_type snap_t)
     {
+        lock_guard<pthread_rwlock_t> guard(snapshot_lck);
+
         auto it = snapshots.find(*context);
         if(it == snapshots.end())
             return 0;
@@ -142,9 +166,12 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Get csd_snapshot contain all three snapshots for the kernels and the file
+     * @threadsafety: thread safe
      * @return FLFS_RET_NONE upon success, < FLFS_RET_ERR if not found
      */
     int FuseLFS::get_snapshot(csd_unique_t *context, csd_snapshot *snaps) {
+        lock_guard<pthread_rwlock_t> guard(snapshot_lck);
+
         auto it = snapshots.find(*context);
 
         if(it == snapshots.end())
@@ -158,6 +185,7 @@ namespace qemucsd::fuse_lfs {
     /**
      * Get a specific snapshot for the context selection the file, read or
      * write kernel
+     * @threadsafety: thread safe
      * @return FLFS_RET_NONE upon success, < FLFS_RET_ERR if not found
      */
     int FuseLFS::get_snapshot(csd_unique_t *context, struct snapshot *snap,
@@ -179,9 +207,12 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Remove the snapshot belonging to the supplied context
+     * @threadsafety: thread safe
      * @return FLFS_RET_NONE upon success, < FLFS_RET_ERR if not found
      */
     int FuseLFS::delete_snapshot(csd_unique_t *context) {
+        lock_guard<pthread_rwlock_t> guard(snapshot_lck, true);
+
         auto it = snapshots.find(*context);
 
         if(it == snapshots.end())

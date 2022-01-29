@@ -46,6 +46,7 @@ extern "C" {
 #include "concurrent_datastructures/flfs_inode_entry.hpp"
 #include "concurrent_datastructures/flfs_inode_lba.hpp"
 #include "concurrent_datastructures/flfs_nlookup.hpp"
+#include "concurrent_datastructures/flfs_snapshot.hpp"
 #include "nvme_csd.hpp"
 #include "flfs_constants.hpp"
 #include "flfs_csd.hpp"
@@ -54,7 +55,6 @@ extern "C" {
 #include "flfs_init.hpp"
 #include "flfs_read.hpp"
 #include "flfs_memory.hpp"
-#include "flfs_snapshot.hpp"
 #include "flfs_superblock.hpp"
 #include "flfs_write.hpp"
 
@@ -301,6 +301,8 @@ namespace qemucsd::fuse_lfs {
         static int check_flags(int flags);
 
         static void ino_fake_permissions(fuse_req_t req, struct stat *stbuf);
+
+        static void ino_fake_mtime(struct stat *stbuf);
 
         int ftruncate(fuse_ino_t ino, size_t size);
 

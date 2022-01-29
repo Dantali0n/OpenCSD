@@ -26,11 +26,13 @@
 #define QEMU_CSD_FLFS_SNAPSHOT_HPP
 
 extern "C" {
-    #include <fuse3/fuse_lowlevel.h>
+    #include "fuse3/fuse_lowlevel.h"
+    #include <pthread.h>
 }
 
 #include "flfs_constants.hpp"
 #include "flfs_memory.hpp"
+#include "synchronization/flfs_rwlock.hpp"
 
 namespace qemucsd::fuse_lfs {
 
@@ -40,18 +42,29 @@ namespace qemucsd::fuse_lfs {
     class FuseLFSSnapShot {
     protected:
         std::map<csd_unique_t, struct csd_snapshot> snapshots;
+
+        // Concurrency management for snapshots
+        pthread_rwlock_t snapshot_lck = {};
+        pthread_rwlockattr_t snapshot_attr = {};
     public:
+        FuseLFSSnapShot();
+        virtual ~FuseLFSSnapShot();
+
+        virtual int create_snapshot(fuse_ino_t kernel, struct snapshot *snap) = 0;
+
         virtual int update_snapshot(csd_unique_t *context, fuse_ino_t kernel,
             bool write) = 0;
         virtual int update_snapshot(csd_unique_t *context,
             struct snapshot *snap, enum snapshot_store_type snap_t) = 0;
-        virtual int create_snapshot(fuse_ino_t kernel, struct snapshot *snap) = 0;
+
         virtual int has_snapshot(csd_unique_t *context,
             enum snapshot_store_type snap_t) = 0;
+
         virtual int get_snapshot(csd_unique_t *context,
             csd_snapshot *snaps) = 0;
         virtual int get_snapshot(csd_unique_t *context,
             struct snapshot *snap, enum snapshot_store_type snap_t) = 0;
+
         virtual int delete_snapshot(csd_unique_t *context) = 0;
     };
 

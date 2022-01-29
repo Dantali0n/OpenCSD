@@ -1401,6 +1401,12 @@ namespace qemucsd::fuse_lfs {
         stbuf->st_uid = context->uid;
     }
 
+    void FuseLFS::ino_fake_mtime(struct stat *stbuf) {
+        stbuf->st_atim.tv_sec -= 2;
+        stbuf->st_mtim.tv_sec -= 2;
+        stbuf->st_ctim.tv_sec -= 2;
+    }
+
     /**
      * Truncate the inode changing its size to what was requested. Can be
      * used to increase and decrease file size.
@@ -1452,6 +1458,10 @@ namespace qemucsd::fuse_lfs {
         ino_fake_permissions(req, &e.attr);
         #endif
 
+        #ifdef FLFS_FAKE_MTIME
+        ino_fake_mtime(&e.attr);
+        #endif
+
         fuse_reply_entry_nlookup(req, &e);
     }
 
@@ -1464,6 +1474,10 @@ namespace qemucsd::fuse_lfs {
         else {
             #ifdef FLFS_FAKE_PERMS
             ino_fake_permissions(req, &stbuf);
+            #endif
+
+            #ifdef FLFS_FAKE_MTIME
+            ino_fake_mtime(&stbuf);
             #endif
 
             fuse_reply_attr(req, &stbuf, 0.0);
@@ -2048,12 +2062,6 @@ namespace qemucsd::fuse_lfs {
         output_fi("read", fi);
         #endif
 
-        // Check if inode exists and lock
-        if(lock_inode(ino) != FLFS_RET_NONE) {
-            fuse_reply_err(req, ENOENT);
-            return;
-        }
-
         // Check if inode exists
         if(inode_stat(ino, &e.attr) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENOENT);
@@ -2079,8 +2087,13 @@ namespace qemucsd::fuse_lfs {
         csd_unique_t csd_context = {ino, context->pid};
         if(has_snapshot(&csd_context, SNAP_READ)) {
             // Snapshot reads and writes can happen concurrently
-            unlock_inode(ino);
             read_csd(req, &csd_context, size, offset, fi);
+            return;
+        }
+
+        // Check if inode exists and lock
+        if(lock_inode(ino) != FLFS_RET_NONE) {
+            fuse_reply_err(req, ENOENT);
             return;
         }
 

@@ -67,6 +67,13 @@ namespace qemucsd::fuse_lfs {
      */
     #define FLFS_FAKE_PERMS
 
+    /**
+     * Have regular getattr / lookup request modify the mtime so when getattr /
+     * lookup is called in a snapshot context the file is always newer and FUSE
+     * will invalidate internal caches.
+     */
+    #define FLFS_FAKE_MTIME
+
     #define flfs_min(x, y) ((x) < (y) ? (x) : (y))
 
     enum flfs_return_codes {
