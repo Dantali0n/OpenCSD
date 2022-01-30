@@ -1239,7 +1239,6 @@ namespace qemucsd::fuse_lfs {
             return FLFS_RET_MAX_INO;
         ino_ptr += 1;
 
-
         // Use insert_or_assign to prevent having to unpack packed field entry
         // TODO(Dantali0n): threadsafety
         inode_entries.insert_or_assign(entry.inode,
@@ -1719,7 +1718,15 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::destroy(void *userdata) {
         output.info("Tearing down filesystem");
 
-        //TODO(Dantali0n): flush all pending datastructures to drive.
+        // TODO(Dantali0n): flush all pending datastructures to drive.
+        // TODO(Dantali0n): remove these
+        for(auto &entry : *path_inode_map) {
+            delete entry.second;
+        }
+
+        for(auto &entry : *data_blocks) {
+            delete entry.second;
+        }
 
         if(remove_dirtyblock() != FLFS_RET_NONE) {
             output.error("Failed to remove dirty block from drive",
@@ -2078,7 +2085,7 @@ namespace qemucsd::fuse_lfs {
         // Verify file handle (session) exists
         if(!find_file_handle(fi->fh)) {
             output.error("File handle ", fi->fh, " not found in ",
-                         "open_inode_map!");
+                "open_inode_map!");
             fuse_reply_err(req, EIO);
             return;
         }
@@ -2116,16 +2123,9 @@ namespace qemucsd::fuse_lfs {
         output_fi("write", fi);
         #endif
 
-        // Check if inode exists and lock
-        if(lock_inode(ino) != FLFS_RET_NONE) {
-            fuse_reply_err(req, ENOENT);
-            return;
-        }
-
         // Check if inode exists
         if(inode_stat(ino, &e.attr) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENOENT);
-            unlock_inode(ino);
             return;
         }
 
@@ -2133,14 +2133,13 @@ namespace qemucsd::fuse_lfs {
         // Verify inode is regular file
         if(!(e.attr.st_mode & S_IFREG)) {
             fuse_reply_err(req, EISDIR);
-            unlock_inode(ino);
             return;
         }
 
         // Verify file handle (session) exists
         if(!find_file_handle(fi->fh)) {
             output.error("File handle ", fi->fh, " not found in",
-                         "open_inode_map!");
+                "open_inode_map!");
             fuse_reply_err(req, EIO);
             unlock_inode(ino);
             return;
@@ -2158,7 +2157,7 @@ namespace qemucsd::fuse_lfs {
         // Number of sectors total write will cover
         wr_context.num_sectors = size / SECTOR_SIZE;
         if((size + off) % SECTOR_SIZE != 0) wr_context.num_sectors += 1;
-        if(off % SECTOR_SIZE + size > SECTOR_SIZE) wr_context.num_sectors += 1;
+        if(off % (SECTOR_SIZE + size) > SECTOR_SIZE) wr_context.num_sectors += 1;
 
         // Compute initial data_block and index
         wr_context.cur_db_blk_num = (off / SECTOR_SIZE) / DATA_BLK_LBA_NUM;
@@ -2166,8 +2165,13 @@ namespace qemucsd::fuse_lfs {
 
         csd_unique_t csd_context = {ino, context->pid};
         if(has_snapshot(&csd_context, SNAP_WRITE)) {
-            unlock_inode(ino);
             write_csd(req, &csd_context, buffer, size, off, &wr_context, fi);
+            return;
+        }
+
+        // Check if inode exists and lock
+        if(lock_inode(ino) != FLFS_RET_NONE) {
+            fuse_reply_err(req, ENOENT);
             return;
         }
 

@@ -122,7 +122,13 @@ namespace qemucsd::fuse_lfs {
     static const char *FUSE_LFS_NAME_PREFIX = "[FUSE LFS] ";
 
     static output::Output output = output::Output(
-        FUSE_LFS_NAME_PREFIX, output::INFO);
+        FUSE_LFS_NAME_PREFIX,
+        #ifdef QEMUCSD_DEBUG
+            output::DEBUG
+        #else
+            output::INFO
+        #endif
+    );
 
     static const char *CSD_READ_KEY = "user.process.csd_read";
     static const char *CSD_WRITE_KEY = "user.process.csd_write";

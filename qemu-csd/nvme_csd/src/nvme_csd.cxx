@@ -59,13 +59,15 @@ namespace qemucsd::nvme_csd {
         ubpf_register(vm, 5, "bpf_get_zone_capacity", (void*)bpf_get_zone_capacity);
         ubpf_register(vm, 6, "bpf_get_zone_size", (void*)bpf_get_zone_size);
         ubpf_register(vm, 7, "bpf_get_mem_info", (void*)bpf_get_mem_info);
-
         ubpf_register(vm, 8, "bpf_get_call_info", (void*)bpf_get_call_info);
     }
 
     void NvmeCsd::vm_destroy() {
         ubpf_destroy(this->vm);
         free(vm_mem);
+
+        this->vm = nullptr;
+        this->vm_mem = nullptr;
     }
 
     int64_t NvmeCsd::_nvm_cmd_bpf_run(void *bpf_elf, uint64_t bpf_elf_size) {
@@ -83,7 +85,7 @@ namespace qemucsd::nvme_csd {
             ubpf_jit_fn exec = ubpf_compile(this->vm, &msg_buf);
             auto stop = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-            output.info("Jit compilation: ", duration.count(), "us.");
+            output.debug("Jit compilation: ", duration.count(), "us.");
             if ((int)exec(this->vm_mem, this->vm_mem_size) < 0)
                 return -1;
 
@@ -93,8 +95,12 @@ namespace qemucsd::nvme_csd {
         // Non jit path
         // TODO(Dantali0n): uint64_t is never going to be negative
         uint64_t result;
+        auto start = std::chrono::high_resolution_clock::now();
         if(ubpf_exec(this->vm, this->vm_mem, this->vm_mem_size, &result) < 0)
             return -1;
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        output.debug("Kernel wall time: ", duration.count(), "us.");
 
         if((int)result < 0)
             return int(result);

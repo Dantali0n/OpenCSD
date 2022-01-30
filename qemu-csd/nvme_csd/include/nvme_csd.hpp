@@ -41,7 +41,13 @@ extern "C" {
 namespace qemucsd::nvme_csd {
 
     static output::Output output = output::Output(
-        "[NVME CSD] ", output::INFO);
+        "[NVME CSD] ",
+        #ifdef QEMUCSD_DEBUG
+            output::DEBUG
+        #else
+            output::INFO
+        #endif
+    );
 
     /**
      * Statistics about the kernel that has run. Used to verify the behavior
@@ -71,7 +77,7 @@ namespace qemucsd::nvme_csd {
 	class NvmeCsd {
 	public:
 		NvmeCsd(size_t vm_mem_size, bool vm_jit,
-                nvme_zns::NvmeZnsBackend *nvme);
+            nvme_zns::NvmeZnsBackend *nvme);
 
         // Destructor must always be virtual otherwise won't be called in
         // superclasses!

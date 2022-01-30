@@ -26,6 +26,8 @@
 
 namespace qemucsd::fuse_lfs {
 
+
+    // base - 7f21b80029a0, error - 7f21b80069a0 + 3 - ~ 4k
     void FuseLFS::read_regular(fuse_req_t req, struct stat *stbuf,
         size_t size, off_t offset, struct fuse_file_info *fi)
     {
@@ -42,7 +44,8 @@ namespace qemucsd::fuse_lfs {
         // Variables corresponding to initial data_block
         uint64_t db_block_num;
         uint64_t db_num_lbas = offset / SECTOR_SIZE;
-        compute_data_block_num(db_num_lbas, db_block_num);
+        db_block_num = db_num_lbas / DATA_BLK_LBA_NUM;
+//        compute_data_block_num(db_num_lbas, db_block_num);
 
         auto *blk = (struct data_block *) malloc(sizeof(data_block));
         if(get_data_block(entry.first, db_block_num, blk) != FLFS_RET_NONE) {
@@ -59,7 +62,7 @@ namespace qemucsd::fuse_lfs {
 
         // Round buffer size to nearest higher multiple of SECTOR_SIZE
         auto buffer = (uint8_t*) malloc(
-                data_limit + (SECTOR_SIZE-1) & (-SECTOR_SIZE));
+            data_limit + (SECTOR_SIZE-1) & (-SECTOR_SIZE));
 
         // Loop through the data until the buffer is filled to the required size
         uint64_t buffer_offset = 0;
@@ -75,8 +78,8 @@ namespace qemucsd::fuse_lfs {
                 {
                     uint64_t error_lba = entry.first.data_lba;
                     output.error(
-                            "Failed to get data_block at lba ", error_lba,
-                            " for inode ", stbuf->st_ino, " in read");
+                        "Failed to get data_block at lba ", error_lba,
+                        " for inode ", stbuf->st_ino, " in read");
                     free(buffer);
                     free(blk);
                     return;
