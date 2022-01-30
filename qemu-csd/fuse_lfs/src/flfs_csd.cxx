@@ -196,8 +196,7 @@ namespace qemucsd::fuse_lfs {
         void *result_data = malloc(result_size);
         csd_instance->nvm_cmd_bpf_result(result_data);
 
-        reply_buf_limited(req, (const char*) result_data, size, off,
-            result_size);
+        fuse_reply_buf(req, (const char*)result_data, flfs_min(result_size, size));
         free(result_data);
     }
 

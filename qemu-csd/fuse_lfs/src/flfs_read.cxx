@@ -28,6 +28,7 @@ namespace qemucsd::fuse_lfs {
 
 
     // base - 7f21b80029a0, error - 7f21b80069a0 + 3 - ~ 4k
+    // Only happends when sectors == 7 / 8
     void FuseLFS::read_regular(fuse_req_t req, struct stat *stbuf,
         size_t size, off_t offset, struct fuse_file_info *fi)
     {
@@ -108,7 +109,7 @@ namespace qemucsd::fuse_lfs {
             db_lba_index += 1;
         }
 
-        reply_buf_limited(req, (const char*)buffer, data_limit, offset, size);
+        fuse_reply_buf(req, (const char*)buffer, flfs_min(data_limit, size));
 
         free(buffer);
         free(blk);
