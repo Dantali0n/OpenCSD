@@ -36,8 +36,10 @@ programming and interactive steps of individual components is shown below.
 
 ## Getting Started
 
-To get started using OpenCSD perform the steps described in the [Setup](#setup)
-section, followed by the steps in [Usage Examples](#usage-examples).
+The getting started & examples are actively being reworked to be easier to
+follow and a lower barrier to entry. The [Setup](#setup) section should still be
+complete but alternatively [the old readme of the ZCSD prototype is still
+readily available](zcsd/README.md).
 
 ### Index
 
@@ -45,31 +47,35 @@ section, followed by the steps in [Usage Examples](#usage-examples).
 * [Modules](#modules)
 * [Dependencies](#dependencies)
 * [Setup](#setup)
-* [Running & Debugging](#running-debugging)
-  * [Environment](#environment)
-  * [Usage Examples](#usage-examples)
-  * [Debugging on Host](#debugging-on-host)
-  * [Debugging on QEMU](#debugging-on-qemu)
-  * [Debugging FUSE](#debugging-fuse)
-* [CMake Configuration](#cmake-configuration)
+* [Examples](#examples)
+* [Contributing](#contributing)
+  * [CMake Configuration](#cmake-configuration)
 * [Licensing](#licensing)
 * [References](#references)
 * [Progress Report](#progress-report)
 * [Logbook](#logbook)
 
-### Directory structure
+### Directory Structure
 
-* qemu-csd - project source files
-* cmake - small cmake snippets to enable various features
-* dependencies - project dependencies
-* docs - doxygen generated source code documentation
-* documentation - project report written in LaTeX
-* [playground]([playground/README.md]) - small toy examples or other experiments
-* presentation - midterm presentation written in LaTeX
-* [python](python/README.md) - python scripts to aid in visualization or measurements
-* scripts - Shell scripts primarily used by CMake to install project dependencies
-* tests - unit tests and possibly integration tests
-* .vscode - Launch targets and settings to debug programs runnings inside QEMU over SSH 
+* qemu-csd - Project source files
+* cmake - Small cmake snippets to enable various features
+* dependencies - Project dependencies
+* docs - Doxygen generated source code documentation
+* [playground]([playground/README.md]) - Small toy examples or other
+  experiments
+* [python](python/README.md) - Python scripts to aid in visualization or
+  measurements
+* [scripts](scripts/README.md) - Shell scripts primarily used by CMake to
+  install project dependencies
+* tests - Unit tests and possibly integration tests
+* thesis - Thesis written on OpenCSD using LaTeX
+* [zcsd](zcsd/README.md) - Documentation on the previous prototype.
+  * compsys 2021 - CompSys 2021 presentation written in LaTeX
+  * documentation - Individual Systems Project report written in LaTeX
+  * presentation - Individual Systems Project midterm presentation written in
+  LaTeX
+* .vscode - Launch targets and settings to debug programs running inside QEMU
+  over SSH
 
 ### Modules
 
@@ -88,11 +94,8 @@ section, followed by the steps in [Usage Examples](#usage-examples).
 
 ### Dependencies
 
-This project requires quite some dependencies, the
-majority will be compiled by the project itself and installed
-into the build directory. Anything that is not automatically
-compiled and linked is shown below. Note however, **these dependencies
-are already installed on the image used with QEMU**.
+This project has a large selection of dependencies as shown below. Note however,
+**these dependencies are already available in the image QEMU base image**.
 
 **Warning** Meson must be below version 0.60 due to
 [a bug in DPDK](https://bugs.dpdk.org/show_bug.cgi?id=836)
@@ -120,10 +123,8 @@ are already installed on the image used with QEMU**.
 * Python scripts
     * virtualenv
 
-The following dependencies are automatically compiled. Dependencies are preferably
-linked statically due to the nature of this project. However, for several dependencies
-this is not possible due to various reason. For Boost, it is because the unit test
-framework can not be statically linked (easily):
+The following dependencies are automatically compiled and installed into the
+build directory.
 
 | Dependency                                                         | System  | Version                                                                                                         |
 |--------------------------------------------------------------------|---------|-----------------------------------------------------------------------------------------------------------------|
@@ -146,42 +147,33 @@ framework can not be statically linked (easily):
 
 ### Setup
 
-Building tools and dependencies is done by simply executing the following commands
-from the root directory. For a more complete list of cmake options see the
-[Configuration](#configuration) section. The environment file sourced with
-`source builddir/qemu-csd/activate` needs to be sourced every time. It
-configures essential include and binary paths to be able to run all the
-dependencies.
+The project requires between 15 and 30 GB of disc space depending on
+your configuration. While there are no particular system memory or performance
+requirements for running OpenCSD, debugging requires between 10 and 16 GB of
+reserved system memory. The table shown below explains the differences between
+the  possible configurations and their requirements.
 
-This first section of commands generates targets for host development. Among
-these is compiling and downloading an image for QEMU. Many parts of this project
-can be developed on the host but some require being developed on the guest. See
-the next section for on guest development.
+| Storage Mode   | Debugging | Disc space | System Memory | Cmake Parameters                                               |
+|----------------|-----------|------------|---------------|----------------------------------------------------------------|
+| Non-persistent | No        | 15 GB      | < 2 GB        | -DCMAKE_BUILD_TYPE=Release -DIS_DEPLOYED=on -DENABLE_TESTS=off |                                
+| Non-persisten  | Yes       | 15 GB      | 13 GB         | -DCMAKE_BUILD_TYPE=Debug -DIS_DEPLOYED=on                      |
+| Persistent     | No        | 30 GB      | 10 GB         | -DCMAKE_BUILD_TYPE=Release -DENABLE_TESTS=off                  |
+| Persistent     | Yes       | 30 GB      | 16 GB         | default                                                        |
 
-Navigate to the root directory of the project before executing the
-following instructions. These instructions will compile the dependencies on the
-host, these include a version of QEMU.
+OpenCSD its initial configuration and compilation must be performed prior to
+its use. After checking out the OpenCSD repository this can be achieved by
+executing the commands shown below. Each section of individual commands must be
+executed from the root of the project directory.
 
 ```shell script
 git submodule update --init
 mkdir build
 cd build
-cmake ..
+cmake .. # For non default configurations copy the cmake parameters before the ..
 cmake --build .
 # Do not use make -j $(nproc), CMake is not able to solve concurrent dependency chain
 cmake .. # this prevents re-compiling dependencies on every next make command
-source qemu-csd/activate
-# run commands and tools as you please for host based development
-deactivate
 ```
-
-From the root directory execute the following commands for the one time
-deployment into the QEMU guest. These command assume the previous section of
-commands has successfully been executed. The QEMU guest will automatically start
-an SSH server reachable on port 7777. Both the _arch_ and _root_ user can be
-used to login. In both cases the password is _arch_ as well. By default the QEMU
-script will only bind the guest ports on localhost to reduce security concerns
-due to these basic passwords.
 
 ```shell script
 git bundle create deploy.git HEAD
@@ -206,22 +198,12 @@ cmake -DENABLE_DOCUMENTATION=off -DIS_DEPLOYED=on ..
 cmake --build .
 ```
 
-Optionally, if the intend is to develop on the guest and commit code, the git 
-remote  can be updated. In that case it also best to generate an ssh keypair, be
-sure to start an ssh-agent as well as this needs to be performed manually on
-Arch. The ssh-agent is only valid for as long as the terminal session that
-started it. Optionally, it can be included in `.bashrc`.
-
 ```shell script
 git remote set-url origin git@github.com:Dantali0n/qemu-csd.git
 ssh-keygen -t rsa -b 4096
 eval $(ssh-agent) # must be done after each login
 ssh-add ~/.ssh/NAME_OF_KEY
 ```
-
-Additionally, any python based tools and graphs are generated by execution these
-additional commands from the root directory. Ensure the previous environment has
-been deactivated.
 
 ```shell script
 virtualenv -p python3 python
@@ -318,7 +300,9 @@ b ...
 run -f mountpoint
 ```
 
-### CMake Configuration
+### Contributing
+
+#### CMake Configuration
 
 This section documents all configuration parameters that the CMake project
 exposes and how they influence the project. For more information about the

@@ -1,0 +1,11 @@
+\begin{thebibliography}{1}
+
+\bibitem{snia-model}
+SNIA.
+\newblock Computational storage architecture and programming model version 0.5
+  revision 1.
+\newblock
+  \url{https://www.snia.org/sites/default/files/technical_work/PublicReview/SNIA-Computational-Storage-Architecture-and-Programming-Model-0.5R1.pdf},
+  2021.
+
+\end{thebibliography}

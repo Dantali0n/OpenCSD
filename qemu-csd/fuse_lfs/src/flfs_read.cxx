@@ -26,9 +26,6 @@
 
 namespace qemucsd::fuse_lfs {
 
-
-    // base - 7f21b80029a0, error - 7f21b80069a0 + 3 - ~ 4k
-    // Only happends when sectors == 7 / 8
     void FuseLFS::read_regular(fuse_req_t req, struct stat *stbuf,
         size_t size, off_t offset, struct fuse_file_info *fi)
     {

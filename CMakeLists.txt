@@ -234,10 +234,10 @@ endif(ENABLE_CODECOV)
 if(ENABLE_DOCUMENTATION)
 
 	add_custom_target(all-documents ALL)
-	add_subdirectory(compsys2021)
-	add_subdirectory(documentation)
 	add_subdirectory(thesis)
-	add_subdirectory(presentation)
+	add_subdirectory(zcsd/compsys2021)
+	add_subdirectory(zcsd/documentation)
+	add_subdirectory(zcsd/presentation)
 
 	# Generate Doxygen Documentation
 	find_package(Doxygen)

@@ -150,7 +150,7 @@ namespace qemucsd::nvme_csd {
 
     /**
      * Stats reports the lbas of read and written sectors as executed by the
-     * BPF kernel. The VM is incomplete control over these operations so the
+     * BPF kernel. The VM is in complete control over these operations so the
      * kernel has no potential mechanism to lie about these stats.
      * TODO(Dantali0n): Implement this call
      */
