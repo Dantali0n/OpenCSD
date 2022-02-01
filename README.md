@@ -41,6 +41,8 @@ follow and a lower barrier to entry. The [Setup](#setup) section should still be
 complete but alternatively [the old readme of the ZCSD prototype is still
 readily available](zcsd/README.md).
 
+[![asciicast](https://asciinema.org/a/zoM9ncLUTO4QIqntblHKNOEtC.svg)](https://asciinema.org/a/zoM9ncLUTO4QIqntblHKNOEtC)
+
 ### Index
 
 * [Directory structure](#directory-structure)
