@@ -49,11 +49,11 @@ target_link_libraries(
     qemucsd_spdk_init
     -Wl,--whole-archive
     spdk_log.a spdk_env_dpdk.a spdk_nvme.a spdk_util.a spdk_sock.a spdk_json.a
-    spdk_rpc.a spdk_jsonrpc.a
+    spdk_rpc.a spdk_jsonrpc.a spdk_trace.a
     -Wl,--no-whole-archive
     rte_eal.a rte_mempool.a rte_telemetry.a rte_ring.a rte_kvargs.a rte_bus_pci.a
     rte_pci.a rte_vhost.a rte_power.a
-    isal.a uuid numa dl
+    isal.a uuid numa dl rt
     #    spdk spdk_log spdk_env_dpdk
     #    rte_eal.a rte_mempool.a rte_telemetry.a rte_ring.a rte_kvargs.a rte_bus_pci.a
     #    rte_pci.a rte_vhost.a rte_power.a

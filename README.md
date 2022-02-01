@@ -132,14 +132,14 @@ build directory.
 | [booost](https://www.boost.org/)                                   | ZCSD    | 1.74.0                                                                                                          |
 | [bpftool](https://github.com/Netronome/bpf-tool)                   | ZCSD    | 5.14                                                                                                            |
 | [bpf_load](https://github.com/Netronome/bpf-tool)                  | ZCSD    | [5.10](https://elixir.bootlin.com/linux/v5.10.77/source/samples/bpf/bpf_load.h)                                 |
-| [dpdk](https://www.dpdk.org/)                                      | ZCSD    | 20.11.0                                                                                                         |
+| [dpdk](https://www.dpdk.org/)                                      | ZCSD    | spdk-21.11                                                                                                      |
 | [generic-ebpf](https://github.com/generic-ebpf/generic-ebpf)       | ZCSD    | [c9cee73](https://github.com/generic-ebpf/generic-ebpf/commit/c9cee73c73845c9d60aef807b7ee7891987cd6fd)         |
 | [fuse-lfs](https://github.com/sphurti/Log-Structured-Filesystem)   | OpenCSD | [526454b](https://github.com/sphurti/Log-Structured-Filesystem/commit/526454b99102d4e8875898550f92d577bbbb8ca2) |
 | [libbpf](https://github.com/libbpf/libbpf)                         | ZCSD    | 0.5                                                                                                             |
 | [libfuse](https://github.com/libfuse/libfuse)                      | OpenCSD | 3.10.5                                                                                                          |
 | [libbpf-bootstrap](https://github.com/libbpf/libbpf)               | ZCSD    | [67a29e5](https://github.com/libbpf/libbpf-bootstrap/commit/67a29e511cc9d0a570d4d3b9797827f3a08ccdb5)           |
 | [linux](https://www.kernel.org/)                                   | ZCSD    | 5.14                                                                                                            |
-| [spdk](https://github.com/spdk/spdk)                               | ZCSD    | 21.07                                                                                                           |
+| [spdk](https://github.com/spdk/spdk)                               | ZCSD    | 22.01                                                                                                           |
 | [isa-l](https://github.com/intel/isa-l)                            | ZCSD    | spdk-v2.30.0                                                                                                    |
 | [rocksdb](https://github.com/facebook/rocksdb)                     | OpenCSD | 6.25.3                                                                                                          |
 | [qemu](https://www.qemu.org/)                                      | ZCSD    | 6.1.0                                                                                                           |

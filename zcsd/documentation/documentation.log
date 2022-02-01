@@ -1,11 +1,11 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.23 (TeX Live 2021/Arch Linux) (preloaded format=pdflatex 2021.12.29)  22 JAN 2022 08:22
+This is pdfTeX, Version 3.141592653-2.6-1.40.23 (TeX Live 2021/Arch Linux) (preloaded format=pdflatex 2021.12.29)  1 FEB 2022 08:16
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
  %&-line parsing enabled.
-**\input /home/corne/projects/vu/qemu-csd/documentation/documentation.tex
+**\input /home/corne/projects/vu/qemu-csd/zcsd/documentation/documentation.tex
 
-(/home/corne/projects/vu/qemu-csd/documentation/documentation.tex
+(/home/corne/projects/vu/qemu-csd/zcsd/documentation/documentation.tex
 (/usr/share/texmf-dist/tex/latex/ieeetran/IEEEtran.cls
 Document Class: IEEEtran 2015/08/26 V1.8b by Michael Shell
 -- See the "IEEEtran_HOWTO" manual for usage information.
@@ -612,7 +612,7 @@ File: l3backend-pdftex.def 2021-12-14 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count313
 \l__pdf_internal_box=\box65
 )
-(/home/corne/projects/vu/qemu-csd/documentation/documentation.aux)
+(/home/corne/projects/vu/qemu-csd/zcsd/documentation/documentation.aux)
 \openout1 = `documentation.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 166.
@@ -680,8 +680,8 @@ LaTeX Info: Redefining \ref on input line 166.
 LaTeX Info: Redefining \pageref on input line 166.
 LaTeX Info: Redefining \nameref on input line 166.
 
-(/home/corne/projects/vu/qemu-csd/documentation/documentation.out)
-(/home/corne/projects/vu/qemu-csd/documentation/documentation.out)
+(/home/corne/projects/vu/qemu-csd/zcsd/documentation/documentation.out)
+(/home/corne/projects/vu/qemu-csd/zcsd/documentation/documentation.out)
 \@outlinefile=\write3
 \openout3 = `documentation.out'.
 
@@ -717,18 +717,18 @@ Package pdftex.def Info: resources/images/vu-logo.png  used on input line 203.
 
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map} </home/corne/projects/vu/qe
-mu-csd/documentation/resources/images/prototype-landscape.png> </home/corne/pro
-jects/vu/qemu-csd/documentation/resources/images/vu-logo.png (PNG copy)>]
-(/home/corne/projects/vu/qemu-csd/documentation/documentation.toc)
+mu-csd/zcsd/documentation/resources/images/prototype-landscape.png> </home/corn
+e/projects/vu/qemu-csd/zcsd/documentation/resources/images/vu-logo.png (PNG cop
+y)>] (/home/corne/projects/vu/qemu-csd/zcsd/documentation/documentation.toc)
 \tf@toc=\write4
 \openout4 = `documentation.toc'.
 
- [1
+
+[1
 
 
 
-]
-(/usr/share/texmf-dist/tex/latex/listings/lstlang1.sty
+] (/usr/share/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2020/03/24 1.8d listings language file
 )
 (/usr/share/texmf-dist/tex/latex/listings/lstlang1.sty
@@ -743,17 +743,19 @@ File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
 Package hyperref Info: bookmark level for unknown lstlisting defaults to 0 on i
 nput line 321.
 
-(/home/corne/projects/vu/qemu-csd/documentation/resources/bash/gitmodules.sh)
+(/home/corne/projects/vu/qemu-csd/zcsd/documentation/resources/bash/gitmodules.
+sh)
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [2
 
 ]
-(/home/corne/projects/vu/qemu-csd/documentation/resources/bash/nvme-subsystem.s
-h)
-(/home/corne/projects/vu/qemu-csd/documentation/resources/bash/qemu-launch.sh)
-[3] (/home/corne/projects/vu/qemu-csd/documentation/resources/bash/spdk.service
-)
+(/home/corne/projects/vu/qemu-csd/zcsd/documentation/resources/bash/nvme-subsys
+tem.sh)
+(/home/corne/projects/vu/qemu-csd/zcsd/documentation/resources/bash/qemu-launch
+.sh) [3]
+(/home/corne/projects/vu/qemu-csd/zcsd/documentation/resources/bash/spdk.servic
+e)
 Underfull \hbox (badness 1533) in paragraph at lines 446--456
 []\T1/ptm/m/n/10 To test that this setup has been per-formed cor-rectly
  []
@@ -791,9 +793,10 @@ Underfull \hbox (badness 7308) in paragraph at lines 446--456
  []
 
 
-(/home/corne/projects/vu/qemu-csd/documentation/resources/bash/identify-output.
-sh) [4]
-(/home/corne/projects/vu/qemu-csd/documentation/resources/bash/gdb-qemu.sh)
+(/home/corne/projects/vu/qemu-csd/zcsd/documentation/resources/bash/identify-ou
+tput.sh) [4]
+(/home/corne/projects/vu/qemu-csd/zcsd/documentation/resources/bash/gdb-qemu.sh
+)
 <resources/images/spdk-zns-ssd-landscape.png, id=285, 1402.23875pt x 1033.8625p
 t>
 File: resources/images/spdk-zns-ssd-landscape.png Graphic file (type png)
@@ -828,9 +831,9 @@ Overfull \hbox (6.0pt too wide) in paragraph at lines 721--723
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [6 </home/corne/projects/vu/qemu-csd/documentation/resources/images/spdk-zns-s
-sd-landscape.png>] [7 </home/corne/projects/vu/qemu-csd/documentation/resources
-/images/bpf-landscape-legend.png>]
+ [6 </home/corne/projects/vu/qemu-csd/zcsd/documentation/resources/images/spdk-
+zns-ssd-landscape.png>] [7 </home/corne/projects/vu/qemu-csd/zcsd/documentation
+/resources/images/bpf-landscape-legend.png>]
 <resources/images/bpf-landscape.png, id=352, 1868.9825pt x 887.315pt>
 File: resources/images/bpf-landscape.png Graphic file (type png)
 <use resources/images/bpf-landscape.png>
@@ -839,8 +842,8 @@ Package pdftex.def Info: resources/images/bpf-landscape.png  used on input line
 (pdftex.def)             Requested size: 516.0pt x 244.98044pt.
  [8
 
- </home/corne/projects/vu/qemu-csd/documentation/resources/images/bpf-landscape
-.png>]
+ </home/corne/projects/vu/qemu-csd/zcsd/documentation/resources/images/bpf-land
+scape.png>]
 File: resources/images/prototype-landscape.png Graphic file (type png)
 <use resources/images/prototype-landscape.png>
 Package pdftex.def Info: resources/images/prototype-landscape.png  used on inpu
@@ -859,8 +862,10 @@ File: lstlang1.sty 2020/03/24 1.8d listings language file
 (/usr/share/texmf-dist/tex/latex/listings/lstmisc.sty
 File: lstmisc.sty 2020/03/24 1.8d (Carsten Heinz)
 )
-(/home/corne/projects/vu/qemu-csd/documentation/resources/c/nvm-commands.c)
-(/home/corne/projects/vu/qemu-csd/documentation/resources/c/bpf_functions.c)
+(/home/corne/projects/vu/qemu-csd/zcsd/documentation/resources/c/nvm-commands.c
+)
+(/home/corne/projects/vu/qemu-csd/zcsd/documentation/resources/c/bpf_functions.
+c)
 Underfull \hbox (badness 1668) in paragraph at lines 974--977
  \T1/ptm/m/it/10 4.2.1. Pro-to-type Com-po-nents: [][][] \T1/ptm/m/n/10 Ef-fec-
 tively, the cur-rent
@@ -878,9 +883,9 @@ Overfull \hbox (6.0pt too wide) in paragraph at lines 1004--1006
 [][] 
  []
 
-[11 </home/corne/projects/vu/qemu-csd/documentation/resources/images/prototype-
-components.png>]
-(/home/corne/projects/vu/qemu-csd/documentation/documentation.bbl
+[11 </home/corne/projects/vu/qemu-csd/zcsd/documentation/resources/images/proto
+type-components.png>]
+(/home/corne/projects/vu/qemu-csd/zcsd/documentation/documentation.bbl
 Underfull \hbox (badness 2096) in paragraph at lines 49--52
 []\T1/ptm/m/n/8 M. Bjør-ling, J. C. de Souza, D. Lands-man, D. le Moal, and
  []
@@ -965,18 +970,18 @@ Before submitting the final camera ready copy, remember to:
  uses only Type 1 fonts and that every step in the generation
  process uses the appropriate paper size.
 
-[12] (/home/corne/projects/vu/qemu-csd/documentation/documentation.aux)
+[12] (/home/corne/projects/vu/qemu-csd/zcsd/documentation/documentation.aux)
 Package rerunfilecheck Info: File `documentation.out' has not changed.
 (rerunfilecheck)             Checksum: 23FA82A162DF986034734BF9297BEB20;3877.
  ) 
 Here is how much of TeX's memory you used:
  18535 strings out of 478353
- 307114 string characters out of 5854634
+ 307279 string characters out of 5854634
  969543 words of memory out of 5000000
  36136 multiletter control sequences out of 15000+600000
  516252 words of font info for 144 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 84i,11n,117p,347b,1562s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 84i,11n,117p,352b,1562s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/share/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/share/texmf-dist/fon
 ts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texmf-dist/fonts/type1/publi
 c/amsfonts/cm/cmmi6.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/c
@@ -985,7 +990,7 @@ hare/texmf-dist/fonts/type1/public/txfonts/t1xbtt.pfb></usr/share/texmf-dist/fo
 nts/type1/public/txfonts/t1xtt.pfb></usr/share/texmf-dist/fonts/type1/urw/times
 /utmb8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share
 /texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on documentation.pdf (13 pages, 534591 bytes).
+Output written on documentation.pdf (13 pages, 534589 bytes).
 PDF statistics:
  619 PDF objects out of 1000 (max. 8388607)
  569 compressed objects within 6 object streams

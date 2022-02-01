@@ -27,7 +27,7 @@ find_package(LATEX)
 # The directory where the final build data will be stored.
 set(OUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 # Directory where the source files are located.
-set(WORKINGDIR "${CMAKE_CURRENT_SOURCE_DIR}" )
+set(WORKINGDIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
 # Latex source file.
 set(MAIN_TEX "${CMAKE_CURRENT_SOURCE_DIR}/documentation.tex")

@@ -376,7 +376,7 @@ endif()
 #)
 
 add_custom_command(OUTPUT dpdk-copy PRE_BUILD
-    COMMAND cp -r bin ${PRJ_ROOT}
+#    COMMAND cp -r bin ${PRJ_ROOT}
     COMMAND cp -r lib ${PRJ_ROOT}
     COMMAND cp -r include ${PRJ_ROOT}
     COMMAND cp -r share ${PRJ_ROOT}

@@ -1,11 +1,11 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.23 (TeX Live 2021/Arch Linux) (preloaded format=pdflatex 2021.12.29)  22 JAN 2022 08:22
+This is pdfTeX, Version 3.141592653-2.6-1.40.23 (TeX Live 2021/Arch Linux) (preloaded format=pdflatex 2021.12.29)  1 FEB 2022 08:16
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
  %&-line parsing enabled.
-**\input /home/corne/projects/vu/qemu-csd/compsys2021/compsys2021.tex
+**\input /home/corne/projects/vu/qemu-csd/zcsd/compsys2021/compsys2021.tex
 
-(/home/corne/projects/vu/qemu-csd/compsys2021/compsys2021.tex
+(/home/corne/projects/vu/qemu-csd/zcsd/compsys2021/compsys2021.tex
 (/usr/share/texmf-dist/tex/latex/beamer/beamer.cls
 Document Class: beamer 2021/10/18 v3.64 A class for typesetting presentations
 (/usr/share/texmf-dist/tex/latex/beamer/beamerbasemodes.sty
@@ -816,13 +816,13 @@ Package: varwidth 2009/03/30 ver 0.92;  Variable-width minipages
 \@vwid@loff=\dimen315
 \@vwid@roff=\dimen316
 ))
-(/home/corne/projects/vu/qemu-csd/compsys2021/beamerthemecern.sty
+(/home/corne/projects/vu/qemu-csd/zcsd/compsys2021/beamerthemecern.sty
 \titlelf=\skip68
 
-(/home/corne/projects/vu/qemu-csd/compsys2021/beamerfontthemecern.sty)
-(/home/corne/projects/vu/qemu-csd/compsys2021/beamercolorthemecern.sty)
-(/home/corne/projects/vu/qemu-csd/compsys2021/beamerinnerthemecern.sty)
-(/home/corne/projects/vu/qemu-csd/compsys2021/beamerouterthemecern.sty
+(/home/corne/projects/vu/qemu-csd/zcsd/compsys2021/beamerfontthemecern.sty)
+(/home/corne/projects/vu/qemu-csd/zcsd/compsys2021/beamercolorthemecern.sty)
+(/home/corne/projects/vu/qemu-csd/zcsd/compsys2021/beamerinnerthemecern.sty)
+(/home/corne/projects/vu/qemu-csd/zcsd/compsys2021/beamerouterthemecern.sty
 \footlinedp=\skip69
 \footlineht=\skip70
 \footlinesk=\skip71
@@ -884,7 +884,7 @@ File: l3backend-pdftex.def 2021-12-14 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count350
 \l__pdf_internal_box=\box82
 )
-(/home/corne/projects/vu/qemu-csd/compsys2021/compsys2021.aux)
+(/home/corne/projects/vu/qemu-csd/zcsd/compsys2021/compsys2021.aux)
 \openout1 = `compsys2021.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 185.
@@ -979,8 +979,8 @@ LaTeX Info: Redefining \ref on input line 185.
 LaTeX Info: Redefining \pageref on input line 185.
 LaTeX Info: Redefining \nameref on input line 185.
 
-(/home/corne/projects/vu/qemu-csd/compsys2021/compsys2021.out)
-(/home/corne/projects/vu/qemu-csd/compsys2021/compsys2021.out)
+(/home/corne/projects/vu/qemu-csd/zcsd/compsys2021/compsys2021.out)
+(/home/corne/projects/vu/qemu-csd/zcsd/compsys2021/compsys2021.out)
 \@outlinefile=\write5
 \openout5 = `compsys2021.out'.
 
@@ -1076,7 +1076,7 @@ Package caption Info: End \AtBeginDocument code.
 LaTeX Font Warning: Font shape `OT1/cmss/m/n' in size <15> not available
 (Font)              size <14.4> substituted on input line 185.
 
-(/home/corne/projects/vu/qemu-csd/compsys2021/compsys2021.nav)
+(/home/corne/projects/vu/qemu-csd/zcsd/compsys2021/compsys2021.nav)
 Overfull \hbox (15.70097pt too wide) in paragraph at lines 185--185
  [][] [][][]  
  []
@@ -1106,8 +1106,8 @@ Overfull \hbox (15.70097pt too wide) has occurred while \output is active
 
 [2
 
- </home/corne/projects/vu/qemu-csd/compsys2021/resources/images/comp-stor2.jpg>
-]
+ </home/corne/projects/vu/qemu-csd/zcsd/compsys2021/resources/images/comp-stor2
+.jpg>]
 <resources/images/intro-zns.png, id=34, 385.44pt x 190.7928pt>
 File: resources/images/intro-zns.png Graphic file (type png)
 <use resources/images/intro-zns.png>
@@ -1121,7 +1121,8 @@ Overfull \hbox (15.70097pt too wide) has occurred while \output is active
 
 [3
 
- </home/corne/projects/vu/qemu-csd/compsys2021/resources/images/intro-zns.png>]
+ </home/corne/projects/vu/qemu-csd/zcsd/compsys2021/resources/images/intro-zns.
+png>]
 <resources/images/zcsd-arch-final.pdf, id=43, 313.17pt x 168.63pt>
 File: resources/images/zcsd-arch-final.pdf Graphic file (type pdf)
 <use resources/images/zcsd-arch-final.pdf>
@@ -1135,8 +1136,8 @@ Overfull \hbox (15.70097pt too wide) has occurred while \output is active
 
 [4
 
- </home/corne/projects/vu/qemu-csd/compsys2021/resources/images/zcsd-arch-final
-.pdf>]
+ </home/corne/projects/vu/qemu-csd/zcsd/compsys2021/resources/images/zcsd-arch-
+final.pdf>]
 <resources/images/performance-crop.pdf, id=65, 424.58624pt x 307.1475pt>
 File: resources/images/performance-crop.pdf Graphic file (type pdf)
 <use resources/images/performance-crop.pdf>
@@ -1150,15 +1151,15 @@ Overfull \hbox (15.70097pt too wide) has occurred while \output is active
 
 [5
 
- </home/corne/projects/vu/qemu-csd/compsys2021/resources/images/performance-cro
-p.pdf>]
+ </home/corne/projects/vu/qemu-csd/zcsd/compsys2021/resources/images/performanc
+e-crop.pdf>]
 Overfull \hbox (15.70097pt too wide) has occurred while \output is active
  [][] [][][]  
  []
 
 [6
 
-] (/home/corne/projects/vu/qemu-csd/compsys2021/compsys2021.bbl
+] (/home/corne/projects/vu/qemu-csd/zcsd/compsys2021/compsys2021.bbl
 LaTeX Font Info:    Trying to load font information for U+msa on input line 8.
 
 (/usr/share/texmf-dist/tex/latex/amsfonts/umsa.fd
@@ -1199,7 +1200,7 @@ Overfull \hbox (15.70097pt too wide) has occurred while \output is active
 \openout8 = `compsys2021.snm'.
 
 
-(/home/corne/projects/vu/qemu-csd/compsys2021/compsys2021.aux)
+(/home/corne/projects/vu/qemu-csd/zcsd/compsys2021/compsys2021.aux)
 
 LaTeX Font Warning: Size substitutions with differences
 (Font)              up to 1.26pt have occurred.
@@ -1209,18 +1210,18 @@ Package rerunfilecheck Info: File `compsys2021.out' has not changed.
  ) 
 Here is how much of TeX's memory you used:
  26942 strings out of 478353
- 511551 string characters out of 5854634
+ 511678 string characters out of 5854634
  767676 words of memory out of 5000000
  44484 multiletter control sequences out of 15000+600000
  411115 words of font info for 54 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 128i,17n,122p,494b,580s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 128i,17n,122p,499b,580s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb></usr/share/
 texmf-dist/fonts/type1/public/amsfonts/cm/cmss17.pfb></usr/share/texmf-dist/fon
 ts/type1/public/amsfonts/cm/cmss8.pfb></usr/share/texmf-dist/fonts/type1/public
 /amsfonts/cm/cmssi8.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/c
 mtt8.pfb>
-Output written on compsys2021.pdf (7 pages, 412979 bytes).
+Output written on compsys2021.pdf (7 pages, 413081 bytes).
 PDF statistics:
  171 PDF objects out of 1000 (max. 8388607)
  92 compressed objects within 1 object stream

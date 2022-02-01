@@ -30,7 +30,7 @@ set(OUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 set(WORKINGDIR "." )
 
 # Latex source file.
-set(MAIN_TEX "presentation.tex")
+set(MAIN_TEX ${CMAKE_CURRENT_SOURCE_DIR}"/presentation.tex")
 
 if(LATEX_FOUND AND LATEX_PDFLATEX_FOUND)
     # First pass.
