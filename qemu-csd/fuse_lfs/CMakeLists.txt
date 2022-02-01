@@ -30,15 +30,15 @@ add_custom_command(
     DEPENDS include/bpf/bpf_helpers_flfs.h
 )
 
-add_custom_command(
-    OUTPUT ${PRJ_HEADERS}/fixedptc.h
-    COMMAND ${CMAKE_COMMAND} -E copy
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/bpf/fixedptc.h
-    ${PRJ_HEADERS}/fixedptc.h
-    DEPENDS include/bpf/fixedptc.h
-)
+#add_custom_command(
+#    OUTPUT ${PRJ_HEADERS}/fixedptc.h
+#    COMMAND ${CMAKE_COMMAND} -E copy
+#    ${CMAKE_CURRENT_SOURCE_DIR}/include/bpf/fixedptc.h
+#    ${PRJ_HEADERS}/fixedptc.h
+#    DEPENDS include/bpf/fixedptc.h
+#)
 
-add_custom_target(generate_bpf_helpers_flfs DEPENDS ${PRJ_HEADERS}/bpf_helpers_flfs.h ${PRJ_HEADERS}/fixedptc.h)
+add_custom_target(generate_bpf_helpers_flfs DEPENDS ${PRJ_HEADERS}/bpf_helpers_flfs.h) # ${PRJ_HEADERS}/fixedptc.h)
 
 add_subdirectory(src/bpf)
 
