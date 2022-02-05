@@ -48,6 +48,7 @@ add_custom_target(
 	testfuse-lfs
 	testfuse-lfs-concurrency
 	testfuse-lfs-drive
+	testmeasurements
 	testnvme-csd
 	testnvme-zns-memory
 	testspdk-init
@@ -197,6 +198,31 @@ target_link_libraries(
 
 qemucsd_target_postprocess(testfuse-lfs-drive)
 
+# ------------------ #
+# measurements tests #
+# ------------------ #
+
+set(TEST_MEASUREMENTS_SOURCE
+	src/test_measurements.cxx
+	src/tests.cxx
+)
+
+set(TEST_MEASUREMENTS_HEADERS
+	include/tests.hpp
+)
+
+message("${PRJ_PRX}: test measurements cxx flags:${CMAKE_CXX_FLAGS}")
+add_executable(testmeasurements ${TEST_MEASUREMENTS_SOURCE} ${TEST_MEASUREMENTS_HEADERS} ${${PRJ_PRX}_SOURCES})
+#add_dependencies(testarguments)
+
+target_link_libraries(
+	testmeasurements
+	qemucsd_measurements
+	${${PRJ_PRX}_LIBRARIES_PACK}
+)
+
+qemucsd_target_postprocess(testmeasurements)
+
 # -------------- #
 # nvme_csd tests #
 # -------------- #
@@ -281,6 +307,7 @@ add_test(TestCPP17 testcpp17)
 add_test(TestFuseLfs testfuse-lfs)
 add_test(TestFuseLfsConcurrency testfuse-lfs-concurrency)
 add_test(TestFuseLfsDrive testfuse-lfs-drive)
+add_test(TestMeasurements testmeasurements)
 add_test(TestNvmeCsd testnvme-csd)
 add_test(TestNvmeZnsBackendMemory testnvme-zns-memory)
 add_test(TestSpdkInit testspdk-init)
@@ -288,5 +315,6 @@ add_test(TestSpdkInit testspdk-init)
 add_custom_target(check
 	COMMAND ${CMAKE_CTEST_COMMAND}
 	DEPENDS testarguments testcpp17 testfuse-lfs testfuse-lfs-concurrency
-		testfuse-lfs-drive testnvme-csd testnvme-zns-memory testspdk-init
+		testfuse-lfs-drive testmeasurements testnvme-csd testnvme-zns-memory
+		testspdk-init
 )

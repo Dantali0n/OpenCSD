@@ -32,7 +32,7 @@ utilizing existing technologies such as SPDK and uBPF. Since consumer ZNS SSDs
 are still unavailable, QEMU can be used to create a virtual ZNS SSD. The
 programming and interactive steps of individual components is shown below.
 
-![](documentation/resources/images/prototype-landscape.png)
+![](zcsd/documentation/resources/images/prototype-landscape.png)
 
 ## Getting Started
 

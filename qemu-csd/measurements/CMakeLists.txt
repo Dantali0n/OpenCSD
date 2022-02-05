@@ -40,17 +40,18 @@ add_qemucsd_include(${CMAKE_CURRENT_SOURCE_DIR}/include)
 qemucsd_include_directories()
 
 add_library(
-    qemucsd_measurements STATIC
+    qemucsd_measurements SHARED
     ${QEMUCSD_MEASUREMENTS_SRC}
     ${QEMUCSD_MEASUREMENTS_HEADERS}
 )
 set_target_properties(${PRJ_LIB} PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(
     qemucsd_measurements
+    qemucsd_output
     ${QEMUCSD_MEASUREMENTS_LIBRARIES}
 )
 
-#add_dependencies(qemucsd_measurements)
+add_dependencies(qemucsd_measurements xenium-build)
 
 # Add qemucsd_measurements to the modules
 add_qemucsd_module(qemucsd_measurements)

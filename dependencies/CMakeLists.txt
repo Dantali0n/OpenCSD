@@ -46,6 +46,7 @@ add_custom_target(dpdk-build DEPENDS dpdk-copy)
 add_custom_target(isa-l-build DEPENDS isa-l-install)
 add_custom_target(generate_bpftool DEPENDS bpftool_copy)
 add_custom_target(qemu-build ALL DEPENDS qemu-install)
+add_custom_target(xenium-build ALL DEPENDS xenium-copy)
 
 # ------------------------- #
 # Create binary directories #
@@ -60,13 +61,26 @@ add_custom_command(OUTPUT generate-bin PRE_BUILD
 # Copy activate script #
 # -------------------- #
 
-# As boost-build target since only this dependency requires it.
 add_custom_command(
     OUTPUT activate-copy POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
     ${CMAKE_SOURCE_DIR}/scripts/activate
     ${PRJ_ROOT}/activate
 )
+
+# ---------------------- #
+# Xenium activate script #
+# ---------------------- #
+
+file_exists(${PRJ_HEADERS}/xenium/ramalhete_queue.hpp has_xenium)
+if(${has_xenium})
+    add_custom_target(xenium-copy)
+else()
+    add_custom_command(
+        OUTPUT xenium-copy PRE_BUILD
+        COMMAND cp -r ${CMAKE_CURRENT_SOURCE_DIR}/xenium/xenium ${PRJ_HEADERS}
+    )
+endif()
 
 # ----------------------------- #
 # Platform dependent attributes #
@@ -496,117 +510,3 @@ download_file(
     SHA256 f82b9f83bf915c4bba0873aafe6e7f5ea5e214354fdcd9c3f0ac467498027926
 )
 endif()
-
-## ----- #
-## glfw3 #
-## ----- #
-#
-#add_custom_command(OUTPUT glfw-shared-install PRE_BUILD
-#    COMMAND ${CMAKE_COMMAND} --build . --target install --config ${DEPENDENCY_BUILD_TYPE}
-#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/glfw
-#    DEPENDS glfw-shared-build
-#)
-#
-#add_custom_command(OUTPUT glfw-shared-build PRE_BUILD
-#    COMMAND ${CMAKE_COMMAND} --build .
-#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/glfw
-#    DEPENDS glfw-shared-cmake
-#)
-#add_custom_command(OUTPUT glfw-shared-cmake PRE_BUILD
-#    COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${DEPENDENCY_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${PRJ_ROOT} -DGLFW_BUILD_DOCS=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_EXAMPLES=OFF -DBUILD_SHARED_LIBS=ON .
-#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/glfw
-#)
-#
-## ------ #
-## vulkan #
-## ------ #
-#
-#add_custom_command(OUTPUT vulkan-shared-install PRE_BUILD
-#    COMMAND ${CMAKE_COMMAND} --build . --target install --config ${DEPENDENCY_BUILD_TYPE}
-#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/vulkan-loader
-#    DEPENDS vulkan-shared-build
-#)
-#
-#add_custom_command(OUTPUT vulkan-shared-build PRE_BUILD
-#    COMMAND ${CMAKE_COMMAND} --build .
-#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/vulkan-loader
-#    DEPENDS vulkan-shared-cmake
-#)
-#
-#set(ENV{VULKAN_SDK} ${CMAKE_CURRENT_SOURCE_DIR}/vulkansdk)
-#add_custom_command(OUTPUT vulkan-shared-cmake PRE_BUILD
-#    COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${DEPENDENCY_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${PRJ_ROOT} -DVULKAN_HEADERS_INSTALL_DIR=${PRJ_ROOT}  .
-#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/vulkan-loader
-#    DEPENDS vulkan-shared-headers vulkansdk-extract
-#)
-#
-#download_file(
-#    https://dancloud.dantalion.nl/index.php/s/3Zp504wnXbGuWdt/download
-#    ${CMAKE_CURRENT_SOURCE_DIR}/vulkansdk.tar.gz
-#    SHA256 6d8828fa9c9113ef4083a07994cf0eb13b8d239a5263bd95aa408d2f57585268
-#)
-#
-## Extracts an archive in a directory and sets the directory as a file target (Nasty hack)
-#extract_archive(
-#    ${CMAKE_CURRENT_SOURCE_DIR}/vulkansdk.tar.gz # archive
-#    ${CMAKE_CURRENT_SOURCE_DIR}/vulkansdk # destination
-#    ${CMAKE_CURRENT_SOURCE_DIR} # working directory
-#    vulkansdk-extract # new target to depend on
-#    ${CMAKE_CURRENT_SOURCE_DIR}/vulkansdk.tar.gz # depends on, can't actually depend on file
-#)
-#
-#add_custom_command(OUTPUT vulkan-shared-headers PRE_BUILD
-#    COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX=${PRJ_ROOT}  ..
-#    COMMAND ${CMAKE_COMMAND} --install .
-#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/vulkan-headers/build
-#    DEPENDS vulkan-shared-mkdir
-#)
-#
-#directory_exists("${CMAKE_CURRENT_SOURCE_DIR}/vulkan-headers/build" has_directory)
-#if(NOT ${has_directory})
-#    add_custom_command(OUTPUT vulkan-shared-mkdir PRE_BUILD
-#        COMMAND mkdir build
-#        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/vulkan-headers
-#    )
-#else()
-#    add_custom_target(vulkan-shared-mkdir)
-#endif()
-#
-## ------ #
-## opencl #
-## ------ #
-#
-#add_custom_command(OUTPUT opencl-shared-install PRE_BUILD
-#    COMMAND ${CMAKE_COMMAND}  --build . --target install --config ${DEPENDENCY_BUILD_TYPE}
-#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/opencl-loader/build
-#    DEPENDS opencl-shared-build
-#)
-#
-#add_custom_command(OUTPUT opencl-shared-build PRE_BUILD
-#    COMMAND ${CMAKE_COMMAND} --build .
-#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/opencl-loader/build
-#    DEPENDS opencl-shared-cmake
-#)
-#
-#add_custom_command(OUTPUT opencl-shared-cmake PRE_BUILD
-#    COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${DEPENDENCY_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${PRJ_ROOT} ..
-#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/opencl-loader/build
-#    DEPENDS opencl-shared-directory
-#)
-#
-#directory_exists("${CMAKE_CURRENT_SOURCE_DIR}/opencl-loader/build" has_directory)
-#if(NOT ${has_directory})
-#    add_custom_command(OUTPUT opencl-shared-directory PRE_BUILD
-#        COMMAND mkdir build
-#        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/opencl-loader
-#        DEPENDS opencl-shared-headers
-#    )
-#else()
-#    add_custom_target(opencl-shared-directory DEPENDS opencl-shared-headers)
-#endif()
-#
-#add_custom_command(OUTPUT opencl-shared-headers PRE_BUILD
-#    COMMAND cp -r CL ${PRJ_HEADERS}
-#    COMMAND cp -r CL ${CMAKE_CURRENT_SOURCE_DIR}/opencl-loader/inc
-#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/opencl-headers
-#)

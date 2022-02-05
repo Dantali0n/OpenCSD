@@ -75,6 +75,7 @@ dependencies/*
 !dependencies/qemu-patches
 !dependencies/spdk
 !dependencies/ubpf
+!dependencies/xenium
 
 # test examples and try outs
 tests*/**

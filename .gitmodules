@@ -43,3 +43,6 @@
 [submodule "dependencies/ftools"]
 	path = dependencies/ftools
 	url = https://github.com/credativ/linux-ftools.git
+[submodule "dependencies/xenium"]
+	path = dependencies/xenium
+	url = https://github.com/mpoeter/xenium.git
