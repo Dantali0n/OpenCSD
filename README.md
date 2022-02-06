@@ -128,24 +128,25 @@ This project has a large selection of dependencies as shown below. Note however,
 The following dependencies are automatically compiled and installed into the
 build directory.
 
-| Dependency                                                         | System  | Version                                                                                                         |
-|--------------------------------------------------------------------|---------|-----------------------------------------------------------------------------------------------------------------|
-| [backward](https://github.com/bombela/backward-cpp)                | ZCSD    | 1.6                                                                                                             |
-| [booost](https://www.boost.org/)                                   | ZCSD    | 1.74.0                                                                                                          |
-| [bpftool](https://github.com/Netronome/bpf-tool)                   | ZCSD    | 5.14                                                                                                            |
-| [bpf_load](https://github.com/Netronome/bpf-tool)                  | ZCSD    | [5.10](https://elixir.bootlin.com/linux/v5.10.77/source/samples/bpf/bpf_load.h)                                 |
-| [dpdk](https://www.dpdk.org/)                                      | ZCSD    | spdk-21.11                                                                                                      |
-| [generic-ebpf](https://github.com/generic-ebpf/generic-ebpf)       | ZCSD    | [c9cee73](https://github.com/generic-ebpf/generic-ebpf/commit/c9cee73c73845c9d60aef807b7ee7891987cd6fd)         |
-| [fuse-lfs](https://github.com/sphurti/Log-Structured-Filesystem)   | OpenCSD | [526454b](https://github.com/sphurti/Log-Structured-Filesystem/commit/526454b99102d4e8875898550f92d577bbbb8ca2) |
-| [libbpf](https://github.com/libbpf/libbpf)                         | ZCSD    | 0.5                                                                                                             |
-| [libfuse](https://github.com/libfuse/libfuse)                      | OpenCSD | 3.10.5                                                                                                          |
-| [libbpf-bootstrap](https://github.com/libbpf/libbpf)               | ZCSD    | [67a29e5](https://github.com/libbpf/libbpf-bootstrap/commit/67a29e511cc9d0a570d4d3b9797827f3a08ccdb5)           |
-| [linux](https://www.kernel.org/)                                   | ZCSD    | 5.14                                                                                                            |
-| [spdk](https://github.com/spdk/spdk)                               | ZCSD    | 22.01                                                                                                           |
-| [isa-l](https://github.com/intel/isa-l)                            | ZCSD    | spdk-v2.30.0                                                                                                    |
-| [rocksdb](https://github.com/facebook/rocksdb)                     | OpenCSD | 6.25.3                                                                                                          |
-| [qemu](https://www.qemu.org/)                                      | ZCSD    | 6.1.0                                                                                                           |
-| [uBPF](https://github.com/iovisor/ubpf)                            | ZCSD    | [9eb26b4](https://github.com/iovisor/ubpf/commit/9eb26b4bfdec6cafbf629a056155363f12cec972)                      |
+| Dependency                                                       | System   | Version                                                                                                         |
+|------------------------------------------------------------------|----------|-----------------------------------------------------------------------------------------------------------------|
+| [backward](https://github.com/bombela/backward-cpp)              | ZCSD     | 1.6                                                                                                             |
+| [booost](https://www.boost.org/)                                 | ZCSD     | 1.74.0                                                                                                          |
+| [bpftool](https://github.com/Netronome/bpf-tool)                 | ZCSD     | 5.14                                                                                                            |
+| [bpf_load](https://github.com/Netronome/bpf-tool)                | ZCSD     | [5.10](https://elixir.bootlin.com/linux/v5.10.77/source/samples/bpf/bpf_load.h)                                 |
+| [dpdk](https://www.dpdk.org/)                                    | ZCSD     | spdk-21.11                                                                                                      |
+| [generic-ebpf](https://github.com/generic-ebpf/generic-ebpf)     | ZCSD     | [c9cee73](https://github.com/generic-ebpf/generic-ebpf/commit/c9cee73c73845c9d60aef807b7ee7891987cd6fd)         |
+| [fuse-lfs](https://github.com/sphurti/Log-Structured-Filesystem) | OpenCSD  | [526454b](https://github.com/sphurti/Log-Structured-Filesystem/commit/526454b99102d4e8875898550f92d577bbbb8ca2) |
+| [libbpf](https://github.com/libbpf/libbpf)                       | ZCSD     | 0.5                                                                                                             |
+| [libfuse](https://github.com/libfuse/libfuse)                    | OpenCSD  | 3.10.5                                                                                                          |
+| [libbpf-bootstrap](https://github.com/libbpf/libbpf)             | ZCSD     | [67a29e5](https://github.com/libbpf/libbpf-bootstrap/commit/67a29e511cc9d0a570d4d3b9797827f3a08ccdb5)           |
+| [linux](https://www.kernel.org/)                                 | ZCSD     | 5.14                                                                                                            |
+| [spdk](https://github.com/spdk/spdk)                             | ZCSD     | 22.01                                                                                                           |
+| [isa-l](https://github.com/intel/isa-l)                          | ZCSD     | spdk-v2.30.0                                                                                                    |
+| [rocksdb](https://github.com/facebook/rocksdb)                   | OpenCSD  | 6.25.3                                                                                                          |
+| [qemu](https://www.qemu.org/)                                    | ZCSD     | 6.1.0                                                                                                           |
+| [uBPF](https://github.com/iovisor/ubpf)                          | ZCSD     | [9eb26b4](https://github.com/iovisor/ubpf/commit/9eb26b4bfdec6cafbf629a056155363f12cec972)                      |
+| [xenium](https://github.com/mpoeter/xenium/)                     | OpenCSD  | [f1d28d0](https://github.com/mpoeter/xenium/commit/f1d28d0980cf2128c3f6b77d321aad5ca469dbce)                    |
 
 ### Setup
 
@@ -181,7 +182,7 @@ cmake .. # this prevents re-compiling dependencies on every next make command
 git bundle create deploy.git HEAD
 cd build/qemu-csd
 source activate
-qemu-img create -f raw znsssd.img 16777216
+qemu-img create -f raw znsssd.img 16777216 # 34359738368
 # By default qemu will use 4 CPU cores and 8GB of memory
 ./qemu-start.sh
 # Wait for QEMU VM to fully boot... (might take some time)

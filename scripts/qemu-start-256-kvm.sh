@@ -1,6 +1,6 @@
 #!/bin/bash
 
-nohup qemu-system-x86_64 -nographic -name qemucsd -m 8G -cpu Haswell -smp 4 \
+nohup qemu-system-x86_64 -nographic -name qemucsd -m 8G --enable-kvm -cpu host -smp 4 \
 -hda ./arch-qemucsd.qcow2 \
 -net user,hostfwd=tcp:127.0.0.1:7777-:22,hostfwd=tcp:127.0.0.1:2222-:2000 -net nic \
 -drive file=./znsssd.img,id=mynvme,format=raw,if=none \

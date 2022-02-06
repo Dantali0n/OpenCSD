@@ -468,7 +468,7 @@ endif()
 add_custom_command(OUTPUT qemu-install PRE_BUILD
     COMMAND make -j $(nproc) install
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/qemu/build
-    DEPENDS qemu-configure
+    DEPENDS qemu-configure activate-build
 )
 
 add_custom_command(OUTPUT qemu-configure PRE_BUILD
@@ -488,6 +488,27 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy
     ${CMAKE_SOURCE_DIR}/scripts/qemu-start.sh
     ${PRJ_ROOT}/qemu-start.sh
+)
+
+add_custom_command(
+    TARGET qemu-build POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${CMAKE_SOURCE_DIR}/scripts/qemu-start-kvm.sh
+    ${PRJ_ROOT}/qemu-start-kvm.sh
+)
+
+add_custom_command(
+    TARGET qemu-build POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${CMAKE_SOURCE_DIR}/scripts/qemu-start-256.sh
+    ${PRJ_ROOT}/qemu-start-256.sh
+)
+
+add_custom_command(
+    TARGET qemu-build POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${CMAKE_SOURCE_DIR}/scripts/qemu-start-256-kvm.sh
+    ${PRJ_ROOT}/qemu-start-256-kvm.sh
 )
 
 # As qemu-configure target since the script is for qemu.
