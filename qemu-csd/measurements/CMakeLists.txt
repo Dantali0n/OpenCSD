@@ -24,7 +24,7 @@ project(${PRJ_PRX}_measurements)
 
 
 set(QEMUCSD_MEASUREMENTS_LIBRARIES
-
+    qemucsd_output
 )
 
 set(QEMUCSD_MEASUREMENTS_SRC
@@ -47,7 +47,6 @@ add_library(
 set_target_properties(${PRJ_LIB} PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(
     qemucsd_measurements
-    qemucsd_output
     ${QEMUCSD_MEASUREMENTS_LIBRARIES}
 )
 

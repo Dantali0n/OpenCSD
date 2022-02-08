@@ -32,6 +32,7 @@
 #include <mutex>
 
 #include "output.hpp"
+#include "measurements.hpp"
 #include "nvme_zns_backend.hpp"
 
 namespace qemucsd::nvme_zns {
@@ -41,6 +42,7 @@ namespace qemucsd::nvme_zns {
 
     class NvmeZnsMemoryBackend : public NvmeZnsBackend {
     protected:
+
         std::vector<uint64_t> write_pointers;
 
         std::mutex gl;
@@ -48,6 +50,11 @@ namespace qemucsd::nvme_zns {
         uintptr_t memory_limit;
 
         unsigned char* data;
+
+        // Measurement variables
+        static size_t msr_read_identifier;
+        static size_t msr_append_identifier;
+        static size_t msr_reset_identifier;
 
         int compute_address(uint64_t zone, uint64_t sector, uint64_t offset,
                             uint64_t size, uintptr_t& address);

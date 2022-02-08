@@ -41,8 +41,9 @@ void segfault_handler(int signal, siginfo_t *si, void *arg) {
 
 #include "arguments.hpp"
 #include "flfs_wrap.hpp"
-#include "spdk_init.hpp"
+#include "measurements.hpp"
 #include "nvme_zns_memory.hpp"
+#include "spdk_init.hpp"
 
 using qemucsd::nvme_zns::NvmeZnsMemoryBackend;
 
@@ -104,8 +105,13 @@ int main(int argc, char* argv[]) {
             fuse_argv = stripped_args.at(0).second.data();
         }
 
-        return qemucsd::fuse_lfs::FuseLFSWrapper::initialize(
+        int result = qemucsd::fuse_lfs::FuseLFSWrapper::initialize(
             fuse_argc, fuse_argv, &opts, &nvme_memory);
+
+        std::vector<qemucsd::measurements::result> results;
+        qemucsd::measurements::generate_results(&results);
+
+        return result;
     }
     catch(...) {
         #ifdef QEMUCSD_DEBUG

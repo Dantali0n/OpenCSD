@@ -26,6 +26,7 @@
 #define QEMU_CSD_NVME_CSD_HPP
 
 #include "output.hpp"
+#include "measurements.hpp"
 #include "nvme_zns_backend.hpp"
 
 #include <chrono>
@@ -75,6 +76,17 @@ namespace qemucsd::nvme_csd {
      * time.
      */
 	class NvmeCsd {
+    protected:
+        // Measurement instrumentation
+        static size_t msr[10];
+        enum measure_index {
+            MSRI_VM_INIT = 0, MSRI_VM_DESTROY = 1, MSRI_BPF_RUN = 2,
+            MSRI_BPF_RESULT = 3, MSRI_BPF_RETURN_DATA = 4,
+            MSRI_BPF_SECTOR_SIZE = 5, MSRI_BPF_ZONE_CAPACITY = 6,
+            MSRI_BPF_ZONE_SIZE = 7, MSRI_BPF_MEM_INFO = 8,
+            MSRI_BPF_CALL_INFO = 9,
+        };
+        static void register_namespaces();
 	public:
 		NvmeCsd(size_t vm_mem_size, bool vm_jit,
             nvme_zns::NvmeZnsBackend *nvme);

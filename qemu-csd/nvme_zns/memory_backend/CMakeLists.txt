@@ -23,6 +23,9 @@
 project(${PRJ_PRX}_nvme_zns_memory)
 
 set(QEMUCSD_NVME_ZNS_MEMORY_LIBRARIES
+    qemucsd_measurements
+    qemucsd_output
+    qemucsd_nvme_zns_backend
 )
 
 set(QEMUCSD_NVME_ZNS_MEMORY_SRC
@@ -44,8 +47,6 @@ add_library(
 )
 target_link_libraries(
     qemucsd_nvme_zns_memory
-    qemucsd_nvme_zns_backend
-    qemucsd_output
     ${QEMUCSD_NVME_ZNS_MEMORY_LIBRARIES}
 )
 

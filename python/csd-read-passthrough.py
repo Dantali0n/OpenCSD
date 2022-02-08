@@ -2,6 +2,12 @@ import os
 import xattr
 
 """ 
+    Use the bpf_read kernel to let the filesystem read be performed by BPF and
+    return the data as is. Useful to verify behavior of filesystem itself.
+
+    This example only works for small files which result in a single read
+    request.
+
 """
 
 import pdb; pdb.set_trace()
@@ -18,7 +24,8 @@ f.seek(0)
 kern_ino = os.stat("test/flfs_bpf_read.o").st_ino
 
 # Enable the BPF kernel on the open file for read operations
-xattr.setxattr("test/test", "user.process.csd_read", f"{kern_ino}")
+xattr.setxattr("test/test", "user.process.csd_read",
+               bytes(f"{kern_ino}", "utf-8"))
 
 # Verify the BPF kernel is set
 print(xattr.getxattr("test/test", "user.process.csd_read"))

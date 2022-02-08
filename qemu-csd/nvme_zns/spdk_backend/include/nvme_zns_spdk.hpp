@@ -29,8 +29,9 @@
 #include <cstdint>
 #include <mutex>
 
-#include "output.hpp"
+#include "measurements.hpp"
 #include "nvme_zns_backend.hpp"
+#include "output.hpp"
 #include "spdk_init.hpp"
 
 using qemucsd::spdk_init::ns_entry;
@@ -50,6 +51,11 @@ namespace qemucsd::nvme_zns {
         std::mutex gl;
 
         struct ns_entry* entry;
+
+        // Measurement variables
+        static size_t msr_read_identifier;
+        static size_t msr_append_identifier;
+        static size_t msr_reset_identifier;
     public:
         explicit NvmeZnsSpdkBackend(struct ns_entry* entry);
 

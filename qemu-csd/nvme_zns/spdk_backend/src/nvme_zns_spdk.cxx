@@ -28,6 +28,10 @@ using qemucsd::spdk_init::ns_entry;
 
 namespace qemucsd::nvme_zns {
 
+    size_t NvmeZnsSpdkBackend::msr_read_identifier = 0;
+    size_t NvmeZnsSpdkBackend::msr_append_identifier = 0;
+    size_t NvmeZnsSpdkBackend::msr_reset_identifier = 0;
+
     NvmeZnsSpdkBackend::NvmeZnsSpdkBackend(struct ns_entry* entry) :
         NvmeZnsBackend(entry->device_size, entry->zone_size,
                        entry->zone_capacity, entry->sector_size, entry->max_open)
@@ -38,6 +42,13 @@ namespace qemucsd::nvme_zns {
            output.error("SPDK ns_entry not properly initialized");
            exit(1);
         }
+
+        measurements::register_namespace(
+            "NVME_ZNS_SPDK][read", msr_read_identifier);
+        measurements::register_namespace(
+            "NVME_ZNS_SPDK][append", msr_append_identifier);
+        measurements::register_namespace(
+            "NVME_ZNS_SPDK][reset", msr_reset_identifier);
 
         this->entry = entry;
 

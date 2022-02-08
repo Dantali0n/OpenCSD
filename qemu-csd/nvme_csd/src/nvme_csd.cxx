@@ -31,6 +31,8 @@ static int64_t return_size = 0;
 
 namespace qemucsd::nvme_csd {
 
+    size_t NvmeCsd::msr[10] = {0};
+
 	NvmeCsd::NvmeCsd(size_t vm_mem_size, bool vm_jit,
         nvme_zns::NvmeZnsBackend *nvme)
 	{
@@ -40,6 +42,8 @@ namespace qemucsd::nvme_csd {
 		this->nvme = nvme;
 
 		nvme_instance = this;
+
+        register_namespaces();
 	}
 
 	NvmeCsd::~NvmeCsd() {
@@ -47,7 +51,32 @@ namespace qemucsd::nvme_csd {
 		if(vm_mem != nullptr) free(vm_mem);
 	}
 
+    void NvmeCsd::register_namespaces() {
+        measurements::register_namespace(
+            "NVME_CSD][vm_init", msr[MSRI_VM_INIT]);
+        measurements::register_namespace(
+            "NVME_CSD][vm_destroy", msr[MSRI_VM_DESTROY]);
+        measurements::register_namespace(
+            "NVME_CSD][bpf_run", msr[MSRI_BPF_RUN]);
+        measurements::register_namespace(
+            "NVME_CSD][bpf_result", msr[MSRI_BPF_RESULT]);
+        measurements::register_namespace(
+            "NVME_CSD][bpf_return_data", msr[MSRI_BPF_RETURN_DATA]);
+        measurements::register_namespace(
+            "NVME_CSD][bpf_sector_size", msr[MSRI_BPF_SECTOR_SIZE]);
+        measurements::register_namespace(
+            "NVME_CSD][bpf_zone_capacity", msr[MSRI_BPF_ZONE_CAPACITY]);
+        measurements::register_namespace(
+            "NVME_CSD][bpf_zone_size", msr[MSRI_BPF_ZONE_SIZE]);
+        measurements::register_namespace(
+            "NVME_CSD][bpf_mem_info", msr[MSRI_BPF_MEM_INFO]);
+        measurements::register_namespace(
+            "NVME_CSD][bpf_call_info", msr[MSRI_BPF_CALL_INFO]);
+    }
+
     void NvmeCsd::vm_init() {
+        measurements::measure_guard msr_guard(msr[MSRI_VM_INIT]);
+
         /** uBPF Initialization */
         this->vm = ubpf_create();
         this->vm_mem = malloc(this->vm_mem_size);
@@ -63,6 +92,8 @@ namespace qemucsd::nvme_csd {
     }
 
     void NvmeCsd::vm_destroy() {
+        measurements::measure_guard msr_guard(msr[MSRI_VM_DESTROY]);
+
         ubpf_destroy(this->vm);
         free(vm_mem);
 
@@ -71,6 +102,8 @@ namespace qemucsd::nvme_csd {
     }
 
     int64_t NvmeCsd::_nvm_cmd_bpf_run(void *bpf_elf, uint64_t bpf_elf_size) {
+        measurements::measure_guard msr_guard(msr[MSRI_BPF_RUN]);
+
         char *msg_buf = nullptr;
         if(ubpf_load_elf(this->vm, bpf_elf, bpf_elf_size, &msg_buf) < 0) {
             output.error(msg_buf);
@@ -139,6 +172,8 @@ namespace qemucsd::nvme_csd {
     }
 
 	void NvmeCsd::nvm_cmd_bpf_result(void *data) {
+        measurements::measure_guard msr_guard(msr[MSRI_BPF_RESULT]);
+
 		if(return_data == nullptr) return;
 
 		memcpy(data, return_data, return_size);
@@ -159,6 +194,8 @@ namespace qemucsd::nvme_csd {
     }
 
 	void NvmeCsd::bpf_return_data(void *data, uint64_t size) {
+        measurements::measure_guard msr_guard(msr[MSRI_BPF_RETURN_DATA]);
+
 		if(return_data != nullptr) free(return_data);
 
 		return_data = malloc(size);
@@ -179,6 +216,8 @@ namespace qemucsd::nvme_csd {
     }
 
 	uint64_t NvmeCsd::bpf_get_sector_size() {
+        measurements::measure_guard msr_guard(msr[MSRI_BPF_SECTOR_SIZE]);
+
         nvme_zns::nvme_zns_info info = {0};
 		nvme_instance->nvme->get_nvme_zns_info(&info);
 
@@ -186,6 +225,8 @@ namespace qemucsd::nvme_csd {
 	}
 
     uint64_t NvmeCsd::bpf_get_zone_capacity() {
+        measurements::measure_guard msr_guard(msr[MSRI_BPF_ZONE_CAPACITY]);
+
         nvme_zns::nvme_zns_info info = {0};
         nvme_instance->nvme->get_nvme_zns_info(&info);
 
@@ -193,6 +234,8 @@ namespace qemucsd::nvme_csd {
     }
 
     uint64_t NvmeCsd::bpf_get_zone_size() {
+        measurements::measure_guard msr_guard(msr[MSRI_BPF_ZONE_SIZE]);
+
         nvme_zns::nvme_zns_info info = {0};
         nvme_instance->nvme->get_nvme_zns_info(&info);
 
@@ -204,6 +247,8 @@ namespace qemucsd::nvme_csd {
      * potential filesystem context which is stored on top of the actual heap.
      */
 	void NvmeCsd::bpf_get_mem_info(void **mem_ptr, uint64_t *mem_size) {
+        measurements::measure_guard msr_guard(msr[MSRI_BPF_MEM_INFO]);
+
 		auto *self = nvme_instance;
 		*mem_ptr = (uint8_t*)self->vm_mem + fs_call_size;
 		*mem_size = self->vm_mem_size - fs_call_size;
@@ -213,6 +258,8 @@ namespace qemucsd::nvme_csd {
      * Present the filesystem context to the running BPF kernel if any
      */
     void NvmeCsd::bpf_get_call_info(void **call) {
+        measurements::measure_guard msr_guard(msr[MSRI_BPF_CALL_INFO]);
+
         auto *self = nvme_instance;
         if(fs_call_size)
             *call = self->vm_mem;

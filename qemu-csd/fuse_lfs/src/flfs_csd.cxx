@@ -24,8 +24,6 @@
 
 #include "flfs.hpp"
 
-#include "bpf/fixedptc.h"
-
 namespace qemucsd::fuse_lfs {
 
     FuseLFSCSD::FuseLFSCSD(qemucsd::arguments::options *options,
@@ -197,18 +195,6 @@ namespace qemucsd::fuse_lfs {
 
         void *result_data = malloc(result_size);
         csd_instance->nvm_cmd_bpf_result(result_data);
-
-        uint32_t *real_data = (uint32_t*) result_data;
-        for(uint16_t i = 0; i < 256; i++) {
-            output.info("[", i, "] ", real_data[i]);
-        }
-
-//        #define FRACT_BITS 8
-//        #define FIXED_POINT_ONE (1 << FRACT_BITS)
-//        #define MAKE_FIXED_FLOAT(x) (((float)(x)) / FIXED_POINT_ONE)
-//
-//        int test = *(int*)result_data;
-//        float f_result = MAKE_FIXED_FLOAT(test);
 
         fuse_reply_buf(req, (const char*)result_data, flfs_min(result_size, size));
         free(result_data);

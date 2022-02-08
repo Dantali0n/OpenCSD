@@ -22,12 +22,6 @@
 
 project(${PRJ_PRX}_arguments)
 
-#find_package(
-#    Boost 1.32 COMPONENTS
-#    program_options
-#    REQUIRED
-#)
-
 set(QEMUCSD_ARGUMENTS_LIBRARIES
     boost_program_options
 )
@@ -55,7 +49,7 @@ target_link_libraries(
     ${QEMUCSD_ARGUMENTS_LIBRARIES}
 )
 
-add_dependencies(qemucsd_arguments boost-build spdk-build dpdk-build isa-l-build)
+add_dependencies(qemucsd_arguments boost-build)
 
 # Add qemucsd_arguments to the modules
 add_qemucsd_module(qemucsd_arguments)

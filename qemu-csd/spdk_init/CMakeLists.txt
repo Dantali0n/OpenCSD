@@ -24,6 +24,7 @@ project(${PRJ_PRX}_spdk_init)
 
 
 set(QEMUCSD_SPDK_INIT_LIBRARIES
+    qemucsd_arguments
     qemucsd_output
 )
 
@@ -54,14 +55,10 @@ target_link_libraries(
     rte_eal.a rte_mempool.a rte_telemetry.a rte_ring.a rte_kvargs.a rte_bus_pci.a
     rte_pci.a rte_vhost.a rte_power.a
     isal.a uuid numa dl rt
-    #    spdk spdk_log spdk_env_dpdk
-    #    rte_eal.a rte_mempool.a rte_telemetry.a rte_ring.a rte_kvargs.a rte_bus_pci.a
-    #    rte_pci.a rte_vhost.a rte_power.a
-    #    isal.a uuid numa dl
     ${QEMUCSD_SPDK_INIT_LIBRARIES}
 )
 
-add_dependencies(qemucsd_spdk_init qemucsd_arguments spdk-build dpdk-build isa-l-build)
+add_dependencies(qemucsd_spdk_init spdk-build dpdk-build isa-l-build)
 
 # Add qemucsd_spdk_init to the modules
 add_qemucsd_module(qemucsd_spdk_init)

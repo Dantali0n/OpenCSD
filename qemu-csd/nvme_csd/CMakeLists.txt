@@ -25,6 +25,8 @@ project(${PRJ_PRX}_nvme_csd)
 
 set(QEMUCSD_NVME_CSD_LIBRARIES
     qemucsd_spdk_init
+    qemucsd_nvme_zns_backend
+    ubpf bpf elf z
 )
 
 set(QEMUCSD_NVME_CSD_SRC
@@ -47,12 +49,10 @@ add_library(
 set_target_properties(${PRJ_LIB} PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(
     qemucsd_nvme_csd
-    qemucsd_nvme_zns_backend
-    ubpf bpf elf z
     ${QEMUCSD_NVME_CSD_LIBRARIES}
 )
 
-add_dependencies(qemucsd_nvme_csd ubpf-build spdk-build dpdk-build isa-l-build)
+add_dependencies(qemucsd_nvme_csd ubpf-build)
 
 # Add qemucsd_nvm_csd to the modules
 add_qemucsd_module(qemucsd_nvme_csd)

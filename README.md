@@ -660,8 +660,9 @@ see source files such as `fuse_lfs_disc.hpp` until design is frozen.
   modification time; Reading a file regularly, setting the extended attributes
   and then reading the file again to get a snapshotted read will result in the
   read becoming a regular read if all these operations are performed within the
-  same second. Potentially we can hjiack mtime by having all modification times
-  of regular files life in the past.
+  same second. Mtime is Hjiacked to have modification times of regular files
+  life in the past to circumvent this. See `FLFS_FAKE_MTIME` and `ino_fake_mtime`
+  in the fuse_lfs module.
 
 #### Threading and Concurrency
 

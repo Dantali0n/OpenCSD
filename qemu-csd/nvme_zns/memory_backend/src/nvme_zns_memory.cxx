@@ -26,11 +26,23 @@
 
 namespace qemucsd::nvme_zns {
 
+    size_t NvmeZnsMemoryBackend::msr_read_identifier = 0;
+    size_t NvmeZnsMemoryBackend::msr_append_identifier = 0;
+    size_t NvmeZnsMemoryBackend::msr_reset_identifier = 0;
+
     NvmeZnsMemoryBackend::NvmeZnsMemoryBackend(
         uint64_t num_zones, uint64_t zone_size, uint64_t sector_size) :
         // TODO(Dantali0n): Remove halving of zone capacity
         NvmeZnsBackend(num_zones, zone_size, zone_size / 2, sector_size, 0)
     {
+
+        measurements::register_namespace(
+            "NVME_ZNS_MEMORY][read", msr_read_identifier);
+        measurements::register_namespace(
+            "NVME_ZNS_MEMORY][append", msr_append_identifier);
+        measurements::register_namespace(
+            "NVME_ZNS_MEMORY][reset", msr_reset_identifier);
+
         info.max_open = 0;
 
         uint64_t size = num_zones * info.zone_capacity * sector_size * sizeof(*data);
@@ -79,6 +91,7 @@ namespace qemucsd::nvme_zns {
         uint64_t zone, uint64_t sector, uint64_t offset, void* buffer,
         uint64_t size)
     {
+        measurements::measure_guard msr_guard(msr_read_identifier);
         std::lock_guard<std::mutex> guard(gl);
 
         uintptr_t address;
@@ -101,6 +114,7 @@ namespace qemucsd::nvme_zns {
         uint64_t zone, uint64_t& sector, uint64_t offset, void* buffer,
         uint64_t size)
     {
+        measurements::measure_guard msr_guard(msr_append_identifier);
         std::lock_guard<std::mutex> guard(gl);
 
         uint64_t remainder = (offset + size) % info.sector_size;
@@ -139,6 +153,7 @@ namespace qemucsd::nvme_zns {
     }
 
     int NvmeZnsMemoryBackend::reset(uint64_t zone) {
+        measurements::measure_guard msr_guard(msr_reset_identifier);
         std::lock_guard<std::mutex> guard(gl);
 
         uintptr_t address = zone * info.zone_capacity * info.sector_size;

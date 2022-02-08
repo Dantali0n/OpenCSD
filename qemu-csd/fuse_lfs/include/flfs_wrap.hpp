@@ -42,6 +42,21 @@ namespace qemucsd::fuse_lfs {
     protected:
         static const struct fuse_lowlevel_ops operations;
         static FuseLFS* flfs_w;
+
+        /** Measurement Instrumentation */
+        static size_t msr[22];
+        static const char* msr_names[22];
+        enum measure_index {
+            MSRI_INIT = 0, MSRI_DESTROY = 1, MSRI_LOOKUP = 2,
+            MSRI_FORGET = 3, MSRI_GETATTR= 4, MSRI_SETATTR = 5,
+            MSRI_READDIR = 6, MSRI_OPEN = 7, MSRI_RELEASE = 8, MSRI_CREATE = 9,
+            MSRI_MKDIR = 10, MSRI_READ = 11, MSRI_WRITE = 12, MSRI_STATFS =13,
+            MSRI_FSYNC = 14, MSRI_RENAME = 15, MSRI_UNLINK = 16,
+            MSRI_RMDIR = 17, MSRI_GETXATTR = 18, MSRI_SETXATTR = 19,
+            MSRI_LISTXATTR = 20, MSRI_REMOVEXATTR = 21
+        };
+
+        static void register_namespaces();
     public:
         static int initialize(int argc, char* argv[],
             arguments::options *options, nvme_zns::NvmeZnsBackend* nvme);

@@ -24,6 +24,7 @@ project(${PRJ_PRX}_nvme_zns_spdk)
 
 set(QEMUCSD_NVME_ZNS_SPDK_LIBRARIES
     qemucsd_spdk_init
+    qemucsd_nvme_zns_backend
 )
 
 set(QEMUCSD_NVME_ZNS_SPDK_SRC
@@ -45,7 +46,6 @@ add_library(
 )
 target_link_libraries(
     qemucsd_nvme_zns_spdk
-    qemucsd_nvme_zns_backend
     -Wl,--whole-archive
     spdk_log.a spdk_env_dpdk.a spdk_nvme.a spdk_util.a spdk_sock.a spdk_json.a
     spdk_rpc.a spdk_jsonrpc.a spdk_trace.a
@@ -56,7 +56,7 @@ target_link_libraries(
     ${QEMUCSD_NVME_ZNS_SPDK_LIBRARIES}
 )
 
-#add_dependencies(qemucsd_nvme_zns)
+add_dependencies(qemucsd_nvme_zns_spdk spdk-build dpdk-build isa-l-build)
 
 # Add qemucsd_measurements to the modules
 add_qemucsd_module(qemucsd_nvme_zns_spdk)
