@@ -29,6 +29,7 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::read_regular(fuse_req_t req, struct stat *stbuf,
         size_t size, off_t offset, struct fuse_file_info *fi)
     {
+        measurements::measure_guard msr_guard(msr_reg[MSRI_REG_READ]);
         // Inode is of size 0
         if(stbuf->st_size == 0) {
             reply_buf_limited(req, nullptr, 0, offset, size);

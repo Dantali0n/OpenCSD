@@ -52,6 +52,16 @@ namespace qemucsd::fuse_lfs {
 
         virtual void create_csd_context(struct snapshot *snap, size_t size,
             off_t off, bool write, void *&call, uint64_t &call_size) = 0;
+
+        /** Measurement Instrumentation */
+        static size_t msr_csd[5];
+        static const char* msr_csd_names[5];
+        enum measure_csd_index {
+            MSRI_CSD_LOOKUP = 0, MSRI_CSD_READ = 1, MSRI_CSD_WRITE = 2,
+            MSRI_CSD_GETATTR= 3, MSRI_CSD_SETATTR = 4,
+        };
+
+        static void register_csd_namespaces();
     public:
         FuseLFSCSD(arguments::options *options, nvme_zns::NvmeZnsBackend *nvme);
         virtual ~FuseLFSCSD();

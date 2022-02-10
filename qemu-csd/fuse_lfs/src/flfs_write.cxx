@@ -68,6 +68,7 @@ namespace qemucsd::fuse_lfs {
         const char *buffer, size_t size, off_t off,
         struct write_context *wr_context, struct fuse_file_info *fi)
     {
+        measurements::measure_guard msr_guard(msr_reg[MSRI_REG_WRITE]);
         inode_entry_t entry;
         if(get_inode(ino, &entry) != FLFS_RET_NONE) {
             fuse_reply_err(req, EIO);

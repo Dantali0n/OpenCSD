@@ -71,6 +71,15 @@ namespace qemucsd::fuse_lfs {
         public FuseLFSSnapShot, public FuseLFSSuperBlock, public FuseLFSWrite
     {
     protected:
+        /** Measurement Instrumentation */
+        static size_t msr_reg[5];
+        static const char* msr_reg_names[5];
+        enum measure_reg_index {
+            MSRI_REG_LOOKUP = 0, MSRI_REG_READ = 1, MSRI_REG_WRITE = 2,
+            MSRI_REG_GETATTR= 3, MSRI_REG_SETATTR = 4,
+        };
+        static void register_reg_namespaces();
+    protected:
         arguments::options *options;
 
         // Concurrency management for global lock

@@ -59,6 +59,18 @@ namespace qemucsd::fuse_lfs {
         delete this->path_inode_map;
     }
 
+    size_t FuseLFS::msr_reg[5] = {0};
+    const char *FuseLFS::msr_reg_names[5] = {
+        "FUSE_LFS][REG][lookup", "FUSE_LFS][REG][read", "FUSE_LFS][REG][write",
+        "FUSE_LFS][REG][getattr", "FUSE_LFS][REG][setattr",
+    };
+
+    void FuseLFS::register_reg_namespaces() {
+        for(uint32_t i = 0; i < 5; i++) {
+            measurements::register_namespace(msr_reg_names[i], msr_reg[i]);
+        }
+    }
+
     /**
      * Start running FUSE, process execution while inside this function is
      * referred to as 'initialization'. FluffleFS is still running as single
@@ -98,6 +110,8 @@ namespace qemucsd::fuse_lfs {
             ret = 1;
             goto err_out1;
         }
+
+        register_reg_namespaces();
 
         if(run_init() != FLFS_RET_NONE) {
             ret = 1;
@@ -1443,6 +1457,7 @@ namespace qemucsd::fuse_lfs {
     }
 
     void FuseLFS::lookup_regular(fuse_req_t req, fuse_ino_t ino) {
+        measurements::measure_guard msr_guard(msr_reg[MSRI_REG_LOOKUP]);
         struct fuse_entry_param e = {0};
 
         e.ino = ino;
@@ -1467,6 +1482,7 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::getattr_regular(fuse_req_t req, fuse_ino_t ino,
         struct fuse_file_info *fi)
     {
+        measurements::measure_guard msr_guard(msr_reg[MSRI_REG_GETATTR]);
         struct stat stbuf = {0};
         if (inode_stat(ino, &stbuf) == FLFS_RET_ENOENT)
             fuse_reply_err(req, ENOENT);
@@ -1486,6 +1502,7 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::setattr_regular(fuse_req_t req, fuse_ino_t ino,
         struct stat *attr, int to_set, struct fuse_file_info *fi)
     {
+        measurements::measure_guard msr_guard(msr_reg[MSRI_REG_SETATTR]);
         int result;
 
         // Change permissions (chmod)
@@ -1511,37 +1528,6 @@ namespace qemucsd::fuse_lfs {
 
         pthread_rwlock_unlock(&gl);
         getattr(req, ino, fi);
-    }
-
-    void FuseLFS::setattr_csd(fuse_req_t req, csd_unique_t *context,
-        struct stat *attr, int to_set, struct fuse_file_info *fi)
-    {
-        struct snapshot snap;
-        if(get_snapshot(context, &snap, SNAP_FILE) != FLFS_RET_NONE) {
-            fuse_reply_err(req, EIO);
-            return;
-        }
-
-        // Change permissions (chmod)
-        if(to_set & FUSE_SET_ATTR_MODE) {
-
-        }
-        // Change owner (chown)
-        if(to_set & FUSE_SET_ATTR_UID) {
-
-        }
-        // Change group (chgrp)
-        if(to_set & FUSE_SET_ATTR_GID) {
-
-        }
-        // Change size of file (truncate / ftruncate)
-        if(to_set & FUSE_SET_ATTR_SIZE) {
-            snap.inode_data.first.size = attr->st_size;
-        }
-
-        update_snapshot(context, &snap, SNAP_FILE);
-
-        getattr_csd(req, context, fi);
     }
 
     /**
@@ -1703,10 +1689,28 @@ namespace qemucsd::fuse_lfs {
         conn->want &= ~(FUSE_CAP_PARALLEL_DIROPS);
         conn->want &= ~(FUSE_CAP_HANDLE_KILLPRIV);
 
-        conn->want &= ~(FUSE_CAP_SPLICE_READ);
+//        conn->want &= ~(FUSE_CAP_SPLICE_READ);
+
+        if(conn->capable & FUSE_CAP_SPLICE_READ) {
+            output.info("Enabling splice read");
+            conn->want |= FUSE_CAP_SPLICE_READ;
+        }
+
+        if(conn->capable & FUSE_CAP_SPLICE_MOVE) {
+            output.info("Enabling splice move");
+            conn->want |= FUSE_CAP_SPLICE_MOVE;
+        }
+
+        if(conn->capable & FUSE_CAP_SPLICE_WRITE) {
+            output.info("Enabling splice write");
+            conn->want |= FUSE_CAP_SPLICE_WRITE;
+        }
 
         if(conn->capable & FUSE_CAP_AUTO_INVAL_DATA)
             conn->want |= FUSE_CAP_AUTO_INVAL_DATA;
+
+        // No limit
+        conn->max_read = UINT32_MAX >> 1;
     }
 
     /**

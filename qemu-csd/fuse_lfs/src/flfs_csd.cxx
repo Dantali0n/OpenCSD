@@ -29,12 +29,26 @@ namespace qemucsd::fuse_lfs {
     FuseLFSCSD::FuseLFSCSD(qemucsd::arguments::options *options,
         nvme_zns::NvmeZnsBackend *nvme)
     {
+        register_csd_namespaces();
+
         csd_instance = new nvme_csd::NvmeCsd(options->ubpf_mem_size,
             options->ubpf_jit, nvme);
     }
 
     FuseLFSCSD::~FuseLFSCSD() {
         delete csd_instance;
+    }
+
+    size_t FuseLFSCSD::msr_csd[5] = {0};
+    const char *FuseLFSCSD::msr_csd_names[5] = {
+        "FUSE_LFS][CSD][lookup", "FUSE_LFS][CSD][read", "FUSE_LFS][CSD][write",
+        "FUSE_LFS][CSD][getattr", "FUSE_LFS][CSD][setattr",
+    };
+
+    void FuseLFSCSD::register_csd_namespaces() {
+        for(uint32_t i = 0; i < 5; i++) {
+            measurements::register_namespace(msr_csd_names[i], msr_csd[i]);
+        }
     }
 
     /**
@@ -93,6 +107,7 @@ namespace qemucsd::fuse_lfs {
     }
 
     void FuseLFS::lookup_csd(fuse_req_t req, csd_unique_t *context) {
+        measurements::measure_guard msr_guard(msr_csd[MSRI_CSD_LOOKUP]);
         struct fuse_entry_param e = {0};
         struct snapshot snap;
 
@@ -119,32 +134,10 @@ namespace qemucsd::fuse_lfs {
         fuse_reply_entry(req, &e);
     }
 
-    void FuseLFS::getattr_csd(fuse_req_t req, csd_unique_t *context,
-                              struct fuse_file_info *fi)
-    {
-        struct stat stbuf = {0};
-        struct snapshot snap;
-
-        if(get_snapshot(context, &snap, SNAP_FILE) != FLFS_RET_NONE) {
-            fuse_reply_err(req, EIO);
-            return;
-        }
-
-        if (inode_stat(context->first, &stbuf) == FLFS_RET_ENOENT)
-            fuse_reply_err(req, ENOENT);
-
-        #ifdef FLFS_FAKE_PERMS
-        ino_fake_permissions(req, &stbuf);
-        #endif
-
-        stbuf.st_size = snap.inode_data.first.size;
-
-        fuse_reply_attr(req, &stbuf, 90.0);
-    }
-
     void FuseLFS::read_csd(fuse_req_t req, csd_unique_t *context, size_t size,
         off_t off, struct fuse_file_info *fi)
     {
+        measurements::measure_guard msr_guard(msr_csd[MSRI_CSD_READ]);
         struct snapshot kernel_snap;
 
         /** Get the snapshot information for the read kernel */
@@ -202,9 +195,9 @@ namespace qemucsd::fuse_lfs {
 
     void FuseLFS::write_csd(fuse_req_t req, csd_unique_t *context,
         const char *buf, size_t size, off_t off,
-        struct write_context *wr_context,
-        struct fuse_file_info *fi)
+        struct write_context *wr_context, struct fuse_file_info *fi)
     {
+        measurements::measure_guard msr_guard(msr_csd[MSRI_CSD_WRITE]);
         struct snapshot snap;
 
         if(get_snapshot(context, &snap, SNAP_WRITE) != FLFS_RET_NONE) {
@@ -217,5 +210,61 @@ namespace qemucsd::fuse_lfs {
             fuse_reply_err(req, ENOMEM);
             return;
         }
+    }
+
+    void FuseLFS::getattr_csd(fuse_req_t req, csd_unique_t *context,
+        struct fuse_file_info *fi)
+    {
+        measurements::measure_guard msr_guard(msr_csd[MSRI_CSD_GETATTR]);
+        struct stat stbuf = {0};
+        struct snapshot snap;
+
+        if(get_snapshot(context, &snap, SNAP_FILE) != FLFS_RET_NONE) {
+            fuse_reply_err(req, EIO);
+            return;
+        }
+
+        if (inode_stat(context->first, &stbuf) == FLFS_RET_ENOENT)
+            fuse_reply_err(req, ENOENT);
+
+        #ifdef FLFS_FAKE_PERMS
+        ino_fake_permissions(req, &stbuf);
+        #endif
+
+        stbuf.st_size = snap.inode_data.first.size;
+
+        fuse_reply_attr(req, &stbuf, 90.0);
+    }
+
+    void FuseLFS::setattr_csd(fuse_req_t req, csd_unique_t *context,
+        struct stat *attr, int to_set, struct fuse_file_info *fi)
+    {
+        measurements::measure_guard msr_guard(msr_csd[MSRI_CSD_SETATTR]);
+        struct snapshot snap;
+        if(get_snapshot(context, &snap, SNAP_FILE) != FLFS_RET_NONE) {
+            fuse_reply_err(req, EIO);
+            return;
+        }
+
+        // Change permissions (chmod)
+        if(to_set & FUSE_SET_ATTR_MODE) {
+
+        }
+        // Change owner (chown)
+        if(to_set & FUSE_SET_ATTR_UID) {
+
+        }
+        // Change group (chgrp)
+        if(to_set & FUSE_SET_ATTR_GID) {
+
+        }
+        // Change size of file (truncate / ftruncate)
+        if(to_set & FUSE_SET_ATTR_SIZE) {
+            snap.inode_data.first.size = attr->st_size;
+        }
+
+        update_snapshot(context, &snap, SNAP_FILE);
+
+        getattr_csd(req, context, fi);
     }
 }
