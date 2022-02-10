@@ -17,8 +17,9 @@ import xattr
 import pdb; pdb.set_trace()
 
 # Open the file and read it normally
-fr = open("test/test", "rb+")
-print(fr.read())
+fd = os.open("test/test", os.O_RDWR)
+fsize = os.stat("test/test").st_size
+print(os.read(fd, fsize))
 
 # Get the inode number for the BPF kernel
 kern_ino = os.stat("test/bpf_flfs_read_average.o").st_ino
@@ -30,11 +31,8 @@ xattr.setxattr("test/test", "user.process.csd_read",
 # Check that the extended attribute is set
 print(xattr.getxattr("test/test", "user.process.csd_read"))
 
-# Seek back to beginning of file
-fr.seek(0)
-
 # Read the file, executing the kernel and interpret the result as an integer
-print(int.from_bytes(fr.read(), "little"))
+print(int.from_bytes(os.read(fd, fsize), "little"))
 
 # Close the file will release the kernel
-fr.close()
+os.close(fd)

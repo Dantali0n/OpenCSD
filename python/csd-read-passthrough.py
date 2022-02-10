@@ -14,14 +14,15 @@ import pdb; pdb.set_trace()
 
 # Open the file and read it normally.
 # this file will be
-f = open("test/test", "rb")
-print(f.read())
+fd = os.open("test/test", os.O_RDWR)
+fsize = os.stat("test/test").st_size
+print(os.read(fd, fsize))
 
 # Reset read back to beginning of file
-f.seek(0)
+# os.lseek(fd, 0)
 
 # Get the inode number for the BPF kernel
-kern_ino = os.stat("test/flfs_bpf_read.o").st_ino
+kern_ino = os.stat("test/bpf_flfs_read.o").st_ino
 
 # Enable the BPF kernel on the open file for read operations
 xattr.setxattr("test/test", "user.process.csd_read",
@@ -31,7 +32,7 @@ xattr.setxattr("test/test", "user.process.csd_read",
 print(xattr.getxattr("test/test", "user.process.csd_read"))
 
 # Read the file again, this time the kernel will be executed
-print(f.read())
+print(os.read(fd, fsize))
 
 # Close the file will release the kernel
-f.close()
+os.close(fd)
