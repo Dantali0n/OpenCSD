@@ -109,6 +109,10 @@ namespace qemucsd::measurements {
      */
     void generate_results(std::vector<result> *results);
 
+    /**
+     * Utilize Resource Acquisition Is Initialization (RAII) to start and stop
+     * measurement automatically.
+     */
     class measure_guard {
     protected:
         size_t _marker;

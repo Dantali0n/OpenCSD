@@ -46,7 +46,7 @@ set(QEMUCSD_FUSE_LFS_LIBRARIES
     qemucsd_output
     qemucsd_nvme_csd
     qemucsd_nvme_zns_backend
-    qemucsd_spdk_init
+#    qemucsd_spdk_init
     qemucsd_measurements
     fuse3
 )

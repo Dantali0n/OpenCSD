@@ -24,7 +24,6 @@ project(${PRJ_PRX}_nvme_csd)
 
 
 set(QEMUCSD_NVME_CSD_LIBRARIES
-    qemucsd_spdk_init
     qemucsd_nvme_zns_backend
     ubpf bpf elf z
 )

@@ -1653,13 +1653,13 @@ namespace qemucsd::fuse_lfs {
             return;
         }
 
-        if(strcmp(CSD_READ_KEY, name) == 0) {
+        if(strcmp(CSD_XATTR_KEYS[CSD_READ_STREAM], name) == 0) {
             if(set)
                 set_csd_xattr(req, &entry, value, size, flags, false);
             else
                 get_csd_xattr(req, entry.csd_read_kernel, size);
         }
-        else if(strcmp(CSD_WRITE_KEY, name) == 0) {
+        else if(strcmp(CSD_XATTR_KEYS[CSD_WRITE_STREAM], name) == 0) {
             if(set)
                 set_csd_xattr(req, &entry, value, size, flags, true);
             else
