@@ -25,11 +25,11 @@ print(os.read(fd, fsize))
 kern_ino = os.stat("test/bpf_flfs_read_average.o").st_ino
 
 # Enable the BPF kernel on the open file for read operations
-xattr.setxattr("test/test", "user.process.csd_read",
+xattr.setxattr("test/test", "user.process.csd_read_stream",
                bytes(f"{kern_ino}", "utf-8"))
 
 # Check that the extended attribute is set
-print(xattr.getxattr("test/test", "user.process.csd_read"))
+print(xattr.getxattr("test/test", "user.process.csd_read_stream"))
 
 # Read the file, executing the kernel and interpret the result as an integer
 print(int.from_bytes(os.read(fd, fsize), "little"))

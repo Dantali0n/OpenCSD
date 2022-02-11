@@ -25,11 +25,11 @@ print(os.read(fd, fsize))
 kern_ino = os.stat("test/bpf_flfs_read.o").st_ino
 
 # Enable the BPF kernel on the open file for read operations
-xattr.setxattr("test/test", "user.process.csd_read",
+xattr.setxattr("test/test", "user.process.csd_read_stream",
                bytes(f"{kern_ino}", "utf-8"))
 
 # Verify the BPF kernel is set
-print(xattr.getxattr("test/test", "user.process.csd_read"))
+print(xattr.getxattr("test/test", "user.process.csd_read_stream"))
 
 # Read the file again, this time the kernel will be executed
 print(os.read(fd, fsize))

@@ -25,10 +25,10 @@ fsize = os.stat("test/test").st_size
 kern_ino = os.stat("test/bpf_flfs_read_entropy.o").st_ino
 
 # Enable the BPF kernel on the open file for read operations
-xattr.setxattr("test/test", "user.process.csd_read",
+xattr.setxattr("test/test", "user.process.csd_read_stream",
                bytes(f"{kern_ino}", "utf-8"))
 
-print(xattr.getxattr("test/test", "user.process.csd_read"))
+print(xattr.getxattr("test/test", "user.process.csd_read_stream"))
 
 # Read the result from the kernel which will be 256 unsigned integers.
 data = struct.unpack('<256i', os.read(fd, fsize))
