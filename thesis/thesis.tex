@@ -18,6 +18,7 @@
 \usepackage{float}
 \usepackage[T1]{fontenc}
 %\usepackage{fontspec}
+\usepackage{svg}
 \usepackage{footnote}
 \usepackage{graphicx}
 \usepackage[colorlinks=true,citecolor=blue]{hyperref}
@@ -168,7 +169,7 @@
 \begin{titlepage}
 \begingroup
 \centering
-{\LARGE\bfseries OpenCSD: Log Structured Filesystem (LFS) enabled Computational Storage Device platform over Zoned Namespaces (ZNS) SSDs}
+{\LARGE\bfseries OpenCSD: Log Structured Filesystem (LFS) enabled Computational Storage Device platform}
 
 \vspace{1cm}
 
@@ -295,7 +296,7 @@ complete vertical integration by creating a simulation platform on top of
 QEMU\cite{qemu}. Secondly, We eliminate potential incompatibities across vendors
 by using \textit{Extended Berkely Packet Filer} (eBPF)\cite{what-ebpf} as
 compute kernel language. Third, We bridge the semantic gap by using Zoned
-Namespaces (ZNS)\cite{zns} SSDs which move the FTL to the host operating
+Namespaces (ZNS)\cite{zns} SSDs which moves the FTL to the host operating
 system (host-managed). Lastly, we allow for concurrent multi-user tenancy in
 a \textit{Hybrid Filesystem} context by developing a specialized
 \textit{Log-Structured Filesystem} (LFS)\cite{Rosenblum1992TheDA} with an
@@ -355,14 +356,54 @@ The benefits of eBPF are four fold. First, the ISA is not tailored to any
 specific domain and it has been used in networking\cite{xdp},
 tracing\cite{enhanced-ebpf} and security\cite{seccomp} applications. Second,
 the simple nature of the eBPF ISA allows for verification and bounded execution
-checking such as perform by the Linux kernel\cite{kern-analysis}. Third, eBPF
+checking such as performed by the Linux kernel\cite{kern-analysis}. Third, eBPF
 supports efficient code generation through jitting achieving close to bare-metal
 performance. Lastly, eBPF has been positioned as the unified ISA for
 heteregenous computing\cite{Brunella2020hXDPES, bpf-uapi}.
 
 \subsection*{A Case for ZNS}
 
+A new emerging NVMe standard is Zoned Namedspaces (ZNS). It can been seen as the
+technical successor to Open-Channel\cite{}. This standard allows host visibility
+and control over data placement (host-managed) while more closely representing
+nand flash behavior. This replacement for the traditional block interface offers
+reduced write-ampplifcation, lower SSD hardware requirements and more
+intelligent wear-leveling and garbage collection. However ZNS SSDs come with
+several constraints such as not allowing in-place updates (append-only), using a
+large collection of sectors as single erasure unit and requiring wear-leveling
+and garbage collection to be explicitly programmed by the host.
+
+Yet we argue ZNS greatly improves the feasibility of CSD supporting
+\textit{hybrid filesystems}. Firstly, ZNS offers more predictable performance in
+conjuction with \textit{Log-Structured Filesystems} as the absence of an FTL
+means the behavior of \textit{append-only} writes won't be influenced by
+underlying write-amplification or garbage-collection. Secondly, the direct
+relationship between dimensions as reported to the host and to those known on
+the device results in a greatly simplified exchange of information from host
+submitted compute kernels as well as reduced kernel runtime translations.
+Finally, this reduced semantic gap between the host and device is essential to
+compute kernels running autonomously and without shared virtual memory.
+
 \subsection*{A Case for LFS}
+
+\textit{Log-Structured Filesystems} have been around for a long
+time\cite{Rosenblum1992TheDA} but have not really been popularized until the
+recent advancement of nand flash. A LFS maintains one or multiple logs which
+are append-only sections of the filesystem. This has the advantage of the
+underlying device receiving filesystem writes as sequential I/O operations,
+which is known to improve performance. In addition, LFSs are often relatively
+easy to implement. Unfortunately, LFSs suffer from write-amplification because
+modifcations updating inode or other data location information travels up the
+chain in history.
+
+Yet we argue an LFS is essential for an effective \textit{hybrid filesystem} due
+to the following three reasons. Firstly, the append-only nature of a LFS is the
+best fit for the append-only requirement of ZNS SSDs. Secondly, the
+chronological order of logs allow for snapshotting, versioning and simplified
+crash recovery. It is thanks to the properties of an LFS that FluffleFS is able
+to provide in-memory snapshots to compute kernels. Lastly, the problem around
+write-amplification is a solved issue thanks to the F2FS\cite{Lee2015F2FSAN}
+work which introduced so called Node Address Tables (NAT).
 
 \section{Previous Work}
 
@@ -374,6 +415,8 @@ heteregenous computing\cite{Brunella2020hXDPES, bpf-uapi}.
 %extensible os, Ex-tension framework for file systems in user space, 
 %  Safe and efficient remote application code execu-tion on disaggregated NVM,
 % BPF for storage: an exokernel-inspired approach )
+
+% Introduce previous ZCSD table but extended
 
 \section{Research Questions}
 
@@ -387,6 +430,71 @@ existing operating system APIs?
 
 How to differentiate individual users, files and I/O operations in relation to
 their CSD compute kernel?
+
+\section{Design}
+
+\subsection{Framework}
+
+% Diagram with overview of different modules and their used as well as
+% relationships. Also show integration of open-source technologies.
+
+\begin{figure}
+    \centering
+	\label{figure:moduledependencies}
+	\includegraphics[width=0.5\textwidth]{resources/images/module-dependencies.pdf}
+	\caption{Overview of all OpenCSD components and their depends-on relations}
+    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
+\end{figure}
+
+\subsection{Filesystem}
+
+% Two write pointers, one for RANDOM ZONE and one for LOG ZONE. Use of ZNS is
+% optional but allows for lower write-amplification and more explicit garbage
+% collection
+
+\subsubsection{Concurrency}
+
+\subsection{Offloading}
+
+% Filesystem extended attributes, PID + INODE
+
+\section{implementation}
+
+\section{Considerations}
+
+\subsection{Filesystem}
+
+% Filesystem does not restore in-memory datastructures upon mounting the
+% filesystem making it non-persistent. Can be achieved through NAT and SIT
+% blocks.
+
+% Fsync, rename, unlink, rmdir, listxattr and removexattr are unimplemented.
+
+% No ACL, all files / directories appear to have the caller as owner / group.
+
+\subsection{Interface}
+
+% Maximum 128Kb stride due to kernel, make diagram of how the arguments for
+% this system call are parsed.
+
+% Stream kernels can not return more data than the size of the snapshotted file.
+% Stream kernels can not return more data than specified in the read request.
+
+% Event kernels can not return any data?
+
+% Mtime modifications to prevent FUSE internal caches with snapshots.
+
+\subsection{Offloading}
+
+% Safety
+
+\section{Evaluation}
+
+\subsection{Filtering}
+
+\subsection{Entropy}
+
+\subsection{Indexing}
 
 % \footnotemark[1]
 
@@ -501,6 +609,7 @@ their CSD compute kernel?
 	\item VFS - Virtual File System % 326
 	\item GPGPU - General-Purpose computing on Graphics Processing Units % 329
 	\item API - Application Programming Interface %330
+	\item NAT - Node Address Table % 406
 \end{enumerate}
 
 \addcontentsline{toc}{section}{\protect\numberline{}REFERENCES}
