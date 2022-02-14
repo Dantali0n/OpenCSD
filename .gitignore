@@ -100,7 +100,6 @@ documentation/*
 
 # latex intermediate files
 thesis/*
-!thesis/**/
 !thesis/CMakeLists.txt
 !thesis/**/*.bib
 !thesis/**/*.tex
@@ -108,6 +107,9 @@ thesis/*
 !thesis/**/images/
 !thesis/**/drawio/
 !thesis/**/python/
+
+thesis-old/*
+!thesis-old/**/*.tex
 
 # latex intermediate files
 compsys2021/*

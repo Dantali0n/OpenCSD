@@ -1,0 +1,87 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{watermark}
+         [2002/01/29 v1.00 Watermarks (NCC)]
+%
+% The package provides watermarks on output pages. A watermark is
+% some text or picture printed at the background of paper. A watermark
+% is prepared in picture box stored at the beginning of running head.
+% So, the watermark material must be put on the page with LaTeX's \put and
+% \multiput commands.
+%
+% \watermark{BODY}      sets a watermark to be printed on all pages
+% \leftwatermark{BODY}  sets a watermark to be printed on every even page
+%                       if twoside mode is turned on. Otherwise, this
+%                       watermark is ignored. Odd-page watermark
+%                       leaves unchanged.
+% \rightwatermark{BODY} sets a watermark to be printed on every odd page
+%                       if twoside mode is turned on. Otherwise, this
+%                       watermark is printed on all pages. Even-page
+%                       watermark leaves unchanged.
+% \thiswatermark{BODY}  sets a watermark for the current page only.
+%
+% Additionally, the package provides the command \thispageheading{HEADING}
+% which replaces a heading for the current page to specified heading.
+% Watermarks are also printed when a heading is replaced.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% We use the \@begindvi hook from the output routine.
+% This hook works only once at the beginning of dvi, but some packages
+% (e.g. hyperref) also use it for their own needs.
+% So, we redefine it at the beginning of document in such a way to 
+% accurately save its behaviour after the first call when it can be
+% redefined by other packages.
+%
+\AtBeginDocument{
+  \let\WMK@begindvi\@begindvi
+  \def\@begindvi{\WMK@begindvi \WMK@insert
+    \global\let\WMK@begindvi\@begindvi       % Save redefined behaviour and
+    \gdef\@begindvi{\WMK@begindvi\WMK@insert}% redefine \@begindvi once more
+  }%
+}
+%
+% The \WMK@insert command redefines current header and inserts the
+% \WMK@hook at the beginning of header. A box produced by this hook
+% has zero natural sizes.
+%
+\def\WMK@insert{\let\WMK@head\@thehead \def\@thehead{\WMK@hook\WMK@head}}
+\def\WMK@hook{%
+  \begin{picture}(0,0)\relax
+    \ifx\WMK@this\relax
+      \if@twoside
+        \ifodd\c@page\WMK@odd\else\WMK@even\fi
+      \else
+        \WMK@odd
+      \fi
+    \else
+      \WMK@this \global\let\WMK@this\relax
+    \fi
+  \end{picture}%
+}
+%
+% Define watermark producing commands
+%
+\newcommand{\watermark}[1]{\leftwatermark{#1}\rightwatermark{#1}}
+\newcommand{\leftwatermark}[1]{\long\gdef\WMK@even{#1}}
+\newcommand{\rightwatermark}[1]{\long\gdef\WMK@odd{#1}}
+\newcommand{\thiswatermark}[1]{\long\gdef\WMK@this{#1}}
+\watermark{}
+\let\WMK@this\relax
+%
+% Now we define \thispageheading{heading} command.
+% It replaces a heading on the current page to the
+% specified one and prepares it in \parbox. Watermarks are leaved unchanged.
+% The \ifWMK@savehead is needed to protect from multiple use of this command
+% on the same page.
+%
+\newif\ifWMK@savehead \WMK@saveheadfalse
+\newcommand{\thispageheading}[1]{%
+  \ifWMK@savehead \else
+    \global\WMK@saveheadtrue \global\let\WMK@savehook\WMK@hook
+  \fi
+  \long\gdef\WMK@hook{\WMK@savehook
+    \parbox[t]\textwidth{#1}\let\WMK@head\@empty
+    \global\WMK@saveheadfalse \global\let\WMK@hook\WMK@savehook
+  }%
+}
+\endinput

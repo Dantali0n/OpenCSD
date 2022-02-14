@@ -1,0 +1,113 @@
+% this file is called up by thesis.tex
+% content in this file will be fed into the main document
+
+\chapter{Related Work} % top level followed by section, subsection
+
+
+% ----------------------- paths to graphics ------------------------
+
+% change according to folder and file names
+\ifpdf
+    \graphicspath{{7/figures/PNG/}{7/figures/PDF/}{7/figures/}}
+\else
+    \graphicspath{{7/figures/EPS/}{7/figures/}}
+\fi
+
+
+% ----------------------- contents from here ------------------------
+% 
+
+While OpenCSD is unique it is by no means the first CSx prototype as there
+has been over a decade of research in this field\cite{lukken2021past}. In this
+decade we have seen a large variety of approaches, problem spaces, hardware
+platforms and software APIs. While this decade of research shows overall
+progression several important challenges are still open research
+questions\cite{barbalacecomputational}.
+
+In this section we first introduce characterstics of CSx prototypes such as the
+hardware platform and software API. Secondly, introduce the most prominent open
+research questions in CSx research. Third, provide an overview of notable works
+of the past decade. Fourth, describe the general progression of the field across
+these works. Lastly, describe fundamentally missing features that hinder
+adoption and widespread use of CSxs.
+
+% Introduce early working prototypes
+
+% Demonstrate different hardware platforms, embedded CPU, vs FPGA.
+
+% List of BPF using storage literature (Blockndp:, Extos: Data-centric
+%extensible os, Ex-tension framework for file systems in user space, 
+%  Safe and efficient remote application code execu-tion on disaggregated NVM,
+% BPF for storage: an exokernel-inspired approach )
+
+% Introduce previous ZCSD table but extended
+
+\subsection{CSx characterstics}
+
+\begin{enumerate}
+    \item Bistream; bitstream programmed directly unto FPGA.
+    \item Embedded; single program, single memory space, no OS just 'real mode'.
+    \item Accelerators; OpenCL, Vulkan.
+    \item Real-Time operating system;
+    \item Operating System;
+    \item Container;
+    \item Virtual Machine;
+\end{enumerate}
+
+The degree of programmability can be categorized as follows.
+
+\begin{enumerate}
+    \item Transparent operations, (de)compression (Playstation 5 I/O Controller)
+    \item Fixed functions, unchangeable, workload specific \cite{2013-fast-active-flash}
+    \item Fixed function dataflow programming \cite{Wickremesinghe02distributedcomputing}
+    \item Query offloading, SQL, NoSql, Regex \cite{10.14778/2994509.2994512}
+    \item Event driven (hooks) user-programmable functions \cite{10.1145/3429357.3430519}
+    \item Arbitrary code execution, VHDL, eBPF, TCL \cite{10.1145/605432.605425, kourtis2020safe}
+\end{enumerate}
+
+\onecolumn
+
+\begin{table}[H]
+    \caption{Programmable flash storage overview}
+    \centering
+    \begin{adjustbox}{width=1\textwidth}
+        \begin{threeparttable}[]
+            \begin{tabular}{lllll}
+                \toprule
+                \textbf{Name} & \textbf{Programmability} & \textbf{Programming Model} & \textbf{Interface} & \textbf{CSEE} \\
+                \midrule
+                Active SSD \cite{6062973} & Event driven & Dataflow (streams) & PCIe & Operating system (Custom) \\
+                Smart SSD \cite{6558444} & Event driven & Dataflow (MapReduce) & SATA & Embedded \\
+                Smart SSD \cite{10.1145/2463676.2465295} & Event driven & Shared memory & SATA & Embedded \\
+                Intelligent SSD \cite{10.1145/2464996.2465003, 10.1145/2505515.2507847} & Arbitrary code execution\footnotemark[7] & Shared memory\footnotemark[7] & N.A. & Operating system (Linux)\footnotemark[7] \\
+                Ibex \cite{10.14778/2732967.2732972} & Query offloading (MySQL) & Declarative & SATA & Bitstream \\
+                Willow \cite{186149} & Arbitrary code execution & Client / Server (RPC) & PCIe (NVMe) & Operating system (Custom) \\
+                Biscuit \cite{2016-isca-biscuit} & Event driven & Dataflow & PCIe & Embedded \\
+                Hadoop ISC* \cite{7524716} & Event driven & Dataflow (MapReduce) & SAS & Embedded \\
+                YourSQL \cite{10.14778/2994509.2994512} & Query offloading (MySQL) & Declarative & PCIe (NVMe) & Bitsream\footnotemark[8] \\
+                Summarizer \cite{10.1145/3123939.3124553} & Event driven & Shared memory & PCIe (NVMe) & Embedded \\
+                NDP RE2 regex* \cite{10.1145/3211922.3211926} & Query offloading (Regex) & N.A. & N.A. & Embedded \\
+                Registor \cite{10.1145/3310149} & Query offloading (Regex) & Shared memory & PCIe (NVMe) & Bitsream \\
+                Cognitive SSD \cite{8839401} & Arbitrary code execution & Shared memory & PCIe (NVMe, OpenSSD) & Accelerators (Custom) \\
+                INSIDER \cite{234968} & Event driven & Shared memory (VFS) & PCIe & Bitstream \\
+                Catalina \cite{8855540} & Arbitrary code execution & Client / Server (MPI) & PCIe (NVMe) & Operating system (Linux) \\
+                THRIFTY \cite{10.1145/3400302.3415723} & Event driven\footnotemark[9] & Shared memory (VFS)\footnotemark[9] & PCIe\footnotemark[9] & Bitstream\footnotemark[9] \\
+                POLARDB \cite{246154} & Query offloading (POLARDB) & Declarative & PCIe & Bitstream \\
+                NGD newport \cite{10.1145/3415580} & Arbitrary code execution & Client / Server & PCIe (NVMe) & Operating system (Linux) \\
+                blockNDP \cite{10.1145/3429357.3430519} & Event driven & Dataflow (streams) & PCIe (NVMe, OpenSSD) & Virtual Machine (QEMU) \\
+                QEMU CSD* \cite{10.1145/3439839.3459085} & Arbitrary code execution & Shared memory & PCIe (NVMe) & N.A. (Simulated) \\
+                \bottomrule
+            \end{tabular}
+            \begin{tablenotes}[para,flushleft]
+                \centering Overview of PFS works and various aspects as
+                    previously detailed.
+            \end{tablenotes}
+        \end{threeparttable}
+        \label{table:pfsoverview}
+    \end{adjustbox}
+\end{table}
+
+
+% ---------------------------------------------------------------------------
+% ----------------------- end of thesis sub-document ------------------------
+% ---------------------------------------------------------------------------
