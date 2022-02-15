@@ -242,6 +242,7 @@ add_executable(testnvme-csd ${TEST_NVME_CSD_SOURCE} ${TEST_NVME_CSD_HEADERS} ${$
 
 target_link_libraries(
 	testnvme-csd
+	qemucsd_output
 	qemucsd_nvme_csd
 	${${PRJ_PRX}_LIBRARIES_PACK}
 )

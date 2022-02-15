@@ -25,6 +25,7 @@ project(${PRJ_PRX}_nvme_csd)
 
 set(QEMUCSD_NVME_CSD_LIBRARIES
     qemucsd_nvme_zns_backend
+    qemucsd_output
     ubpf bpf elf z
 )
 

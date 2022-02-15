@@ -40,7 +40,7 @@ add_qemucsd_include(${CMAKE_CURRENT_SOURCE_DIR}/include)
 qemucsd_include_directories()
 
 add_library(
-    qemucsd_measurements SHARED
+    qemucsd_measurements STATIC
     ${QEMUCSD_MEASUREMENTS_SRC}
     ${QEMUCSD_MEASUREMENTS_HEADERS}
 )
