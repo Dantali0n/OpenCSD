@@ -18,11 +18,11 @@
 % 
 
 While OpenCSD is unique it is by no means the first CSx prototype as there
-has been over a decade of research in this field\cite{lukken2021past}. In this
+has been over a decade of research in this field \cite{lukken2021past}. In this
 decade we have seen a large variety of approaches, problem spaces, hardware
 platforms and software APIs. While this decade of research shows overall
 progression several important challenges are still open research
-questions\cite{barbalacecomputational}.
+questions \cite{barbalacecomputational}.
 
 In this section we first introduce characterstics of CSx prototypes such as the
 hardware platform and software API. Secondly, introduce the most prominent open
@@ -43,6 +43,28 @@ adoption and widespread use of CSxs.
 % Introduce previous ZCSD table but extended
 
 \subsection{CSx characterstics}
+
+There are four types of characteristics that set CSxs apart. First there is
+the end user programming model, the model of programming developers have to use
+in order to interact with CSx. Second, there is the execution environment, the
+level of software abstraction the end user programs are run on. Third, is the
+degree of programmability, the amount of programming control offered to the end
+user. Lastly, there is the interface used to connect the device to the host.
+
+With end user programming models there are, in no particular order,
+\textit{Dataflow (MapReduce, DAG)}, \textit{Client / Server (RPC, HTTP)},
+\textit{Shared memory} and \textit{Declarative (Regex, MySQL)}. Although simple
+categories, the correct attribution of these categories can become quite
+complicated due to nuances. For instance, if an end user needs to link to a new
+shared library to call methods with MySQL queries as argument, what should the
+programming model be? In this work we argue \textit{Shared memory} as the
+library that needs to be linked is introduced in the work.
+
+In \textit{Computational Storage Execution Environments} (CSEE) we effectively
+observe seven distinct levels of abstraction. These range from
+\textit{Register-Transfer Level} (RTL) design such as using languages like
+Verilog or VHDL to virtual machines. The compiled output of RTL designs is known
+as a bitstream and typically programmed into an FPGA at runtime.
 
 \begin{enumerate}
     \item Bistream; bitstream programmed directly unto FPGA.
@@ -68,7 +90,7 @@ The degree of programmability can be categorized as follows.
 \onecolumn
 
 \begin{table}[H]
-    \caption{Programmable flash storage overview}
+    \caption{Related CSx works from the past decade}
     \centering
     \begin{adjustbox}{width=1\textwidth}
         \begin{threeparttable}[]
@@ -76,6 +98,10 @@ The degree of programmability can be categorized as follows.
                 \toprule
                 \textbf{Name} & \textbf{Programmability} & \textbf{Programming Model} & \textbf{Interface} & \textbf{CSEE} \\
                 \midrule
+                Active Flash \cite{active-flash-piller, 2013-fast-active-flash} & Fixed functions & N.A. & SATA (OpenSSD) & Embedded \\
+                Caribou \cite{10.14778/3137628.3137632} & Fixed functions (key-value store) & Client / Server (RPC) & Ethernet & Bitstream \\
+                LeapIO \cite{10.1145/3373376.3378531} & Fixed functions & Transparent & Ethernet (RDMA) & Embedded \\
+                CSD 2000 \cite{10.1145/3399666.3399934} & Fixed functions (compression) & Transparent & PCIe (NVMe) & Bitstream \\
                 Active SSD \cite{6062973} & Event driven & Dataflow (streams) & PCIe & Operating system (Custom) \\
                 Smart SSD \cite{6558444} & Event driven & Dataflow (MapReduce) & SATA & Embedded \\
                 Smart SSD \cite{10.1145/2463676.2465295} & Event driven & Shared memory & SATA & Embedded \\
@@ -106,6 +132,15 @@ The degree of programmability can be categorized as follows.
         \label{table:pfsoverview}
     \end{adjustbox}
 \end{table}
+
+\footnotetext[7]{Simulations performed by porting workloads unto ARM based
+processor. No actual hardware on SSDs is used.}
+
+\footnotetext[8]{The work uses special FCPs with hardware based filtering
+functions. We assume these must be implemented using FPGAs although the work
+does not specify.}
+
+\footnotetext[9]{Build on top of the INSIDER software stack.}
 
 
 % ---------------------------------------------------------------------------
