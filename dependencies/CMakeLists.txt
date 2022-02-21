@@ -94,7 +94,7 @@ if(${QEMUCSD_WINDOWS})
     set(boost_source_build b2.exe)
     set(boost_source_build_param link=static threading=multi)
 else()
-    set(boost_source_url https://dancloud.dantalion.nl/index.php/s/1scGa6PPXXaLv1F/download)
+    set(boost_source_url https://nextcloud.dantalion.nl/index.php/s/2W7NMFYet8kJeCD/download)
     set(boost_source_file boost.tar.bz2)
     set(boost_source_hash 83bfc1507731a0906e387fc28b7ef5417d591429e51e788417fe9ff025e116b1)
     set(boost_source_bootstrap ./bootstrap.sh)
@@ -526,7 +526,7 @@ add_custom_command(
 # Download qemu image if preparing deployment / on host development
 if(NOT IS_DEPLOYED)
 download_file(
-    https://dancloud.dantalion.nl/index.php/s/gt8eqRTF3mphrx9/download
+    https://nextcloud.dantalion.nl/index.php/s/o3diEiZcDoH9tZ8/download
     ${PRJ_ROOT}/arch-qemucsd.qcow2
     SHA256 f82b9f83bf915c4bba0873aafe6e7f5ea5e214354fdcd9c3f0ac467498027926
 )

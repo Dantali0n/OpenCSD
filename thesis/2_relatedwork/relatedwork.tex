@@ -42,14 +42,15 @@ adoption and widespread use of CSxs.
 
 % Introduce previous ZCSD table but extended
 
-\subsection{CSx characterstics}
+\section{CSx characterstics}
 
 There are four types of characteristics that set CSxs apart. First there is
-the end user programming model, the model of programming developers have to use
-in order to interact with CSx. Second, there is the execution environment, the
-level of software abstraction the end user programs are run on. Third, is the
-degree of programmability, the amount of programming control offered to the end
-user. Lastly, there is the interface used to connect the device to the host.
+the end user \textit{programming model}, the model of programming developers
+have to use in order to interact with CSx. Second, there is the execution
+environment, the level of software abstraction the end user programs are run on
+(on the device). Third, is the \textit{degree of programmability}, the amount of
+programming control offered to the end user. Lastly, there is the interface used
+to connect the device to the host.
 
 With end user programming models there are, in no particular order,
 \textit{Dataflow (MapReduce, DAG)}, \textit{Client / Server (RPC, HTTP)},
@@ -64,7 +65,8 @@ In \textit{Computational Storage Execution Environments} (CSEE) we effectively
 observe seven distinct levels of abstraction. These range from
 \textit{Register-Transfer Level} (RTL) design such as using languages like
 Verilog or VHDL to virtual machines. The compiled output of RTL designs is known
-as a bitstream and typically programmed into an FPGA at runtime.
+as a bitstream and typically programmed into an FPGA at runtime. The distinct
+levels are listed below.
 
 \begin{enumerate}
     \item Bistream; bitstream programmed directly unto FPGA.
@@ -76,7 +78,11 @@ as a bitstream and typically programmed into an FPGA at runtime.
     \item Virtual Machine;
 \end{enumerate}
 
-The degree of programmability can be categorized as follows.
+We see a similarly large range in different \textit{degrees of programmability}
+from no end user programmability at all such as with transparent operations to
+arbitrary code execution. The six distinct levels are shown below. It
+should be noted howerver, that the first two levels can be regarded as no or a
+lack of end user programmability.
 
 \begin{enumerate}
     \item Transparent operations, (de)compression (Playstation 5 I/O Controller)
@@ -87,7 +93,12 @@ The degree of programmability can be categorized as follows.
     \item Arbitrary code execution, VHDL, eBPF, TCL \cite{10.1145/605432.605425, kourtis2020safe}
 \end{enumerate}
 
-\onecolumn
+It is important to illustrate that the \textit{degree of programmability} is
+fundamentally different from the end user \textit{programming model} as one
+denotes how programs are submitted and run on the device while the other denotes
+what model an end user must use to develop for the CSx respectively.
+
+\section{Past Works}
 
 \begin{table}[H]
     \caption{Related CSx works from the past decade}
@@ -141,7 +152,6 @@ functions. We assume these must be implemented using FPGAs although the work
 does not specify.}
 
 \footnotetext[9]{Build on top of the INSIDER software stack.}
-
 
 % ---------------------------------------------------------------------------
 % ----------------------- end of thesis sub-document ------------------------
