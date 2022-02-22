@@ -87,7 +87,7 @@ endif()
 # ----------------------------- #
 
 if(${QEMUCSD_WINDOWS})
-    set(boost_source_url https://dancloud.dantalion.nl/index.php/s/oc9JTPgPLTxNBre/download)
+    set(boost_source_url https://nextcloud.dantalion.nl/index.php/s/iqsfQe9H6GsfXcy/download)
     set(boost_source_file boost.zip)
     set(boost_source_hash a0e7ce67c52d816708fdeccdd8c9725626ba61254c13c18770498cacd514710a)
     set(boost_source_bootstrap bootstrap.bat)
