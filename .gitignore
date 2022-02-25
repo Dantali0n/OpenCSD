@@ -133,3 +133,6 @@ presentation/*
 !presentation/**/bash/
 !presentation/**/images/
 !presentation/**/python/
+
+# Old prototype files
+zcsd/*.log

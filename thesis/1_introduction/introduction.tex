@@ -99,17 +99,17 @@ describing their complete case. Firstly, we circumvent the complexity of
 complete vertical integration by creating a simulation platform on top of
 QEMU \cite{qemu}. Secondly, We eliminate potential incompatibities across vendors
 by using \textit{Extended Berkely Packet Filer} (eBPF) \cite{what-ebpf} as
-compute kernel language. Third, We bridge the semantic gap by using Zoned
-Namespaces (ZNS) \cite{zns} SSDs which moves the FTL to the host operating
-system (host-managed). Lastly, we allow for concurrent multi-user tenancy in
-a \textit{Hybrid Filesystem} context by developing a specialized
+compute kernel language. Third, We bridge the semantic gap by using \textit{
+Zoned Namespaces} (ZNS) \cite{zns} SSDs which moves the FTL to the host
+operating system (host-managed). Lastly, we allow for concurrent multi-user
+tenancy in a \textit{Hybrid Filesystem} context by developing a specialized
 \textit{Log-Structured Filesystem} (LFS) \cite{Rosenblum1992TheDA} with an
 in-memory snapshot consistency model \cite{Viotti2016ConsistencyIN}. We present
 this complete solution as \textit{OpenCSD} an open-source Apache 2 licensed CSx
 simulation framework with accompanying filesystem called
 FluffleFS \cite{qemu-csd}.
 
-\subsection*{A Case for CSx Simulation}
+\subsection{A Case for CSx Simulation}
 
 The lack of a standardized design has lead to a large variety of different
 hardware architectures being explored including using embedded CPUs or
@@ -126,7 +126,7 @@ The lack of a clear standardized design combined with the ease of prototyping
 designs in simulation clearly shows that choosing simulation over an actual
 hardware prototype is the current logical choice.
 
-\subsection*{A Case for eBPF Programmability}
+\subsection{A Case for eBPF Programmability}
 
 The concept of programmability provides end users the capability to run their
 own provided code. With the introduction of modern \textit{Operating Systems}
@@ -165,10 +165,10 @@ supports efficient code generation through jitting achieving close to bare-metal
 performance. Lastly, eBPF has been positioned as the unified ISA for
 heteregenous computing \cite{Brunella2020hXDPES, bpf-uapi}.
 
-\subsection*{A Case for ZNS}
+\subsection{A Case for ZNS}
 
-A new emerging NVMe standard is Zoned Namedspaces (ZNS). It can been seen as the
-technical successor to Open-Channel % \cite{}.
+A new emerging NVMe standard is \textit{Zoned Namedspaces} (ZNS). It can been
+seen as the technical successor to Open-Channel % \cite{}.
 This standard allows host visibility and control over data placement
 (host-managed) while more closely representing nand flash behavior. This
 replacement for the traditional block interface offers reduced
@@ -189,7 +189,7 @@ submitted compute kernels as well as reduced kernel runtime translations.
 Finally, this reduced semantic gap between the host and device is essential to
 compute kernels running autonomously and without shared virtual memory.
 
-\subsection*{A Case for LFS}
+\subsection{A Case for LFS}
 
 \textit{Log-Structured Filesystems} have been around for a long
 time \cite{Rosenblum1992TheDA} but have not really been popularized until the
@@ -208,19 +208,20 @@ chronological order of logs allow for snapshotting, versioning and simplified
 crash recovery. It is thanks to the properties of an LFS that FluffleFS is able
 to provide in-memory snapshots to compute kernels. Lastly, the problem around
 write-amplification is a solved issue thanks to the F2FS \cite{Lee2015F2FSAN}
-work which introduced so called Node Address Tables (NAT).
+work which introduced so called \textit{Node Address Tables} (NAT).
 
 \section{Research Question}
 
-How to achieve multi-user tenancy in a Log Structured Filesystem (LFS) while
-supporting Computational Storage offloading?
+How to achieve multi-user tenancy in a \textit{Log Structured Filesystem} (LFS)
+while supporting Computational Storage offloading?
 
 \subsection{Sub Questions}
 
-What would a Zoned Namespaces (ZNS) Log Structured Filesystem (LFS) look like?
+What would a \textit{Zoned Namespaces} (ZNS) \textit{Log Structured Filesystem}
+(LFS) look like?
 
-How to register Computational Storage Device (CSx) compute kernels using
-existing operating system APIs?
+How to register \textit{Computational Storage Device} (CSx) compute kernels
+using existing operating system APIs?
 
 How to differentiate individual users, files and I/O operations in relation to
 their CSx compute kernel?

@@ -53,13 +53,18 @@ programming control offered to the end user. Lastly, there is the interface used
 to connect the device to the host.
 
 With end user programming models there are, in no particular order,
-\textit{Dataflow (MapReduce, DAG)}, \textit{Client / Server (RPC, HTTP)},
-\textit{Shared memory} and \textit{Declarative (Regex, MySQL)}. Although simple
-categories, the correct attribution of these categories can become quite
-complicated due to nuances. For instance, if an end user needs to link to a new
-shared library to call methods with MySQL queries as argument, what should the
-programming model be? In this work we argue \textit{Shared memory} as the
-library that needs to be linked is introduced in the work.
+\textit{Dataflow (MapReduce, DAG)}, \textit{Client / Server
+(RPC\footnotemark[1], HTTP\footnotemark[2])}, \textit{Shared memory} and
+\textit{Declarative (Regex, MySQL)}. Although simple categories, the correct
+attribution of these categories can become quite complicated due to nuances. For
+instance, if an end user needs to link to a new shared library to call methods
+with MySQL queries as argument, what should the programming model be? In this
+work we argue \textit{Shared memory} as the library that needs to be linked is
+introduced in the work.
+
+\footnotetext[1]{\textit{Remote Procedure Call} (RPC)}
+
+\footnotetext[2]{\textit{HyperText Transfer Protocol} (HTTP)}
 
 In \textit{Computational Storage Execution Environments} (CSEE) we effectively
 observe seven distinct levels of abstraction. These range from
@@ -88,10 +93,12 @@ lack of end user programmability.
     \item Transparent operations, (de)compression (Playstation 5 I/O Controller)
     \item Fixed functions, unchangeable, workload specific \cite{2013-fast-active-flash}
     \item Fixed function dataflow programming \cite{Wickremesinghe02distributedcomputing}
-    \item Query offloading, SQL, NoSql, Regex \cite{10.14778/2994509.2994512}
+    \item Query offloading, SQL\footnotemark[3], NoSql, Regex \cite{10.14778/2994509.2994512}
     \item Event driven (hooks) user-programmable functions \cite{10.1145/3429357.3430519}
     \item Arbitrary code execution, VHDL, eBPF, TCL \cite{10.1145/605432.605425, kourtis2020safe}
 \end{enumerate}
+
+\footnotetext[3]{\textit{Structured Query Language} (SQL)}
 
 It is important to illustrate that the \textit{degree of programmability} is
 fundamentally different from the end user \textit{programming model} as one
@@ -99,6 +106,60 @@ denotes how programs are submitted and run on the device while the other denotes
 what model an end user must use to develop for the CSx respectively.
 
 \section{Past Works}
+
+Using these characteristics of CSxs allows to make a qualitative comparison of
+different works from the past decade. By arranging all these works in
+publication order as shown in table \ref{table:csxoverview} we can start to
+obeserve developments in the field. We describe three different types of
+observations being general observations, observations relating to changes over
+time and finally observations on specific works.
+
+Firstly, we can observe that the amount of works with a limited \textit{degree
+of programmability} is small, consisting of just \textit{Active Flash
+\cite{active-flash-piller, 2013-fast-active-flash},
+Caribou \cite{10.14778/3137628.3137632}, LeapIO \cite{10.1145/3373376.3378531}
+and CSD 2000 \cite{10.1145/3399666.3399934}}. Additionaly, there is substantial
+diversity between each work but the use of event driven programmability, shared
+memory programming model, PCIe interface and either bitstream or embedded
+execution environments stand out. Although not necessarily in combination with
+one another. There is also a strong correlation between the client / server
+programming model and operating system execution environment. Most of the works
+utilizing this combination achieve this with either \textit{NVMe over Fabrics}
+(NVMe-oF) or NVMe over TCP.
+
+Secondly, the main change over time is related to the shift from SATA to PCIe
+NVMe interfaces. Less pronounced changes include a slight shift to more
+arbitrary code execution programmability and a shift away from an embedded
+execution environments. Invisible in table \ref{table:csxoverview} is the
+transistion to more complex and more complete prototypes. The changes include
+trying to address challenges related to security, usability and filesystem
+support. However, the extend of how these challenges are addressed remains
+limited particularly regarding filesystem support \cite{barbalacecomputational}.
+One of the most recent works BlockNDP \cite{10.1145/3429357.3430519} was
+designed for supporting regular filesystem access but it is clear that it is
+still missing in the prototype, for instance\footnotemark[4].
+
+\footnotetext[4]{"Support for accessing a file on a file system could be added,
+for example, by integrating it with a FUSE file system driver or uNFS"
+\cite{10.1145/3429357.3430519}}
+
+Several specific developments of individual works are of interest. Firstly,
+NGD newport \cite{10.1145/3415580} manages to support different programming
+models by offering SSH access to the CSx. While novel we do not see this model
+work for widespread adoption because of the barrier to entry in programming for
+distributed systems as opposed to heteregenous architectures. This can be
+partially overcome by offering an API on the host at the expense of the
+flexibility to choose the programming model. Secondly, Catalina
+\cite{8855540} utilizes the \textit{Message Passing Interface} (MPI), an
+industry leading standard library in \textit{High-Performance Computing} (HPC)
+to achieve distributed memory parallelization. However, this suffers from the
+same drawback as NGD newport of HPC being a larger barrier to entree compared to
+the use of accelerators such as GPGPU in heteregenous architectures. Lastly,
+is Cognitive SSD \cite{8839401} which utilizes accelerator type interfaces such
+as OpenCL to achieve programmability. Although in the complete architecture we
+think this interface is essential it should be hidden from the end users. In
+this work we will demonstrate that this can be achieved through filesystem
+extended attributes (xattr). 
 
 \begin{table}[H]
     \caption{Related CSx works from the past decade}
@@ -109,49 +170,49 @@ what model an end user must use to develop for the CSx respectively.
                 \toprule
                 \textbf{Name} & \textbf{Programmability} & \textbf{Programming Model} & \textbf{Interface} & \textbf{CSEE} \\
                 \midrule
-                Active Flash \cite{active-flash-piller, 2013-fast-active-flash} & Fixed functions & N.A. & SATA (OpenSSD) & Embedded \\
-                Caribou \cite{10.14778/3137628.3137632} & Fixed functions (key-value store) & Client / Server (RPC) & Ethernet & Bitstream \\
-                LeapIO \cite{10.1145/3373376.3378531} & Fixed functions & Transparent & Ethernet (RDMA) & Embedded \\
-                CSD 2000 \cite{10.1145/3399666.3399934} & Fixed functions (compression) & Transparent & PCIe (NVMe) & Bitstream \\
                 Active SSD \cite{6062973} & Event driven & Dataflow (streams) & PCIe & Operating system (Custom) \\
+                Active Flash \cite{active-flash-piller, 2013-fast-active-flash} & Fixed functions & N.A. & SATA (OpenSSD) & Embedded \\
                 Smart SSD \cite{6558444} & Event driven & Dataflow (MapReduce) & SATA & Embedded \\
                 Smart SSD \cite{10.1145/2463676.2465295} & Event driven & Shared memory & SATA & Embedded \\
-                Intelligent SSD \cite{10.1145/2464996.2465003, 10.1145/2505515.2507847} & Arbitrary code execution\footnotemark[7] & Shared memory\footnotemark[7] & N.A. & Operating system (Linux)\footnotemark[7] \\
+                Intelligent SSD \cite{10.1145/2464996.2465003, 10.1145/2505515.2507847} & Arbitrary code execution\footnotemark[5] & Shared memory\footnotemark[5] & N.A. & Operating system (Linux)\footnotemark[5] \\
                 Ibex \cite{10.14778/2732967.2732972} & Query offloading (MySQL) & Declarative & SATA & Bitstream \\
                 Willow \cite{186149} & Arbitrary code execution & Client / Server (RPC) & PCIe (NVMe) & Operating system (Custom) \\
                 Biscuit \cite{2016-isca-biscuit} & Event driven & Dataflow & PCIe & Embedded \\
                 Hadoop ISC* \cite{7524716} & Event driven & Dataflow (MapReduce) & SAS & Embedded \\
-                YourSQL \cite{10.14778/2994509.2994512} & Query offloading (MySQL) & Declarative & PCIe (NVMe) & Bitsream\footnotemark[8] \\
+                YourSQL \cite{10.14778/2994509.2994512} & Query offloading (MySQL) & Declarative & PCIe (NVMe) & Bitsream\footnotemark[6] \\
+                Caribou \cite{10.14778/3137628.3137632} & Fixed functions (key-value store) & Client / Server (RPC) & Ethernet & Bitstream \\
                 Summarizer \cite{10.1145/3123939.3124553} & Event driven & Shared memory & PCIe (NVMe) & Embedded \\
                 NDP RE2 regex* \cite{10.1145/3211922.3211926} & Query offloading (Regex) & N.A. & N.A. & Embedded \\
                 Registor \cite{10.1145/3310149} & Query offloading (Regex) & Shared memory & PCIe (NVMe) & Bitsream \\
                 Cognitive SSD \cite{8839401} & Arbitrary code execution & Shared memory & PCIe (NVMe, OpenSSD) & Accelerators (Custom) \\
                 INSIDER \cite{234968} & Event driven & Shared memory (VFS) & PCIe & Bitstream \\
                 Catalina \cite{8855540} & Arbitrary code execution & Client / Server (MPI) & PCIe (NVMe) & Operating system (Linux) \\
-                THRIFTY \cite{10.1145/3400302.3415723} & Event driven\footnotemark[9] & Shared memory (VFS)\footnotemark[9] & PCIe\footnotemark[9] & Bitstream\footnotemark[9] \\
+                LeapIO \cite{10.1145/3373376.3378531} & Fixed functions & Transparent & Ethernet (RDMA) & Embedded \\
+                THRIFTY \cite{10.1145/3400302.3415723} & Event driven\footnotemark[7] & Shared memory (VFS)\footnotemark[7] & PCIe\footnotemark[7] & Bitstream\footnotemark[7] \\
                 POLARDB \cite{246154} & Query offloading (POLARDB) & Declarative & PCIe & Bitstream \\
                 NGD newport \cite{10.1145/3415580} & Arbitrary code execution & Client / Server & PCIe (NVMe) & Operating system (Linux) \\
+                CSD 2000 \cite{10.1145/3399666.3399934} & Fixed functions (compression) & Transparent & PCIe (NVMe) & Bitstream \\
                 blockNDP \cite{10.1145/3429357.3430519} & Event driven & Dataflow (streams) & PCIe (NVMe, OpenSSD) & Virtual Machine (QEMU) \\
                 QEMU CSD* \cite{10.1145/3439839.3459085} & Arbitrary code execution & Shared memory & PCIe (NVMe) & N.A. (Simulated) \\
                 \bottomrule
             \end{tabular}
             \begin{tablenotes}[para,flushleft]
-                \centering Overview of PFS works and various aspects as
-                    previously detailed.
+                \centering Overview of CSx works and the previously elaborated
+                characteristics.
             \end{tablenotes}
         \end{threeparttable}
-        \label{table:pfsoverview}
+        \label{table:csxoverview}
     \end{adjustbox}
 \end{table}
 
-\footnotetext[7]{Simulations performed by porting workloads unto ARM based
+\footnotetext[5]{Simulations performed by porting workloads unto ARM based
 processor. No actual hardware on SSDs is used.}
 
-\footnotetext[8]{The work uses special FCPs with hardware based filtering
+\footnotetext[6]{The work uses special FCPs with hardware based filtering
 functions. We assume these must be implemented using FPGAs although the work
 does not specify.}
 
-\footnotetext[9]{Build on top of the INSIDER software stack.}
+\footnotetext[7]{Build on top of the INSIDER software stack.}
 
 % ---------------------------------------------------------------------------
 % ----------------------- end of thesis sub-document ------------------------
