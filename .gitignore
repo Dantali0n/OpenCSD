@@ -135,4 +135,4 @@ presentation/*
 !presentation/**/python/
 
 # Old prototype files
-zcsd/*.log
+zcsd/**/*.log
