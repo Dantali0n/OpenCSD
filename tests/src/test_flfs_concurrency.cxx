@@ -234,8 +234,8 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsConcurreny)
         thread5.join();
 
         struct qemucsd::fuse_lfs::open_file_entry fh2 = fh;
-        fh.csd_read_kernel = 6;
-        fh2.csd_read_kernel = 12;
+        fh.read_stream_kernel = 6;
+        fh2.read_stream_kernel = 12;
 
         // std::thread thread6(&TestFuseLFS::update_file_handle, &test_fuse,
         //     fh_st3, &fh);
@@ -257,7 +257,7 @@ BOOST_AUTO_TEST_SUITE(Test_FuseLfsConcurreny)
             }
         }
 
-        BOOST_CHECK(fh.csd_read_kernel == 6 || fh.csd_read_kernel == 12);
+        BOOST_CHECK(fh.read_stream_kernel == 6 || fh.read_stream_kernel == 12);
 
         /**
          * https://en.cppreference.com/w/cpp/language/overloaded_address

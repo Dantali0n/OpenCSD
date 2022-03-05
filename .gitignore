@@ -103,10 +103,7 @@ thesis/*
 !thesis/CMakeLists.txt
 !thesis/**/*.bib
 !thesis/**/*.tex
-!thesis/**/bash/
-!thesis/**/images/
-!thesis/**/drawio/
-!thesis/**/python/
+!thesis/resources
 
 thesis-old/*
 !thesis-old/**/*.tex

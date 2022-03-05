@@ -26,6 +26,16 @@ project(dependencies)
 
 set(DEPENDENCY_BUILD_TYPE ${CMAKE_BUILD_TYPE})
 
+# -------------------------------------------- #
+# Generator specific behavior (Thanks CMake..) #
+# -------------------------------------------- #
+
+if("${CMAKE_MAKE_PROGRAM}" MATCHES "ninja")
+    set(command_nproc "$$(nproc)")
+else()
+    set(command_nproc "$(nproc)")
+endif()
+
 # ------------------------ #
 # Dependency build targets #
 # ------------------------ #
@@ -357,7 +367,7 @@ add_custom_command(OUTPUT spdk-install PRE_BUILD
 )
 
 add_custom_command(OUTPUT spdk-compile PRE_BUILD
-    COMMAND make -j $(nproc)
+    COMMAND make -j ${command_nproc}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk
     DEPENDS spdk-configure
 )
@@ -414,7 +424,7 @@ add_custom_command(OUTPUT isa-l-install PRE_BUILD
 )
 
 add_custom_command(OUTPUT isa-l-compile PRE_BUILD
-    COMMAND make -j $(nproc)
+    COMMAND make -j ${command_nproc}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/spdk/isa-l
     DEPENDS isa-l-configure
 )
@@ -466,7 +476,7 @@ if(${has_qemu} OR IS_DEPLOYED)
 endif()
 
 add_custom_command(OUTPUT qemu-install PRE_BUILD
-    COMMAND make -j $(nproc) install
+    COMMAND make -j ${command_nproc} install
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/qemu/build
     DEPENDS qemu-configure activate-build
 )

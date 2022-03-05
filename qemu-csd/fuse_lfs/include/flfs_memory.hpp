@@ -61,8 +61,10 @@ namespace qemucsd::fuse_lfs {
         fuse_ino_t ino;
         pid_t pid;
         int flags;
-        fuse_ino_t csd_read_kernel;
-        fuse_ino_t csd_write_kernel;
+        fuse_ino_t read_stream_kernel;
+        fuse_ino_t write_stream_kernel;
+        fuse_ino_t read_event_kernel;
+        fuse_ino_t write_event_kernel;
     };
 
     struct lba_inode {
@@ -129,8 +131,10 @@ namespace qemucsd::fuse_lfs {
 
     struct csd_snapshot {
         struct snapshot file;
-        struct snapshot read_kernel;
-        struct snapshot write_kernel;
+        struct snapshot read_stream_kernel;
+        struct snapshot write_stream_kernel;
+        struct snapshot read_event_kernel;
+        struct snapshot write_event_kernel;
     };
 }
 

@@ -286,7 +286,7 @@ namespace qemucsd::fuse_lfs {
         // TODO(Dantali0n): Move CSD / snapshot methods to separate interface
 
         int update_snapshot(csd_unique_t *context, fuse_ino_t kernel,
-            bool write) override;
+            enum snapshot_store_type snap_t) override;
         int update_snapshot(csd_unique_t *context, struct snapshot *snap,
             enum snapshot_store_type snap_t) override;
         int create_snapshot(fuse_ino_t ino, struct snapshot *snap) override;
@@ -370,7 +370,8 @@ namespace qemucsd::fuse_lfs {
         void get_csd_xattr(fuse_req_t req, fuse_ino_t ino, size_t size);
 
         void set_csd_xattr(fuse_req_t req, struct open_file_entry *entry,
-            const char *value, size_t size, int flags, bool write);
+            const char *value, size_t size, int flags,
+            enum snapshot_store_type snap_t);
 
         void xattr(fuse_req_t req, fuse_ino_t ino, const char *name,
             const char *value, size_t size, int flags, bool set);

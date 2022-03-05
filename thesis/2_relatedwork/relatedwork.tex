@@ -17,11 +17,15 @@
 % ----------------------- contents from here ------------------------
 % 
 
+\section{Computational Storage Devices}
+
+\section{Computational Storage Devices}
+
 While OpenCSD is unique it is by no means the first CSx prototype as there
 has been over a decade of research in this field \cite{lukken2021past}. In this
 decade we have seen a large variety of approaches, problem spaces, hardware
-platforms and software APIs. While this decade of research shows overall
-progression several important challenges are still open research
+platforms and software APIs. There is signifcant progression in this field, 
+however, several important challenges are still open research
 questions \cite{barbalacecomputational}.
 
 In this section we first introduce characterstics of CSx prototypes such as the
@@ -42,7 +46,7 @@ adoption and widespread use of CSxs.
 
 % Introduce previous ZCSD table but extended
 
-\section{CSx characterstics}
+\subsection{CSx characterstics}
 
 There are four types of characteristics that set CSxs apart. First there is
 the end user \textit{programming model}, the model of programming developers
@@ -54,7 +58,7 @@ to connect the device to the host.
 
 With end user programming models there are, in no particular order,
 \textit{Dataflow (MapReduce, DAG)}, \textit{Client / Server
-(RPC\footnotemark[1], HTTP\footnotemark[2])}, \textit{Shared memory} and
+(RPC \footnotemark[1], HTTP \footnotemark[2])}, \textit{Shared memory} and
 \textit{Declarative (Regex, MySQL)}. Although simple categories, the correct
 attribution of these categories can become quite complicated due to nuances. For
 instance, if an end user needs to link to a new shared library to call methods
@@ -105,7 +109,7 @@ fundamentally different from the end user \textit{programming model} as one
 denotes how programs are submitted and run on the device while the other denotes
 what model an end user must use to develop for the CSx respectively.
 
-\section{Past Works}
+\subsection{Past CSx Works}
 
 Using these characteristics of CSxs allows to make a qualitative comparison of
 different works from the past decade. By arranging all these works in
@@ -225,14 +229,14 @@ does not specify.}
 
 \footnotetext[7]{Build on top of the INSIDER software stack.}
 
-\section{Reproducability}
+\subsection{Reproducability}
 
 In science the ability to reproduce a work and verify its claims is essential.
 Moreover, it might be the verify cornerstone of the scientific method. However,
-in \textit{Computer Science} (CS) many works fundamentally rely on software and hardware
-prototypes while the source code or design files are never published.
+in \textit{Computer Science} (CS) many works fundamentally rely on software and
+hardware prototypes while the source code or design files are never published.
 Reproducability of a work introducing new software or hardware without these
-related files is a fallacy!
+related files is practically impossible!
 
 This problem of unreproducable works and unverifieable claims is prevelant
 throughout the works relating to CSxs. Out of the 27 referenced works only four

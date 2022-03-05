@@ -1567,27 +1567,42 @@ namespace qemucsd::fuse_lfs {
      *      https://man7.org/linux/man-pages/man2/setxattr.2.html
      */
     void FuseLFS::set_csd_xattr(fuse_req_t req, struct open_file_entry *entry,
-        const char *value, size_t size, int flags, bool write = false)
+        const char *value, size_t size, int flags,
+        enum snapshot_store_type snap_t)
     {
         struct stat stbuf = {0};
 
-        if(flags & XATTR_CREATE) {
-            if(write && entry->csd_write_kernel != 0) {
-                fuse_reply_err(req, EEXIST);
+        // Determine if create or replace flags are set.
+        // If so checks the xattr to be set.
+        // CREATE will result in error if already set
+        // REPLACE will result in error if not set already
+        if(flags & XATTR_CREATE || flags & XATTR_REPLACE) {
+            // CREATE and REPLACE are exclusive flags, only one can be true
+            int flag = flags & XATTR_CREATE ? EEXIST : ENODATA;
+            bool should_exist = (flags & XATTR_REPLACE) != 0;
+
+            if(snap_t == SNAP_READ_STREAM && (entry->read_stream_kernel != 0)
+                == should_exist)
+            {
+                fuse_reply_err(req, flag);
                 return;
             }
-            else if(entry->csd_read_kernel != 0) {
-                fuse_reply_err(req, EEXIST);
+            else if(snap_t == SNAP_WRITE_STREAM &&
+                (entry->write_stream_kernel != 0) == should_exist)
+            {
+                fuse_reply_err(req, flag);
                 return;
             }
-        }
-        if(flags & XATTR_REPLACE) {
-            if(write && entry->csd_write_kernel == 0) {
-                fuse_reply_err(req, ENODATA);
+            else if(snap_t == SNAP_READ_EVENT && (entry->read_event_kernel != 0)
+                == should_exist)
+            {
+                fuse_reply_err(req, flag);
                 return;
             }
-            else if(entry->csd_read_kernel == 0) {
-                fuse_reply_err(req, ENODATA);
+            else if(snap_t == SNAP_WRITE_EVENT &&
+                (entry->write_event_kernel != 0) == should_exist)
+            {
+                fuse_reply_err(req, flag);
                 return;
             }
         }
@@ -1604,7 +1619,7 @@ namespace qemucsd::fuse_lfs {
         // If csd_unique context was previously snapshotted only contents of
         // kernels is updated, file contents will remain identical upon update
         csd_unique_t csd_unique = {entry->ino, entry->pid};
-        if(update_snapshot(&csd_unique, kernel_ino, write) != FLFS_RET_NONE) {
+        if(update_snapshot(&csd_unique, kernel_ino, snap_t) != FLFS_RET_NONE) {
             fuse_reply_err(req, EIO);
             return;
         }
@@ -1617,10 +1632,23 @@ namespace qemucsd::fuse_lfs {
 //        return;
 
         // Update the file handle to indicate the kernel is enabled
-        if(write)
-            entry->csd_write_kernel = kernel_ino;
-        else
-            entry->csd_read_kernel = kernel_ino;
+        switch(snap_t) {
+            case SNAP_READ_STREAM:
+                entry->read_stream_kernel = kernel_ino;
+                break;
+            case SNAP_WRITE_STREAM:
+                entry->write_stream_kernel = kernel_ino;
+                break;
+            case SNAP_READ_EVENT:
+                entry->read_event_kernel = kernel_ino;
+                break;
+            case SNAP_WRITE_EVENT:
+                entry->write_event_kernel = kernel_ino;
+                break;
+            default:
+                fuse_reply_err(req, EIO);
+                return;
+        }
 
         if(update_file_handle(entry->fh, entry) != FLFS_RET_NONE) {
             fuse_reply_err(req, EIO);
@@ -1655,17 +1683,33 @@ namespace qemucsd::fuse_lfs {
 
         if(strcmp(CSD_XATTR_KEYS[CSD_READ_STREAM], name) == 0) {
             if(set)
-                set_csd_xattr(req, &entry, value, size, flags, false);
+                set_csd_xattr(req, &entry, value, size, flags,
+                              SNAP_READ_STREAM);
             else
-                get_csd_xattr(req, entry.csd_read_kernel, size);
+                get_csd_xattr(req, entry.read_stream_kernel, size);
         }
         else if(strcmp(CSD_XATTR_KEYS[CSD_WRITE_STREAM], name) == 0) {
             if(set)
-                set_csd_xattr(req, &entry, value, size, flags, true);
+                set_csd_xattr(req, &entry, value, size, flags,
+                              SNAP_WRITE_STREAM);
             else
-                get_csd_xattr(req, entry.csd_write_kernel, size);
+                get_csd_xattr(req, entry.write_stream_kernel, size);
         }
-            // Any other key either can't be set or does not exist
+        else if(strcmp(CSD_XATTR_KEYS[CSD_WRITE_EVENT], name) == 0) {
+            if(set)
+                set_csd_xattr(req, &entry, value, size, flags,
+                              SNAP_WRITE_EVENT);
+            else
+                get_csd_xattr(req, entry.write_stream_kernel, size);
+        }
+        else if(strcmp(CSD_XATTR_KEYS[CSD_WRITE_STREAM], name) == 0) {
+            if(set)
+                set_csd_xattr(req, &entry, value, size, flags,
+                              SNAP_WRITE_STREAM);
+            else
+                get_csd_xattr(req, entry.write_stream_kernel, size);
+        }
+        // Any other key either can't be set or does not exist
         else {
             if (set)
                 fuse_reply_err(req, ENOTSUP);
@@ -2096,7 +2140,7 @@ namespace qemucsd::fuse_lfs {
         #endif
 
         csd_unique_t csd_context = {ino, context->pid};
-        if(has_snapshot(&csd_context, SNAP_READ)) {
+        if(has_snapshot(&csd_context, SNAP_READ_STREAM)) {
             // Snapshot reads and writes can happen concurrently
             read_csd(req, &csd_context, size, offset, fi);
             return;
@@ -2168,7 +2212,7 @@ namespace qemucsd::fuse_lfs {
         wr_context.cur_db_lba_index = (off / SECTOR_SIZE) % DATA_BLK_LBA_NUM;
 
         csd_unique_t csd_context = {ino, context->pid};
-        if(has_snapshot(&csd_context, SNAP_WRITE)) {
+        if(has_snapshot(&csd_context, SNAP_WRITE_STREAM)) {
             write_csd(req, &csd_context, buffer, size, off, &wr_context, fi);
             return;
         }
@@ -2197,7 +2241,7 @@ namespace qemucsd::fuse_lfs {
             log_ptr.zone) * nvme_info.zone_capacity) - log_ptr.sector;
 
         // TODO(Dantali0n): Compute based on occupation from SIT blocks
-        statbuf.f_bavail = 0;
+        statbuf.f_bavail = statbuf.f_bfree;
 
         statbuf.f_blocks = ((nvme_info.num_zones - N_LOG_BUFF_ZONES -
             LOGZ_POS.zone) * nvme_info.zone_capacity);

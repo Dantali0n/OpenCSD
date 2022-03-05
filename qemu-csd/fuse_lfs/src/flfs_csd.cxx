@@ -141,7 +141,7 @@ namespace qemucsd::fuse_lfs {
         struct snapshot kernel_snap;
 
         /** Get the snapshot information for the read kernel */
-        if(get_snapshot(context, &kernel_snap, SNAP_READ) != FLFS_RET_NONE) {
+        if(get_snapshot(context, &kernel_snap, SNAP_READ_STREAM) != FLFS_RET_NONE) {
             fuse_reply_err(req, EIO);
             return;
         }
@@ -200,7 +200,7 @@ namespace qemucsd::fuse_lfs {
         measurements::measure_guard msr_guard(msr_csd[MSRI_CSD_WRITE]);
         struct snapshot snap;
 
-        if(get_snapshot(context, &snap, SNAP_WRITE) != FLFS_RET_NONE) {
+        if(get_snapshot(context, &snap, SNAP_WRITE_STREAM) != FLFS_RET_NONE) {
             fuse_reply_err(req, EIO);
             return;
         }

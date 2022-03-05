@@ -53,7 +53,7 @@ namespace qemucsd::fuse_lfs {
         virtual int create_snapshot(fuse_ino_t kernel, struct snapshot *snap) = 0;
 
         virtual int update_snapshot(csd_unique_t *context, fuse_ino_t kernel,
-            bool write) = 0;
+            enum snapshot_store_type snap_t) = 0;
         virtual int update_snapshot(csd_unique_t *context,
             struct snapshot *snap, enum snapshot_store_type snap_t) = 0;
 

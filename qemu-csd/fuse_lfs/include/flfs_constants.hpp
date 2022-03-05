@@ -107,8 +107,10 @@ namespace qemucsd::fuse_lfs {
 
     enum snapshot_store_type {
         SNAP_FILE = 1,
-        SNAP_READ = 2,
-        SNAP_WRITE =3
+        SNAP_READ_STREAM = 2,
+        SNAP_WRITE_STREAM = 3,
+        SNAP_READ_EVENT = 4,
+        SNAP_WRITE_EVENT = 5
     };
 
     /**

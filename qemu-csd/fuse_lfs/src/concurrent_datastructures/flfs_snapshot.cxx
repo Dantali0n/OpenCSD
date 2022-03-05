@@ -39,38 +39,50 @@ namespace qemucsd::fuse_lfs {
      * snapshot keeps track of both the inode activated for CSD functionality
      * but also its read and / or write kernels
      * @threadsafety: thread safe
-     * @param write False to update the read kernel, true to update the write
-     *              kernel.
+     * @param snap_t Specify which type of kernel to update
      * @return FLFS_RET_NONE upon success, < FLFS_RET_ERR upon failure
      */
     int FuseLFS::update_snapshot(csd_unique_t *context, fuse_ino_t kernel,
-        bool write)
+        enum snapshot_store_type snap_t)
     {
         struct csd_snapshot snap = {inode_entry_t(), data_map_t()};
 
-        // Check if snapshot for context file already exists
-        if(has_snapshot(context, SNAP_FILE)) {
+        // Either it fails or we get everything that already exists
+        // does not influence behavior / correctness.
+        if(get_snapshot(context, &snap) != FLFS_RET_NONE)
             output.warning("Updating existing snapshot for ",
-               "ino ", context->first, " with pid ", context->second);
-
-            if(get_snapshot(context, &snap.file, SNAP_FILE) != FLFS_RET_NONE)
+                "ino ", context->first, " with pid ", context->second);
+        // Only stream based kernels trigger a file snapshot
+        else if(snap_t == SNAP_READ_STREAM || snap_t == SNAP_WRITE_STREAM)
+            if(create_snapshot(context->first, &snap.file) != FLFS_RET_NONE)
                 return FLFS_RET_ERR;
-        }
-        // New context, create snapshot of file
-        else if(create_snapshot(context->first, &snap.file) != FLFS_RET_NONE)
-            return FLFS_RET_ERR;
-
-        // Get existing kernel snapshot data but only for type of operation
-        // that won't be overriden. Return type ignored as it is not relevant.
-        if(write)
-            get_snapshot(context, &snap.read_kernel, SNAP_READ);
-        else
-            get_snapshot(context, &snap.write_kernel, SNAP_WRITE);
 
         // Create the snapshot for the provided inode and operation
-        if(create_snapshot(kernel,
-            write ? &snap.write_kernel : &snap.read_kernel) != FLFS_RET_NONE)
-            return FLFS_RET_ERR;
+        switch (snap_t) {
+            case SNAP_READ_STREAM:
+                if(create_snapshot(kernel, &snap.read_stream_kernel) !=
+                    FLFS_RET_NONE)
+                    return FLFS_RET_ERR;
+                break;
+            case SNAP_WRITE_STREAM:
+                if(create_snapshot(kernel, &snap.write_stream_kernel) !=
+                    FLFS_RET_NONE)
+                    return FLFS_RET_ERR;
+                break;
+            case SNAP_READ_EVENT:
+                if(create_snapshot(kernel, &snap.read_event_kernel) !=
+                    FLFS_RET_NONE)
+                    return FLFS_RET_ERR;
+                break;
+            case SNAP_WRITE_EVENT:
+                if(create_snapshot(kernel, &snap.write_event_kernel) !=
+                    FLFS_RET_NONE)
+                    return FLFS_RET_ERR;
+                break;
+            default:
+                return FLFS_RET_ERR;
+        }
+
 
         lock_guard<pthread_rwlock_t> guard(snapshot_lck, true);
 
@@ -97,10 +109,14 @@ namespace qemucsd::fuse_lfs {
 
         if(snap_t == SNAP_FILE)
             temp_snap.file = *snap;
-        else if(snap_t == SNAP_READ)
-            temp_snap.read_kernel = *snap;
-        else if(snap_t == SNAP_WRITE)
-            temp_snap.write_kernel = *snap;
+        else if(snap_t == SNAP_READ_STREAM)
+            temp_snap.read_stream_kernel = *snap;
+        else if(snap_t == SNAP_WRITE_STREAM)
+            temp_snap.write_stream_kernel = *snap;
+        else if(snap_t == SNAP_READ_EVENT)
+            temp_snap.read_event_kernel = *snap;
+        else if(snap_t == SNAP_WRITE_EVENT)
+            temp_snap.write_event_kernel = *snap;
 
         lock_guard<pthread_rwlock_t> guard(snapshot_lck, true);
 
@@ -108,7 +124,7 @@ namespace qemucsd::fuse_lfs {
 
         // Return statement necessary because of C++ limitation:
         // all virtual methods with the same name must share the same return
-        // type..
+        // type.
         return FLFS_RET_NONE;
     }
 
@@ -154,11 +170,17 @@ namespace qemucsd::fuse_lfs {
 
         switch(snap_t) {
             case SNAP_FILE:
-                return 1;
-            case SNAP_READ:
-                return it->second.read_kernel.inode_data.first.inode != 0 ? 1 : 0;
-            case SNAP_WRITE:
-                return it->second.write_kernel.inode_data.first.inode != 0 ? 1 : 0;
+                return it->second.file.inode_data.first.inode != 0 ? 1 : 0;
+            case SNAP_READ_STREAM:
+                return it->second.read_stream_kernel.inode_data.first.inode != 0 ? 1 : 0;
+            case SNAP_WRITE_STREAM:
+                return it->second.write_stream_kernel.inode_data.first.inode != 0 ? 1 : 0;
+            case SNAP_READ_EVENT:
+                return it->second.read_event_kernel.inode_data.first.inode != 0 ? 1 : 0;
+            case SNAP_WRITE_EVENT:
+                return it->second.write_event_kernel.inode_data.first.inode != 0 ? 1 : 0;
+            default:
+                return 0;
         }
 
         return 0;
@@ -197,10 +219,14 @@ namespace qemucsd::fuse_lfs {
 
         if(snap_t == SNAP_FILE)
             *snap = snaps.file;
-        else if(snap_t == SNAP_READ)
-            *snap = snaps.read_kernel;
-        else if(snap_t == SNAP_WRITE)
-            *snap = snaps.write_kernel;
+        else if(snap_t == SNAP_READ_STREAM)
+            *snap = snaps.read_stream_kernel;
+        else if(snap_t == SNAP_WRITE_STREAM)
+            *snap = snaps.write_stream_kernel;
+        else if(snap_t == SNAP_READ_EVENT)
+            *snap = snaps.read_event_kernel;
+        else if(snap_t == SNAP_WRITE_EVENT)
+            *snap = snaps.write_event_kernel;
 
         return FLFS_RET_NONE;
     }
