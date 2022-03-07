@@ -24,16 +24,14 @@
 While OpenCSD is unique it is by no means the first CSx prototype as there
 has been over a decade of research in this field \cite{lukken2021past}. In this
 decade we have seen a large variety of approaches, problem spaces, hardware
-platforms and software APIs. There is signifcant progression in this field, 
+platforms and software APIs. There is significant progression in this field, 
 however, several important challenges are still open research
 questions \cite{barbalacecomputational}.
 
-In this section we first introduce characterstics of CSx prototypes such as the
-hardware platform and software API. Secondly, introduce the most prominent open
-research questions in CSx research. Third, provide an overview of notable works
-of the past decade. Fourth, describe the general progression of the field across
-these works. Lastly, describe fundamentally missing features that hinder
-adoption and widespread use of CSxs.
+In this section we introduce characteristics of CSx prototypes, the most
+prominent open research questions, provide an overview of notable works,
+describe the progression of the field and describe fundamentally missing
+features that hinder adoption and widespread use of CSxs.
 
 % Introduce early working prototypes
 
@@ -62,9 +60,9 @@ With end user programming models there are, in no particular order,
 \textit{Declarative (Regex, MySQL)}. Although simple categories, the correct
 attribution of these categories can become quite complicated due to nuances. For
 instance, if an end user needs to link to a new shared library to call methods
-with MySQL queries as argument, what should the programming model be? In this
-work we argue \textit{Shared memory} as the library that needs to be linked is
-introduced in the work.
+with MySQL queries as argument it becomes unclear what the programming model
+should be. In this work we argue \textit{Shared memory} as the library that
+needs to be linked is introduced in the work.
 
 \footnotetext[1]{\textit{Remote Procedure Call} (RPC)}
 
@@ -90,7 +88,7 @@ levels are listed below.
 We see a similarly large range in different \textit{degrees of programmability}
 from no end user programmability at all such as with transparent operations to
 arbitrary code execution. The six distinct levels are shown below. It
-should be noted howerver, that the first two levels can be regarded as no or a
+should be noted, howerver, that the first two levels can be regarded as no or a
 lack of end user programmability.
 
 \begin{enumerate}
@@ -122,7 +120,7 @@ Firstly, we can observe that the amount of works with a limited \textit{degree
 of programmability} is small, consisting of just \textit{Active Flash
 \cite{active-flash-piller, 2013-fast-active-flash},
 Caribou \cite{10.14778/3137628.3137632}, LeapIO \cite{10.1145/3373376.3378531}
-and CSD 2000 \cite{10.1145/3399666.3399934}}. Additionaly, there is substantial
+and CSD 2000 \cite{10.1145/3399666.3399934}}. Additionally, there is substantial
 diversity between each work but the use of event driven programmability, shared
 memory programming model, PCIe interface and either bitstream or embedded
 execution environments stand out. Although not necessarily in combination with
@@ -134,8 +132,8 @@ utilizing this combination achieve this with either \textit{NVMe over Fabrics}
 Secondly, the main change over time is related to the shift from SATA to PCIe
 NVMe interfaces. Less pronounced changes include a slight shift to more
 arbitrary code execution programmability and a shift away from an embedded
-execution environments. Invisible in table \ref{table:csxoverview} is the
-transistion to more complex and more complete prototypes. The changes include
+execution environment. Not shown in table \ref{table:csxoverview} is the
+transition to more complex and more complete prototypes. These changes include
 trying to address challenges related to security, usability and filesystem
 support. However, the extend of how these challenges are addressed remains
 limited particularly regarding filesystem support \cite{barbalacecomputational}.
@@ -145,7 +143,7 @@ still missing in the prototype, for instance\footnotemark[4]. The most complete
 is Metal FS \cite{10.1145/3342195.3387557} which achieves filesystem integrated
 computational offloading through UNIX pipes. However, it does not address
 multi-user tenancy. In addition, it is unclear if their customized Unix pipe
-behavior influences regular UNIX pipes should they be used on their filesystem.
+behaviour influences regular UNIX pipes should they be used on their filesystem.
 
 \footnotetext[4]{"Support for accessing a file on a file system could be added,
 for example, by integrating it with a FUSE file system driver or uNFS"
@@ -155,24 +153,24 @@ Several specific developments of individual works are of interest. Firstly,
 NGD newport \cite{10.1145/3415580} manages to support different programming
 models by offering SSH access to the CSx. While novel we do not see this model
 work for widespread adoption because of the barrier to entry in programming for
-distributed systems as opposed to heteregenous architectures. This can be
+distributed systems as opposed to heterogenous architectures. This can be
 partially overcome by offering an API on the host at the expense of the
 flexibility to choose the programming model. Secondly, Catalina
 \cite{8855540} utilizes the \textit{Message Passing Interface} (MPI), an
-industry leading standard library in \textit{High-Performance Computing} (HPC)
+industry leading standard library in \textit{High-Performance Computing} (HPC),
 to achieve distributed memory parallelization. However, this suffers from the
 same drawback as NGD newport of HPC being a larger barrier to entree compared to
-the use of accelerators such as GPGPU in heteregenous architectures. Third,
+the use of accelerators such as GPGPU in heterogenous architectures. Third,
 is Cognitive SSD \cite{8839401} which utilizes accelerator type interfaces such
 as OpenCL to achieve programmability. Although in the complete architecture we
 think this interface is essential it should be hidden from the end users. In
 this work we will demonstrate that this can be achieved through filesystem
 extended attributes (xattr). Lastly, Metal FS \cite{10.1145/3342195.3387557}
 is interesting because it is the only work to use the relatively new CAPI
-cache coherent interface \cite{Stuecheli2015CAPIAC}. In addition, it is the only
-work to integrate filesystem support and does so using FUSE and UNIX pipes.
-Finally, Metal FS comes with both a C and C++ library which obfuscate the
-underlying use of pipes to improve usability.
+cache coherent interface \cite{Stuecheli2015CAPIAC}, in addition to, 
+integrating filesystem support using FUSE and UNIX pipes. Finally, Metal FS
+comes with both a C and C++ library which obfuscate the underlying use of pipes
+to improve usability.
 
 \begin{table}
     \caption{Related CSx works from the past decade}
@@ -229,24 +227,23 @@ does not specify.}
 
 \footnotetext[7]{Build on top of the INSIDER software stack.}
 
-\subsection{Reproducability}
+\subsection{Reproducibility}
 
 In science the ability to reproduce a work and verify its claims is essential.
 Moreover, it might be the verify cornerstone of the scientific method. However,
 in \textit{Computer Science} (CS) many works fundamentally rely on software and
 hardware prototypes while the source code or design files are never published.
-Reproducability of a work introducing new software or hardware without these
+Reproducibility of a work introducing new software or hardware without these
 related files is practically impossible!
 
-This problem of unreproducable works and unverifieable claims is prevelant
+This problem of unreproducible works and unverifiable claims is prevelant
 throughout the works relating to CSxs. Out of the 27 referenced works only four
 \cite{10.14778/3137628.3137632, 234968, 8839401, lukken2021zcsd}
-\footnotemark[8] of them have released source code. While only one has released the hardware design files
-(VHDL) \cite{10.14778/3137628.3137632}. The result is that 85 percent of these
-works are very likely unreproducable and their claims unverifieable. This is
-entirely unacceptable and needs to change drastically. We believe that any work
-introducing hardware or software should release the related files or be rejected
-for publication!
+\footnotemark[8] of them have released source code. While only one has released
+the hardware design files (VHDL) \cite{10.14778/3137628.3137632}. The result is
+that 85 percent of these works are very likely unreproducible and their claims
+unverifiable. We believe that any work introducing hardware or software should
+release the related files or be rejected for publication!
 
 \footnotetext[8]{The author of BlockNDP\cite{10.1145/3429357.3430519} has also
 been trying to release the source code ever since October 2020 but is likely

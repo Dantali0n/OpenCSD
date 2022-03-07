@@ -30,26 +30,26 @@ accompanying qcow image to emulate a ZNS SSDs due to the limited availability of
 these SSDs currently. However, the use of QEMU is entirely optional. Finally,
 CMake \cite{cmake} is used to orchestrate the installation of dependencies and
 binary targets. Due to limitations it is advised to rerun CMake after each make
-command, this prevents unnesecarry recompilation of external
+command, as this prevents unnecessary recompilation of external
 dependencies\footnotemark[9].
 
 \footnotetext[9]{Due to limitations in the evaluation of file presence
 conditions which are not reevaluated when executing the generated makefile.}
 
 As said OpenCSD is comprised of modules using a component architecture.
-Aditionally, Each module is compiled as a static or shared library to reduce
+Additionally, Each module is compiled as a static or shared library to reduce
 coupling. This creates an explicit nature of exchanging information between
-linked libraries that allows to identify feasability problems at an early stage.
+linked libraries that allows to identify feasibility problems at an early stage.
 This is opposed to potentially only identifying such issues when creating a
-first prototype. A trivial example of such infeasabilities would be using shared
-memory mutexes to synchronize filesystem and CSx program behavior.
+first prototype. A trivial example of such infeasibilities would be using shared
+memory mutexes to synchronize filesystem and CSx program behaviour.
 
 \subsection{Modules}
 
 The overall modules of OpenCSD are shown in figure
 \ref{figure:moduledependencies} along with any external or internal
 dependencies. In addition, we briefly describe the functionality of each module.
-Finally, at te end of this subsection we describe the three most prominent
+Finally, at the end of this subsection we describe the three most prominent
 modules of OpenCSd.
 
 % Diagram with overview of different modules and their used as well as
@@ -93,21 +93,21 @@ modules of OpenCSd.
     Utilizes, nvme\_zns and nvme\_csd to achieve functionality.
 \end{itemize}
 
-Out of these comoponents nvme\_csd, bpf\_helpers and FluffleFS are the most
+Out of these components nvme\_csd, bpf\_helpers and FluffleFS are the most
 essential. They simulate the required changes that would be required to
 realize the architecture as proposed in our simulation framework. The details of
-such a practical architecture will be described in details later.
+such a practical architecture will be described later.
 
 In short nvme\_csd contains functions that should be made part of a new NVMe
 command set and namespace \cite{nvme-command} similar to how ZNS was introduced.
-The functions are overlie simplified so there is no use of the actual command
+The functions are overly simplified so there is no use of the actual command
 layout as well as lack of queue submissions and completion commands. We feel
 the concepts of implementing these are well understood and would not contribute
 to the scientific value of this work while introducing substantial additional
 complexity.
 
 bpf\_helpers contains the ABI exposed to the eBPF kernels. An ABI is different
-from an API in that the functions it defines can not be found in segments of
+from an API in that the functions it defines cannot be found in segments of
 code, either included statically or through a shared library. Instead it uses
 an ISA specific instruction that can be called with a set of arguments, the
 arguments matching the function signature. Alternatively, should the ISA not

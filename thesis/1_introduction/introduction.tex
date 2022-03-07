@@ -36,13 +36,13 @@
 % Problem
 
 The amount of data being generated and processed worldwide is growing rapidly.
-Meanwhile the prevelant Von Nuemann computer architecture requires all data is 
-moved to system memory before it can be processed \cite{2018-neumann-bottleneck}.
-Until recently storage devices such as hard-disk drives (HDDs) or solid state
-drives (SSDs) have only been passively storing data. With the increasing
-bandwidth persistent storage devices like SSDs achieve this excessive data
-movement to memory is increasingly becoming a bottleneck \cite{2014-micro-ndp}.
-Similarly, the CPU generational performance
+Meanwhile the prevelant Von Nuemann computer architecture requires all data to
+be moved to system memory before it can be processed
+\cite{2018-neumann-bottleneck}. Until recently storage devices such as hard-disk
+drives (HDDs) or solid state drives (SSDs) have only been passively storing
+data. With the increasing bandwidth persistent storage devices like SSDs achieve
+this excessive data movement to memory is increasingly becoming a bottleneck
+\cite{2014-micro-ndp}. Similarly, the CPU generational performance
 improvements \cite{2016-western-digital} as well as link speeds of interconnects
 are stagnating compared to nand flash bandwidth \cite{10.1145/3286588}, the
 underlying technology enabling modern SSDs. The typical proportions of this
@@ -66,21 +66,21 @@ other terms. The concept is not new however, as it has been previously
 explored in database mainframes \cite{database-computer} as well as for
 conventional HDDs \cite{active-disk-pillar, active-disks-tech,
 intelligent-disk}. With rise of Non-Volatile Memory Express (NVMe) technologies
-offering signifcantly more device-internal bandwidth this concept is being
-revisted. What makes NVMe SSDs even more suited is that they already contain
+offering significantly more device-internal bandwidth this concept is being
+revised. What makes NVMe SSDs even more suited is that they already contain
 capable processing units often boasting even multiple cores. This requirement
 comes from the internal management the device has to perform known as the
 \textit{Flash Translation Layer} (FTL). Devices utilizing computational elements
 on conventional SSDs for \textit{Computational Storage} are commonly known as
 \textit{Computational Storage Devices} (CSx)s. The potential benefits of such a
-heteregenous architecture offering programmable storage include energy saving,
+heterogenous architecture offering programmable storage include energy saving,
 cost reduction and performance improvements.
 
 % Challenges
 
 Despite all these benefits there is still no widespread adoption even after a
 decade of research \cite{lukken2021past}. A multitude of challenges
-have prohibited this adoption of which several still applicable today. Four
+have prohibited this adoption several are still applicable today. Four
 prominent challenges include that, firstly, \textit{Computational Storage}
 requires complete vertical integration. Meaning that changes are required at all
 levels of abstraction, device hardware, interfaces, drivers and operating system
@@ -95,7 +95,7 @@ across vendors hurting reusability and hindering adoption. Third, filesystems
 are managed by the host operating system while the FTL is
 managed by the device. Given that one is not aware of the processes within the
 other, this semantic gap complicates several aspects such as consistency,
-concurreny, multi-user tenancy and filesystem integration. Lastly, no
+concurrency, multi-user tenancy and filesystem integration. Lastly, no
 specialized filesystem designs exist that support both regular user access
 concurrent with \textit{Computational Storage} offloading.
 
@@ -105,13 +105,13 @@ In this work we address each of these challenges directly and propose a
 complete \textit{Computational Storage} solution that offers a filesystem
 capable of concurrent multi-user tenancy with both regular and compute
 offloading access (hybrid). We introduce each of the solutions briefly before
-describing their complete case. Firstly, we circumvent the complexity of
+describing their complete case. Firstly, circumvent the complexity of
 complete vertical integration by creating a simulation platform on top of
-QEMU \cite{qemu}. Secondly, We eliminate potential incompatibities across
+QEMU \cite{qemu}. Secondly, eliminate potential incompatibilities across
 vendors by using \textit{Extended Berkely Packet Filer} (eBPF) \cite{what-ebpf}
-as compute kernel language. Third, We bridge the semantic gap by using \textit{
+as compute kernel language. Third, bridge the semantic gap by using \textit{
 Zoned Namespaces} (ZNS) \cite{zns} SSDs which moves the FTL to the host
-operating system (host-managed). Lastly, we allow for concurrent multi-user
+operating system (host-managed). Lastly, allow for concurrent multi-user
 tenancy in a \textit{Hybrid Filesystem} context by developing a specialized
 \textit{Log-Structured Filesystem} (LFS) \cite{Rosenblum1992TheDA} with an
 in-memory snapshot consistency model \cite{Viotti2016ConsistencyIN}. We present
@@ -150,7 +150,7 @@ can be achieved in different manners such as through the kernel in kernel
 modules, with filesystems through \textit{Virtual File System} (VFS) or
 \textit{Filesystem in USErspace} (FUSE) and with language runtimes such as those
 in Python. In addition programmability can also target a peripherals instead of
-the host directly such as is prevelant in \textit{General-Purpose computing on
+the host directly such as is prevalent in \textit{General-Purpose computing on
 Graphics Processing Units} (GPGPU) programming through \textit{Application
 Programming Interfaces} (API)s like OpenCL \cite{opencl} and CUDA \cite{cuda}.
 Through similar mechanisms programmability in CSxs can be achieved.
@@ -158,13 +158,13 @@ Through similar mechanisms programmability in CSxs can be achieved.
 The uncertainty of the hardware design makes it unclear exactly how close to the
 hardware and through which method of programmability CSxs will be effective.
 Although, naturally, the closer to the actual storage the better
-(Near-Data Processing). Therefor, our programmability must not be restricted or
+(Near-Data Processing). Therefore, our programmability must not be restricted or
 favor a particular type.
 
 Introducing eBPF an ISA and \textit{Application Binary Interface} (ABI) with a
-large collection of toolchains and wideranging implementations
-\cite{what-ebpf, McCanne1993TheBP}. These implementations range from complex
-such as the one found in the Linux kernel to simple such as the one found in
+large collection of toolchains and wide-ranging implementations
+\cite{what-ebpf, McCanne1993TheBP}. These implementations range from complex,
+such as the one found in the Linux kernel, to simple such as the one found in
 uBPF \cite{ubpf}, with the key difference in complexity being the supported ABI.
 Effectively, the implementation running (runtime) eBPF code decides the ABI by
 tying special eBPF syscall instructions to predefined code. In addition, this
@@ -189,19 +189,19 @@ the simple nature of the eBPF ISA allows for verification and bounded execution
 checking such as performed by the Linux kernel \cite{kern-analysis}. Third, eBPF
 supports efficient code generation through jitting achieving close to bare-metal
 performance. Lastly, eBPF has been positioned as the unified ISA for
-heteregenous computing \cite{Brunella2020hXDPES, bpf-uapi}.
+heterogenous computing \cite{Brunella2020hXDPES, bpf-uapi}.
 
 \subsection{A Case for ZNS}
 
 A new emerging NVMe standard is \textit{Zoned Namedspaces} (ZNS). It can been
 seen as the technical successor to Open-Channel % \cite{}.
 This standard allows host visibility and control over data placement
-(host-managed) while more closely representing nand flash behavior. This
+(host-managed) while more closely representing nand flash behaviour. This
 replacement for the traditional block interface offers reduced
-write-ampplifcation, lower SSD hardware requirements and more intelligent
-wear-leveling and garbage collection. However ZNS SSDs come with several
-constraints such as not allowing in-place updates (append-only), using a large
-collection of sectors as single erasure unit and requiring wear-leveling and
+write-amplification, lower SSD hardware requirements and more intelligent
+wear-levelling and garbage collection. However, ZNS SSDs come with several
+constraints such as not allowing in-place updates (append only), using a large
+collection of sectors as single erasure unit and requiring wear-levelling and
 garbage collection to be explicitly programmed by the host. The fundamental
 difference between conventional and ZNS SSDs is shown in figure
 \ref{figure:znsvsconventional}.
@@ -217,7 +217,7 @@ difference between conventional and ZNS SSDs is shown in figure
 Yet we argue ZNS greatly improves the feasibility of CSx supporting
 \textit{hybrid filesystems}. Firstly, ZNS offers more predictable performance in
 conjuction with \textit{Log-Structured Filesystems} as the absence of a device
-FTL means the behavior of \textit{append-only} writes won't be influenced by
+FTL means the behaviour of \textit{append-only} writes won't be influenced by
 underlying write-amplification or garbage-collection. Secondly, the direct
 relationship between dimensions as reported to the host and to those known on
 the device results in a greatly simplified exchange of information from host
@@ -230,12 +230,12 @@ compute kernels running autonomously and without shared virtual memory.
 \textit{Log-Structured Filesystems} have been around for a long
 time \cite{Rosenblum1992TheDA} but have not really been popularized until the
 recent advancement of nand flash. A LFS maintains one or multiple logs which
-are append-only sections of the filesystem. This has the advantage of the
+are append only sections of the filesystem. This has the advantage of the
 underlying device receiving filesystem writes as sequential I/O operations,
 which is known to improve performance. In addition, LFSs are often relatively
 easy to implement. Unfortunately, LFSs suffer from write-amplification because
-modifcations updating inode or other data location information travels up the
-chain in history. The specific type of write-amplifiction common in LFSs is
+modifications updating inode or other data location information travels up the
+chain in history. The specific type of write-amplification common in LFSs is
 also known as the wandering tree problem. An example of write-amplification is
 shown in figure \ref{figure:writeamplification}.
 
@@ -274,11 +274,11 @@ section.
 
 \section{Research Question}
 
-In this section we formulate the main scientific contribution of this work in
-the form of a research question. In addition, we formulate several sub questions
-which aid in showing to which extend the main research question is answered.
-The sub research questions relate both to design choices as well as qualitative
-performance evaluations.
+The main scientific contribution of this work is formulated in the form of a
+research question. In addition, we formulate several sub questions which aid in
+showing to which extend the main research question is answered. The sub research
+questions relate both to design choices as well as qualitative performance
+evaluations.
 
 Our main scientific contribution aims to answer one of the most prominent open
 research questions in the field of Computational Storage. The question of
@@ -329,20 +329,20 @@ expected benefits of such designs.
 
 \section{Research Method}
 
-A well defined research method is needed to answer the main, design requirements
+A well-defined research method is needed to answer the main, design requirements
 and performance evaluation research questions. Given the nature of the work,
 being the development and evaluation of a research software prototype, an
-iterative design approach simular to that of Agile is best suited.
+iterative design approach similar to that of Agile is best suited.
 
 \subsection{Design Approach}
 
-Our design approach consist of an initial step performed only once followed by
+Our design approach consists of an initial step performed only once followed by
 as many iterations as necessary to complete the design. The first being
 identifying the critical components. Subsequently, the iterative design approach
-consist of the following three steps. First, we identify existing technologies
-that can be used for one or more of the critical components. Secondly, we
-evaluate each of the potential technologies. Third, we implement the
-functionality of the component using the selected techology. Any issue that
+consists of the following three steps. First, identify existing technologies
+that can be used for one or more of the critical components. Secondly,
+evaluate each of the potential technologies. Third, implement the
+functionality of the component using the selected technology. Any issue that
 prevents the further use of a chosen technology starts the next iteration of the
 design process. If no alternatives can be found workarounds or practical
 limitations are introduced instead.
