@@ -1438,18 +1438,29 @@ namespace qemucsd::fuse_lfs {
         if(entry.first.type != INO_T_FILE)
             return FLFS_RET_EISDIR;
 
-        // Update inode size
-        entry.first.size = size;
-
         // Reduce size
         if(entry.first.size > size) {
             // TODO(Dantali0n): Invalidate already occupied SIT blocks
         }
         // Increase size
         else if(entry.first.size < size) {
-            // TODO(Dantali0n): Create all the data_blocks required for the new
-            //                  size
+            struct data_block empty_db_blk = {0};
+
+            // Check how many data blocks already exist
+            uint64_t cur_block_nums = (entry.first.size / SECTOR_SIZE) /
+                DATA_BLK_LBA_NUM;
+
+            // Create all non-existing empty data blocks
+            uint64_t new_block_nums = (size / SECTOR_SIZE) / DATA_BLK_LBA_NUM;
+            new_block_nums += (size / SECTOR_SIZE) % DATA_BLK_LBA_NUM != 0 ? 1 : 0;
+            uint64_t block_nums = new_block_nums - cur_block_nums;
+            for(uint64_t i = 0; i < block_nums; i++) {
+                assign_data_block(ino, i + cur_block_nums, &empty_db_blk);
+            }
         }
+
+        // Update inode size
+        entry.first.size = size;
 
         update_inode_entry(&entry);
 

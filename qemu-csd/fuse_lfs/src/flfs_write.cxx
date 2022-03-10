@@ -139,8 +139,7 @@ namespace qemucsd::fuse_lfs {
             if(i == 0) s_off = 0;
         }
 
-        if(wr_context->cur_db_lba_index != 0)
-            assign_data_block(ino, wr_context->cur_db_blk_num, &cur_db_blk);
+        assign_data_block(ino, wr_context->cur_db_blk_num, &cur_db_blk);
         entry.first.size = entry.first.size > off + size ?
             entry.first.size : off + size;
         update_inode_entry(&entry);
@@ -210,9 +209,8 @@ namespace qemucsd::fuse_lfs {
             if(i == 0) s_off = 0;
         }
 
-        if(wr_context->cur_db_lba_index != 0)
-            snap.data_blocks.insert_or_assign(wr_context->cur_db_blk_num,
-                cur_db_blk);
+        snap.data_blocks.insert_or_assign(wr_context->cur_db_blk_num,
+            cur_db_blk);
         snap.inode_data.first.size = snap.inode_data.first.size > off + size ?
             snap.inode_data.first.size : off + size;
 
