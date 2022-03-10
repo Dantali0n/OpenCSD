@@ -85,21 +85,17 @@ namespace qemucsd::measurements {
             result.lowest = SIZE_MAX;
         }
 
-        std::vector<measurement> temp_starts;
-        std::vector<measurement> temp_stops;
+        std::set<measurement> temp_starts;
+        std::set<measurement> temp_stops;
 
         std::unique_ptr<qemucsd::measurements::measurement> measure;
         while(queue.try_pop(measure)) {
-            if(!measure->stop) temp_starts.push_back(*measure);
-            else temp_stops.push_back(*measure);
+            if(!measure->stop) temp_starts.insert(*measure);
+            else temp_stops.insert(*measure);
         }
 
         for(auto &starts : temp_starts) {
-            auto it = std::find_if(temp_stops.begin(), temp_stops.end(),
-                [&starts](const auto& x) {
-                    return x.marker == starts.marker;
-                }
-            );
+            auto it = temp_stops.find(starts);
             if(it == temp_stops.end()) {
                 output.error("Missing stop for measurement with identifier",
                              starts.identifier);

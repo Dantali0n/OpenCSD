@@ -31,7 +31,7 @@
 
 #include <atomic>
 #include <chrono>
-#include <vector>
+#include <set>
 #include <string>
 
 #include "output.hpp"
@@ -55,6 +55,14 @@ namespace qemucsd::measurements {
         size_t identifier;
         size_t marker;
         std::chrono::system_clock::time_point time;
+
+        bool operator ==(measurement rhs) const {
+            return this->marker == rhs.marker ? 1 : 0;
+        }
+
+        bool operator <(measurement rhs) const {
+            return this->marker < rhs.marker ? 1 : 0;
+        }
     };
 
     /**
