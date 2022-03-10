@@ -17,7 +17,12 @@
 % ----------------------- contents from here ------------------------
 % 
 
-\section{Computational Storage Devices}
+\section{Support Technologies}
+
+Several developments across different fields have been essential for the
+goals we envision for CSx. In this section we go to the most prominent of 
+these developments. However, only developments not directly related to CSx are
+covered as the next section covers these CSx developments detail.
 
 \section{Computational Storage Devices}
 
@@ -206,7 +211,7 @@ to improve usability.
                 Metal FS \cite{10.1145/3342195.3387557} & Event driven & Dataflow (streams) & PCIe (NVMe) \/ CAPI & Bitstream \\
                 blockNDP \cite{10.1145/3429357.3430519} & Event driven & Dataflow (streams) & PCIe (NVMe, OpenSSD) & Virtual Machine (QEMU) \\
                 QEMU CSD \cite{10.1145/3439839.3459085} & Arbitrary code execution & Shared memory & PCIe (NVMe) & N.A. (Simulated) \\
-                ZCSD \cite{lukken2021zcsd} & Arbitrary code execution & Shared memory & N.A. (Simulated) & N.A. (Simulated) \\
+                ZCSD \cite{lukken2021zcsd} & Arbitrary code execution & Shared memory & N.A. (Simulated) & Virtual Machine (uBPF) \\
                 \bottomrule
             \end{tabular}
             \begin{tablenotes}[para,flushleft]
