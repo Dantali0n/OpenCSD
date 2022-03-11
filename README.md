@@ -179,14 +179,14 @@ cmake .. # this prevents re-compiling dependencies on every next make command
 ```
 
 ```shell script
-git bundle create deploy.git HEAD
 cd build/qemu-csd
 source activate
 qemu-img create -f raw znsssd.img 16777216 # 34359738368
 # By default qemu will use 4 CPU cores and 8GB of memory
 ./qemu-start.sh
 # Wait for QEMU VM to fully boot... (might take some time)
-rsync -avz -e "ssh -p 7777" ../../deploy.git arch@localhost:~/
+git bundle create deploy.git HEAD
+rsync -avz -e "ssh -p 7777" deploy.git arch@localhost:~/
 # Type password (arch)
 ssh arch@localhost -p 7777
 # Type password (arch)
@@ -756,3 +756,15 @@ A combination of both host and device level protections seems appropriate. This
 will incur an additional runtime cost. Potentially, the filesystem could have
 a set of verified kernels it keeps internally that disable all these runtime
 checks.
+
+#### Investigating the request limit with ftrace
+
+https://unix.stackexchange.com/questions/529529/why-is-the-size-of-my-io-requests-being-limited-to-about-512k
+
+```
+trace-cmd record -e syscalls -p function_graph -c -F ./fuse-entry -- -d -o max_read=2147483647 test
+```
+
+```
+sudo trace-cmd record -e syscalls -p function_graph -l 'fuse_*'
+```
