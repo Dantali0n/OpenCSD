@@ -17,26 +17,83 @@
 % ----------------------- contents from here ------------------------
 % 
 
-\section{Framework}
+\section{Requirements}
+
+\subsection{Framework}
 
 % mmap shared memory vs monolith (iteration 1)
 % accelerator API vs NVMe namespace (iteration 4)
 
-\section{Filesystem}
+\subsection{Filesystem}
 
-% fadvise vs extended attributes (iteration 2)
 % rtl_next vs FUSE (iteration 3)
-
 
 % Two write pointers, one for RANDOM ZONE and one for LOG ZONE. Use of ZNS is
 % optional but allows for lower write-amplification and more explicit garbage
 % collection
 
-\subsection{Concurrency}
+\subsubsection{Concurrency}
 
-\section{Offloading}
+\subsection{Offloading}
 
 % Filesystem extended attributes, PID + INODE
+
+\section{Iterations}
+
+Before covering our overall design decisions we describe the iterations that
+have occured during the design process. We cover this separately as to not
+clutter the overall design and implementation sections. These next sections
+describes the design requirements derived from the research questions, followed
+by, the final design. The implementation details of the design are covered in
+a subsequent chapter.
+
+The overall design process consisted of four destinct iterations. Two relating
+primarily to the framework, onr relating to the filesystem and one relating to
+offloading. This section describes each iteration briefly before going in more
+detail. Firstly regarding framework iterations we see the distinct decision
+to switch from a multi process architecture using mmap for shared memory maps to
+a monolithic application. The second iteration led to switching away from the
+design of an accelerator API, much like Vulkan or OpenCL, to an artificial
+extension of the NVMe namespace. The third iteration changed the use
+rtld\_next \cite{rtldnext} to using a practical filesystem with FUSE. Lastly, as
+computational storage API our work switched from using
+\textit{Portable Operating System Interface} (POSIX) fadvise \cite{fadvise} to
+extended attributes.
+
+For each of these four iterations the advantages of the change as well as the
+major issues with the previous solution are described. Each iteration is
+described in the same order as previously defined.
+
+\subsection{Shared Memory Monolith}
+
+Modern operating systems offer fastly different methods to write sofware. From
+kernel modules, to distributed processes, UNIX pipes and shared memory maps.
+Choosing the right model impacts practicalities such as the amount of
+development effort required and the robustness of the final solution. 
+Furtermore, depending on the software architecture some solutions will be better
+suited than others.
+
+During the design the use of shared memory maps was replaced with using regular
+shared memory. While both solutions provide shared memory they are fundamentally
+different. A shared memory map is a file, leveraging the well known UNIX
+principle \textit{everything is a file}, that allows two or more processes to
+share a region of memory. While regular shared memory is limited to a single
+process although it could share this memory with additional threads.
+
+this single process shared memory solution is one of the most common found in
+software today. The concepts of such a program are very well understood as
+well as the development using imperative languages being straightforward.
+
+While shared memory maps are typically found in device drivers, such as those
+for graphics cards, their use consistutes severe additional development effort.
+In conjuction with our design being a simulation there is no scientific value in
+using shared memory maps for our design.
+
+\subsection{NVMe Namespace Command Set}
+
+\subsection{FUSE Filesystem}
+
+\subsection{Extended Attributes}
 
 % ---------------------------------------------------------------------------
 % ----------------------- end of thesis sub-document ------------------------
