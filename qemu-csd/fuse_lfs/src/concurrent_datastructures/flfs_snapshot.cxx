@@ -49,7 +49,7 @@ namespace qemucsd::fuse_lfs {
 
         // Either it fails or we get everything that already exists
         // does not influence behavior / correctness.
-        if(get_snapshot(context, &snap) != FLFS_RET_NONE)
+        if(get_snapshot(context, &snap) == FLFS_RET_NONE)
             output.warning("Updating existing snapshot for ",
                 "ino ", context->first, " with pid ", context->second);
         // Only stream based kernels trigger a file snapshot
