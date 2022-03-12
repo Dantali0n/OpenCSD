@@ -1,0 +1,91 @@
+% this file is called up by thesis.tex
+% content in this file will be fed into the main document
+
+\chapter{Experiments} % top level followed by section, subsection
+
+
+% ----------------------- paths to graphics ------------------------
+
+% change according to folder and file names
+\ifpdf
+    \graphicspath{{7/figures/PNG/}{7/figures/PDF/}{7/figures/}}
+\else
+    \graphicspath{{7/figures/EPS/}{7/figures/}}
+\fi
+
+
+% ----------------------- contents from here ------------------------
+% 
+
+\section{Experiment Design}
+
+In this section we designed several experiments to evaluate the performance of
+FluffleFS. These experiments can be separated into two categories. Firstly,
+we performed microbenchmarks operating on relatively simple reads and writes.
+Secondly, we isolated several applications that likely benefit from offloading
+and port these to be used by FluffleFS. For each of these applications we reason
+about the expected and achieved data movement reduction among other performance
+metrics.
+
+\subsection{Microbenchmarks}
+
+\begin{enumerate}
+    \item Sequential reads \& writes f2fs vs FluffleFS
+    (Linegraph transfer rate MB/s - 64k up until 1g filesizes)
+    \begin{itemize}
+        \item Demonstrate what performance can be expected from FluffleFS as
+              regular filesystem.
+    \end{itemize}
+    \item Random reads \& writes f2fs vs FluffleFS
+    (Linegraph transfer rate MB/s - 4k, 8k, 16k, 32k, 64k, 128k request sizes)
+    \begin{itemize}
+        \item Demonstrate what performance can be expected from FluffleFS as
+              regular filesystem.
+    \end{itemize}
+    \item Sequential reads \& writes regular vs passthrough kernel
+    (Linegraph transfer rate MB/s - 64k up until 1g filesizes)
+    \begin{itemize}
+        \item Show performance impact of snapshotting and uBPF.
+    \end{itemize}
+    \item Sequential reads \& writes concurrently regular \& 1 passthrough 128k
+    request size
+    (Linegraph, 1, 2, 4, 8 threads, with best performer previous benchmark)
+    \begin{itemize}
+        \item Demonstrate the passthrough kernel performance is relatively
+              unaffected compared to deminishing performace of regular reads
+              \& writes for multiple threads. (Proof concurrent access to the
+              same file).
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Applications}
+
+\begin{enumerate}
+    \item Offload integer average (read stream kernel)
+    \begin{itemize}
+        \item Have one thread write append to a file while the another computes
+              the integer average for this file do so using both regular access
+              and using kernel offloading.
+        \item Demonstrate offloading can reduce amount of data transfered
+              between host and device significantly with no signifcant
+              performance impact.
+    \end{itemize}
+    \item Offloaded shannon entropy (read stream kernel)
+    \begin{itemize}
+        \item Go through all files in a directory and determine entropy of first
+              128k of each file. Return a list of files with entropy < 6.
+        \item Demonstrate that async applications can reduce host load by
+              waiting for offloaded tasks (Total CPU time - kernel CPU time)
+    \end{itemize}
+    \item CSV index generation (write event kernel)
+    \begin{itemize}
+        \item Generate indexes for a query replicated from TPC-DS at 128k
+              intervals.
+        \item Demonstrate that async applications can reduce host load by
+              waiting for offloaded tasks (Total CPU time - kernel CPU time)
+    \end{itemize}
+\end{enumerate}
+
+% ---------------------------------------------------------------------------
+% ----------------------- end of thesis sub-document ------------------------
+% ---------------------------------------------------------------------------
