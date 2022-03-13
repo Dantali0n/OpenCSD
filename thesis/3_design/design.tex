@@ -19,33 +19,143 @@
 
 \section{Requirements}
 
+As mentioned our research questions are designed to address both design and
+evaluation separately. In addition, the design requirements can be further
+divided into those addressing the overall filesystem, the surrounding
+framework and computational offloading. The resulting categorization is shown
+below.
+
+\begin{itemize}
+    \item Framework
+    \begin{enumerate}
+        \item What techniques can be used to minimize the complexity required to
+            use a hybrid LFS?
+        \item What mechanisms allow for simplified replacement of used existing
+            technologies in a hybrid LFS?
+    \end{enumerate}
+    \item Filesystem
+    \begin{enumerate}
+        \item What existing technologies are best suited for a hybrid LFS?
+    \end{enumerate}
+    \item Offloading
+    \begin{enumerate}
+        \item How to register CSx compute kernels using existing operating
+            system APIs?
+        \item How to differentiate individual users, files and I/O operations in
+            relation to their CSx compute kernel?
+        \item How to design a compute kernel API that can be reused across devices?
+        \item How to ensure user submitted CSx compute kernels are safe?
+    \end{enumerate}
+\end{itemize}
+
 \subsection{Framework}
 
-% mmap shared memory vs monolith (iteration 1)
-% accelerator API vs NVMe namespace (iteration 4)
+Traditional CSx prototypes often have a high barrier to entree due to
+complicated dependencies that can not easily be installed through package
+managers or software repositories. Our work directly addresses that minimizing
+the complexity as design requirement as well as designing for simple
+replacement of used technologies.
+
+Firstly, all software dependencies must be installed isolated from system
+dependencies. This is to prevent the host system being influenced by the use
+of the prototype. Secondly, as many as possible software dependencies must be
+userspace programs such that even users without administrative system
+privileges can use it. Finally, the prototype must be able to run in a virtual
+environment that allows for the emulation of ZNS SSDs. This is to overcome
+hardware requirements given the lack of general availability for ZNS SSDs.
+
+Our design achieves simple replacement of technologies by creating abstract
+interfaces for them in a generalized form. Each of the custom software
+components developed is only coupled to these interfaces. Should the need arise
+than the implementation of these interfaces can be switched even without
+recompilation of the dependent software component. In this work we will call
+each of these software components \textit{modules}.
 
 \subsection{Filesystem}
 
-% rtl_next vs FUSE (iteration 3)
+Until now the integration of filesystem support in CSxs has been a difficult
+avenue. Regardsless, works such as Metal FS \cite{10.1145/3415580} and INSIDER
+\cite{234968} definitely achieve some form of file system integration. However,
+filesystem integration can still be substantially improved as will be shown in
+this work. To do so we design our filesystem by selecting the best existing
+technologies that achieve this.
 
-% Two write pointers, one for RANDOM ZONE and one for LOG ZONE. Use of ZNS is
-% optional but allows for lower write-amplification and more explicit garbage
-% collection
-
-\subsubsection{Concurrency}
+Firstly, the design must be a \textit{Log-Structured Filesystem} (LFS) as that
+easily enables journaling, snapshotting and recovery. While the implementation
+of journaling and recovery are optional, snapshotting is essential for our
+design. Secondly, the filesystem must be \textit{host-managed}, meaning that
+wear-leveling and garbage-collection are managed by the filesystem on the host.
+This will eliminate any logical to physical block address translation on the
+device which would result in additional complexity and runtime overhead for
+offloaded compute kernels. These differences between the host and device view
+are often referred to as the \textit{semantic gap}. Third, the entirety of a
+file, the inode, data locations and details of the I/O request must be easily
+representable in memory. Such a memory representation of a file can then be
+exposed to computational storage kernels. Lastly, access to snapshots must be
+independent from regular file access to the extend that they can happen
+concurrently otherwise evaluating any performance gains from such a prototype
+becomes meaningless.
 
 \subsection{Offloading}
 
-% Filesystem extended attributes, PID + INODE
+Many recent CSx works still require changes to existing operating system
+APIs\footnotemark[9] to operate. INSIDER \cite{234968} partly addressed this by
+copying the signatures of common \textit{Portable Operating System Interface}
+(POSIX) I/O calls and creating additional clones for offloading. While this
+reduces complexity due to common familiarity and thorough understanding of
+this pre-existing API, it still adds additional calls that must specifically be
+targeted to support offloading. Metal FS \cite{10.1145/3415580} does not need
+additional APIs to function instead changing UNIX pipe behavior. However, it is
+not specified if this eliminates regular use of UNIX pipes on their filesystem
+implementation. Our design manages to only use existing APIs found in almost all
+\textit{UNIX derivates} further known as \textit{NIX}. The exact process of
+offloading is achieved through the following requirements.
+
+\footnotetext[9]{In the context of operating systems the term API and ABI is
+used interchangeably although most implemenations solely use an ABI. A common
+exception is microkernels that use usermode services to provide the majority of
+features.}
+
+Firstly, the compute kernels are registered through filesystem extended
+attributes, commonly managed with the \textit{xattr} command on NIX operating
+systems. Secondly, the calling \textit{Process IDentifier} (PID) must be
+maintained in memory alongside the file and kernel upon such an extended
+attributes call. In addition, storing this state in a non-persistent manner is
+essential to the design. Lastly, the offloading behavior must be isolated to the
+process setting the extended attribute. In other terms, regular accesses must
+be unaffected by processes setting these extended attributes.
+
+The device design requires that one universal ISA is used for offloading
+execution. This eliminates users having to rewrite or recompile their compute
+kernels across different vendors. In addition, one API needs to be defined in
+such a way that it can be implemented by the vendor. The API needs to be
+simple enough for users to use as well as for vendors to implement. However, the
+vendor API code can not be linked at compile time as this would result in users
+still having to recompile code across vendors.
+
+Instead, an ISA is needed that can easily be executed by a virtual machine. In
+addition, the ISA should support \textit{call} instructions and it is these
+instructions that should \textit{trap} into the vendor API. Such an interface
+that is defined at the binary level is known as an ABI.
+
+Finally, the ISA should allow for safety features including but not limited to 
+memory access validation, static verification and termination determiniation.
+This will provide protection against misbehaving and malicious user code.
+
+Optionally, compiled kernels should allow for variable relocation so that the
+filesystem can reconfigure global variables on user submitted kernels. This
+will greatly simplify static verification. However. the ability to support this
+depends largely on the ISA.
 
 \section{Iterations}
 
 Before covering our overall design decisions we describe the iterations that
-have occured during the design process. We cover this separately as to not
-clutter the overall design and implementation sections. These next sections
-describes the design requirements derived from the research questions, followed
-by, the final design. The implementation details of the design are covered in
-a subsequent chapter.
+have occured during the design process.
+
+This section is covered separetely to prevent clutter in the overall design and
+implementation sections. These next sections describes the design requirements
+derived from the research questions, followed by, the final design. The
+implementation details of the design are covered in a subsequent chapter.
 
 The overall design process consisted of four destinct iterations. Two relating
 primarily to the framework, onr relating to the filesystem and one relating to
