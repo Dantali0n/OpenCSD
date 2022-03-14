@@ -1744,8 +1744,6 @@ namespace qemucsd::fuse_lfs {
         conn->want &= ~(FUSE_CAP_PARALLEL_DIROPS);
         conn->want &= ~(FUSE_CAP_HANDLE_KILLPRIV);
 
-//        conn->want &= ~(FUSE_CAP_SPLICE_READ);
-
         if(conn->capable & FUSE_CAP_SPLICE_READ) {
             output.info("Enabling splice read");
             conn->want |= FUSE_CAP_SPLICE_READ;
@@ -1763,8 +1761,13 @@ namespace qemucsd::fuse_lfs {
 
         if(conn->capable & FUSE_CAP_AUTO_INVAL_DATA)
             conn->want |= FUSE_CAP_AUTO_INVAL_DATA;
+        else
+            output.error("Unable to perform data auto invalidation! This will"
+                "cause kernel offloading to be intermittent!");
 
-        // No limit
+        // No limit, actual limit will be 32 * PAGE_SIZE see:
+        // https://github.com/libfuse/libfuse/commit/4f8f034a8969a48f210bf00be78a67cfb6964c72
+        // https://elixir.bootlin.com/linux/latest/source/fs/fuse/fuse_i.h#L36
         conn->max_read = UINT32_MAX >> 1;
     }
 
