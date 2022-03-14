@@ -165,8 +165,8 @@ offloading. This section describes each iteration briefly before going in more
 detail. Firstly regarding framework iterations we see the distinct decision
 to switch from a multi process architecture using mmap for shared memory maps to
 a monolithic application. The second iteration lead to switching away from the
-design of an accelerator API, much like Vulkan or OpenCL, to an artificial
-extension of the NVMe namespace. The third iteration changed the use
+design of an accelerator API, much like Vulkan \cite{vulkan} or OpenCL, to an
+artificial extension of the NVMe namespace. The third iteration changed the use
 rtld\_next \cite{rtldnext} to using a practical filesystem with FUSE. Lastly, as
 computational storage API our work switched from using
 \textit{Portable Operating System Interface} (POSIX) fadvise \cite{fadvise} to
