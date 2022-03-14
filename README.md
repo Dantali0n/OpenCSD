@@ -757,7 +757,16 @@ will incur an additional runtime cost. Potentially, the filesystem could have
 a set of verified kernels it keeps internally that disable all these runtime
 checks.
 
-#### Investigating the request limit with ftrace
+#### Investigating read / write request limits
+
+**References**
+
+- https://lkml.iu.edu/hypermail/linux/kernel/1207.1/02414.html
+- https://lkml.org/lkml/2012/7/5/136
+- https://github.com/libfuse/libfuse/commit/4f8f034a8969a48f210bf00be78a67cfb6964c72
+- https://elixir.bootlin.com/linux/latest/source/fs/fuse/fuse_i.h#L36
+
+**ftrace**
 
 https://unix.stackexchange.com/questions/529529/why-is-the-size-of-my-io-requests-being-limited-to-about-512k
 
@@ -767,4 +776,10 @@ trace-cmd record -e syscalls -p function_graph -c -F ./fuse-entry -- -d -o max_r
 
 ```
 sudo trace-cmd record -e syscalls -p function_graph -l 'fuse_*'
+```
+
+**sysfs**
+
+```
+/proc/sys/fs/pipe-max-size
 ```
