@@ -22,7 +22,7 @@ architecture as presented to the end user. However, the actual implementation
 differs due to the use of emulation using technologies such as QEMU, uBPF and
 SPDK.
 
-![](thesis/resources/images/loader-pfs-arch-2.drawio.png)
+![](thesis/resources/images/loader-pfs-arch-v3.png)
 
 # ZCSD
 
