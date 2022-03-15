@@ -33,7 +33,7 @@
 	url = https://github.com/generic-ebpf/generic-ebpf.git
 [submodule "dependencies/libfuse"]
 	path = dependencies/libfuse
-	url = https://github.com/Dantali0n/libfuse.git
+	url = https://gitlab.dantalion.nl/vu/libfuse.git
 [submodule "dependencies/fuse-lfs"]
 	path = dependencies/fuse-lfs
 	url = https://github.com/sphurti/Log-Structured-Filesystem.git
