@@ -763,8 +763,12 @@ checks.
 
 - https://lkml.iu.edu/hypermail/linux/kernel/1207.1/02414.html
 - https://lkml.org/lkml/2012/7/5/136
-- https://github.com/libfuse/libfuse/commit/4f8f034a8969a48f210bf00be78a67cfb6964c72
-- https://elixir.bootlin.com/linux/latest/source/fs/fuse/fuse_i.h#L36
+- max_read_pages_code
+  - https://github.com/libfuse/libfuse/commit/4f8f034a8969a48f210bf00be78a67cfb6964c72
+  - https://elixir.bootlin.com/linux/latest/source/fs/fuse/fuse_i.h#L36
+- max_read_pages_patches
+  - https://github.com/libfuse/libfuse/commit/027d0d17c8a4605109f09d9c988e255b64a2c19a
+  - https://patchwork.kernel.org/project/linux-fsdevel/patch/20180814211717.22170-1-const@MakeLinux.com/
 
 **ftrace**
 
