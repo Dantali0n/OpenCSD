@@ -146,6 +146,10 @@ FUSE.}
 
 \subsection{Filesystem}
 
+This section describes the filesystem implementation and how it meets the design
+requirements. In addition, it describes how data is layed out on the drive As
+well as how state is represented in memory.
+
 % Two write pointers, one for RANDOM ZONE and one for LOG ZONE. Use of ZNS is
 % optional but allows for lower write-amplification and more explicit garbage
 % collection
