@@ -43,10 +43,10 @@ add_custom_target(generate_bpf_helpers_flfs DEPENDS ${PRJ_HEADERS}/bpf_helpers_f
 add_subdirectory(src/bpf)
 
 set(QEMUCSD_FUSE_LFS_LIBRARIES
+    qemucsd_arguments
     qemucsd_output
     qemucsd_nvme_csd
     qemucsd_nvme_zns_backend
-#    qemucsd_spdk_init
     qemucsd_measurements
     fuse3
 )

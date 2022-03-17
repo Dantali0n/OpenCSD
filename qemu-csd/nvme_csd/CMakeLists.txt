@@ -52,7 +52,7 @@ target_link_libraries(
     ${QEMUCSD_NVME_CSD_LIBRARIES}
 )
 
-add_dependencies(qemucsd_nvme_csd ubpf-build)
+add_dependencies(qemucsd_nvme_csd ubpf-build libbpf-build)
 
 # Add qemucsd_nvm_csd to the modules
 add_qemucsd_module(qemucsd_nvme_csd)
