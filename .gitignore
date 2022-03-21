@@ -121,6 +121,18 @@ compsys2021/*
 !compsys2021/**/python/
 
 # latex intermediate files
+ictopen2022/*
+!ictopen2022/**/
+!ictopen2022/CMakeLists.txt
+!ictopen2022/narrative.md
+!ictopen2022/**/*.bib
+!ictopen2022/**/*.tex
+!ictopen2022/**/*.sty
+!ictopen2022/**/bash/
+!ictopen2022/**/images/
+!ictopen2022/**/python/
+
+# latex intermediate files
 presentation/*
 !presentation/**/
 !presentation/CMakeLists.txt
