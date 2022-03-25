@@ -21,13 +21,13 @@
 
 Several developments across different fields have been essential for the
 goals we envision for CSx. In this section we go to the most prominent of 
-these developments. However, only developments not directly related to CSx are
+these developments. However, only developments not directly related to CSxs are
 covered as the next section covers these CSx developments in detail.
 
 These developments are three fold. Firstly, the development of host-managed
 storage interfaces with first \textit{Open-Channel SSD} (OCSSD)
 \cite{Bjrling2017LightNVMTL} and later NVMe ZNS. Secondly, filesystem
-improvement with F2FS \cite{Lee2015F2FSAN} using an optimized layout for flash
+improvements with F2FS \cite{Lee2015F2FSAN} using an optimized layout for flash
 storage devices. Lastly, a heterogenous compute ISA, namely eBPF
 \cite{ebpf_cs_2021, kourtis2020safe, bpf-uapi}.
 
@@ -44,21 +44,27 @@ be erased as a whole. Finally, ZNS devices can impose limits on the maximum
 amount of zones that can be opened at any given time. This zoned layout is
 visually compared to a conventional flash SSD in figure \ref{figure:znslayout}.
 
-\begin{figure}
+\begin{figure}[H]
     \centering
 	\includegraphics[width=0.8\textwidth]{resources/images/zns-vs-conventional-layout.pdf}
 	\caption{Comparison of conventional and ZNS SSD data layouts}
     \label{figure:znslayout}
 \end{figure}
 
-% ZNS applications and evaluations 254268, 9188086, 273709, 10.1145/3458336.3465300
+This new ZNS technology has already been used in promising research avenues such
+as an optimized garbage collection scheme \cite{254268}. In addition, we see
+a more general performance evaluations \cite{10.1145/3458336.3465300, 9188086}
+demonstrating the advantages of ZNS. Lastly, we see proposals to extend the ZNS
+interface to better support compaction in LFSs \cite{273709}.
+
+% Transition sentence?
 
 It is only recently that we have seen filesystems optimized for flash outside of
 embedded applications. This new filesystem, F2FS \cite{Lee2015F2FSAN}, is
 significantly more advanced than embedded filesystem like JFFS2 \cite{jffs2}.
 With F2FS write-amplification is not only prevented by utilizing the sequential
 write behavior of LFSs, in addition, it is prevented by tracking inode locations
-in a separate NAT as oppossed to chaining their location data together. This
+in a separate NAT as oppossed to chaining inode location data together. This
 flattened layout solves the wandering tree problem where a single location
 updates causes a chain of updates to propagate. Other improvements include
 separate logs for hot and cold data as well as garbage collection using a
@@ -67,20 +73,22 @@ However, F2FS still has several limitations such as no wear-leveling and only
 entirely invalidated zone garbage-collection. An overview of the F2FS data
 layout is shown in figure \ref{figure:f2fslayout}.
 
-\begin{figure}
+\begin{figure}[H]
     \centering
 	\includegraphics[width=1\textwidth]{resources/images/f2fs-layout.png}
 	\caption{Overview of data layout on F2FS}
     \label{figure:f2fslayout}
 \end{figure}
 
+% Transition sentence?
+
 eBPF is used in the Linux kernel extensively and is still seeing increasing use
 cases. One of these recent new use cases is as heterogenous ISA \cite{bpf-uapi}.
 The combination of the ease of virtualization together with the call instruction
-enable to separate an API from its actual implementation. Even more, the
+enables to separate an API from its actual implementation. Even more, the
 implementation is so separated from its implementation that it does not have to
 be linked at compile time or even be present on the host system. Previous works
-have already explaned why eBPF is such a good fit for computational storage in
+have already explained why eBPF is such a good fit for computational storage in
 detail \cite{ebpf_cs_2021}. Lastly, the capabilities of eBPF have already been
 demonstrated in the case of disaggregated storage \cite{kourtis2020safe}.
 
