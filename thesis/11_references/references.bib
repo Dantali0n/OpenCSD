@@ -66,8 +66,8 @@
   urldate = {2022-02-28}
 },
 @misc{nvme-zns,
-  title = {NVMe 1.4 ratified TPs, TP 4053 Zoned Namespaces},
-  howpublished  = {\url{https://nvmexpress.org/developers/nvme-specification/}},
+  title = {NVMe ZNS command set 1.1B},
+  howpublished  = {\url{https://nvmexpress.org/wp-content/uploads/NVM-Express-Zoned-Namespace-Command-Set-Specification-1.1b-2022.01.05-Ratified.pdf}},
   urldate = {2021-02-10}
 },
 @misc{vulkan,
@@ -1047,7 +1047,6 @@
   address = {New York, NY, USA},
   url = {https://doi.org/10.1145/3458336.3465300},
   doi = {10.1145/3458336.3465300},
-  abstract = {Research on flash devices almost exclusively focuses on conventional SSDs, which expose a block interface. Industry, however, has standardized and is adopting Zoned Namespaces (ZNS) SSDs, which offer a new storage interface that dominates conventional SSDs. Continued research on conventional SSDs is thus a missed opportunity to unlock a step-change improvement in system performance by building on ZNS SSDs. We argue for an immediate and complete shift in research to ZNS SSDs and discuss research directions.},
   booktitle = {Proceedings of the Workshop on Hot Topics in Operating Systems},
   pages = {144–151},
   numpages = {8},
@@ -1596,6 +1595,19 @@
   keywords = {address remapping, flash storage devices, write atomicity, share interface, flash translation layer},
   location = {San Francisco, California, USA},
   series = {SIGMOD '16}
+},
+@misc{liblightnvm,
+  title={liblightnvm},
+  author={OpenChannelSSD},
+  howpublished={\url{https://github.com/OpenChannelSSD/liblightnvm}},
+  date={2022-03-17},
+  year={2022}
+}
+@inproceedings{Bjrling2017LightNVMTL,
+  title={LightNVM: The Linux Open-Channel SSD Subsystem},
+  author={Matias Bj{\o}rling and Javier Gonz{\'a}lez and Philippe Bonnet},
+  booktitle={FAST},
+  year={2017}
 },
 @inproceedings{10.1145/3164541.3164556,
   author = {Jhin, Jhuyeong and Kim, Hyukjoong and Shin, Dongkun},
