@@ -217,6 +217,14 @@ is Metal FS \cite{10.1145/3342195.3387557} which achieves filesystem integrated
 computational offloading through UNIX pipes. However, it does not address
 multi-user tenancy. In addition, it is unclear if their customized Unix pipe
 behaviour influences regular UNIX pipes should they be used on their filesystem.
+Lastly, is INSIDER \cite{234968} which achieves filesystem integration on
+conventional SSD CSxs. This is done by only supporting passthrough kernels which
+are not aware of the host filesystem. In addition, INSIDER replicates parts of
+the \textit{Portable Operating System Interface} (POSIX) I/O API to improve
+familiarity. However, this still requires many copies of pre-existing API calls
+with one for regular access and offloaded, respectively. Finally, writting
+customized kernels is possible but requires RTL design knowledge and use of the
+Xilinx Vivado toolchain.
 
 \footnotetext[4]{"Support for accessing a file on a file system could be added,
 for example, by integrating it with a FUSE file system driver or uNFS"
