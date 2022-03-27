@@ -2144,6 +2144,11 @@ namespace qemucsd::fuse_lfs {
             return;
         }
 
+        if(e.attr.st_size < offset) {
+            fuse_reply_buf(req, nullptr, 0);
+            return;
+        }
+
         #ifdef QEMUCSD_DEBUG
         // Verify inode is regular file
         if(!(e.attr.st_mode & S_IFREG)) {
