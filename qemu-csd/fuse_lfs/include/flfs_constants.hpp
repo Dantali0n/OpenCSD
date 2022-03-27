@@ -118,6 +118,9 @@ namespace qemucsd::fuse_lfs {
      * fuse_lfs
      */
 
+    // Either 1M or 128k
+    static constexpr uint64_t CSD_READ_STRIDE = 524288; //1048528; // 131072;
+
     static constexpr uint32_t SECTOR_SIZE = 4096;
     static constexpr uint64_t MAGIC_COOKIE = 0x10ADEDB00BDEC0DE;
 

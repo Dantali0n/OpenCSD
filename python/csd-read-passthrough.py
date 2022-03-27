@@ -10,7 +10,10 @@ import xattr
 
 """
 
-import pdb; pdb.set_trace()
+# 1M / 128k - 1048576
+read_stride = 524288 # 1048528 # 131072
+
+# import pdb; pdb.set_trace()
 
 # Open the file
 fd = os.open("test/test", os.O_RDWR)

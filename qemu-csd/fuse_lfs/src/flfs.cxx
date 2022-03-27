@@ -2144,6 +2144,8 @@ namespace qemucsd::fuse_lfs {
             return;
         }
 
+        // Try to prevent reads accessing non-existing data blocks, this is
+        // an incomplete solution!
         if(e.attr.st_size < offset) {
             fuse_reply_buf(req, nullptr, 0);
             return;

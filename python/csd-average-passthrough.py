@@ -13,9 +13,11 @@ import xattr
     All kernels compiled along FluffleFS can be found in the qemu-csd/bin folder
     of the build directory.
 """
-read_stride = 131072
 
-import pdb; pdb.set_trace()
+# 1M / 128k - 1048576
+read_stride = 524288 # 1048528 # 131072
+
+# import pdb; pdb.set_trace()
 
 # Open the file and read it normally
 fd = os.open("test/test", os.O_RDWR)
