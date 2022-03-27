@@ -1930,6 +1930,13 @@ namespace qemucsd::fuse_lfs {
         const lock_guard<pthread_rwlock_t> lock(gl, true);
         struct stat stbuf = {0};
 
+        // This is essential! Otherwise, returning EOF in read requests will
+        // block any subsequent calls for up to a minute. kernel offloading
+        // absolutely depends on being able to return less data than requested
+        // size (send EOF).
+        // https://www.kernel.org/doc/html/latest/filesystems/fuse-io.html
+        fi->direct_io = 1;
+
         // Check if the inode exists
         if(inode_stat(ino, &stbuf) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENONET);

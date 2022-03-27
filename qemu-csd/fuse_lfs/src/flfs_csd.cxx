@@ -137,6 +137,7 @@ namespace qemucsd::fuse_lfs {
     void FuseLFS::read_csd(fuse_req_t req, csd_unique_t *context, size_t size,
         off_t off, struct fuse_file_info *fi)
     {
+
         measurements::measure_guard msr_guard(msr_csd[MSRI_CSD_READ]);
         struct snapshot kernel_snap;
 
