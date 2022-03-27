@@ -169,6 +169,12 @@ namespace qemucsd::fuse_lfs {
             return;
         }
 
+        if(size != 131072 && off + size < file_snap.inode_data.first.size) {
+            uint64_t t_ino = file_snap.inode_data.first.inode;
+            output.error("Strided read not aligned for ", t_ino, " with size",
+                size);
+        }
+
         /** Create the filesystem context to present to the kernel during
          * execution. */
         void *call = nullptr;
