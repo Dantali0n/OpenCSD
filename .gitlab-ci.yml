@@ -118,6 +118,9 @@ test:
     - cd build || exit
     - cmake -DENABLE_PLAYGROUND=off -DENABLE_DOCUMENTATION=off -DENABLE_TESTS=on ..
     - make check
+  artifacts:
+    reports:
+      junit: $CI_PROJECT_DIR/build/tests/tests.xml
 #test-windows:
 #  stage: test
 #  tags:

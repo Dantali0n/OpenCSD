@@ -314,7 +314,7 @@ add_test(TestNvmeZnsBackendMemory testnvme-zns-memory)
 add_test(TestSpdkInit testspdk-init)
 
 add_custom_target(check
-	COMMAND ${CMAKE_CTEST_COMMAND}
+	COMMAND ${CMAKE_CTEST_COMMAND} --output-junit tests.xml
 	DEPENDS testarguments testcpp17 testfuse-lfs testfuse-lfs-concurrency
 		testfuse-lfs-drive testmeasurements testnvme-csd testnvme-zns-memory
 		testspdk-init
