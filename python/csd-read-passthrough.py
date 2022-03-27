@@ -12,14 +12,9 @@ import xattr
 
 import pdb; pdb.set_trace()
 
-# Open the file and read it normally.
-# this file will be
+# Open the file
 fd = os.open("test/test", os.O_RDWR)
 fsize = os.stat("test/test").st_size
-print(os.read(fd, fsize))
-
-# Reset read back to beginning of file
-# os.lseek(fd, 0)
 
 # Get the inode number for the BPF kernel
 kern_ino = os.stat("test/bpf_flfs_read.o").st_ino
@@ -31,8 +26,16 @@ xattr.setxattr("test/test", "user.process.csd_read_stream",
 # Verify the BPF kernel is set
 print(xattr.getxattr("test/test", "user.process.csd_read_stream"))
 
-# Read the file again, this time the kernel will be executed
-print(os.read(fd, fsize))
+# Split the file reading into steps equal to the maximum stride for a single I/O
+# request.
+steps = int(fsize / read_stride)
+if steps % read_stride is not 0:
+    steps += 1
+
+# Read the file
+total = 0
+for i in range(0, steps):
+    print(os.pread(fd, read_stride, i * read_stride))
 
 # Close the file will release the kernel
 os.close(fd)

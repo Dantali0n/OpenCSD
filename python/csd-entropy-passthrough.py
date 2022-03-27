@@ -13,6 +13,7 @@ import math
     This example only works for small files which result in a single read
     request.
 """
+read_stride = 131072
 
 import pdb; pdb.set_trace()
 
@@ -30,16 +31,33 @@ xattr.setxattr("test/test", "user.process.csd_read_stream",
 
 print(xattr.getxattr("test/test", "user.process.csd_read_stream"))
 
-# Read the result from the kernel which will be 256 unsigned integers.
-data = struct.unpack('<256i', os.read(fd, fsize))
 
+# Split the file reading into steps equal to the maximum stride for a single I/O
+# request.
+steps = int(fsize / read_stride)
+if steps % read_stride is not 0:
+    steps += 1
+
+# Create totality bins for entropy calculation
+final_bins = []
+for i in range(0, 256):
+    final_bins.append(0)
+
+# Accumulate data for each strided request into the bins
+for i in range(0, steps):
+    data = struct.unpack('<256i', os.pread(fd, read_stride, i * read_stride))
+    for j in range(0, 256):
+        final_bins[j] += data[j]
+
+# Compute entropy
 ent = 0.0
-for f in data:
+for f in final_bins:
     if f > 0:
         freq = float(f) / fsize
         ent = ent + freq * math.log(freq, 2)
 ent = -ent
 
+# Print results
 print('Shannon entropy (min bits per byte-character):', ent)
 print('Min possible file size assuming max theoretical compression efficiency:')
 print((ent * fsize) / 8, 'bytes')
