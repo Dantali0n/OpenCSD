@@ -192,10 +192,7 @@ platform}
 	\small
 	\begin{itemize}
 		\item Bring compute closer to storage
-		\item Numerous methods and architectures % compute element shared PCIe complex vs on device
-		\item Different applications % Machine learning, key-value stores, transparent encryption
-		\item Many benefits % Energy efficient, reduce host load, scalability
-		\item Also many challenges % Mult-user tenancy and safety, filesystem integration, cumbersome APIs
+		\item Many benefits and challenges % Energy efficient, reduce host load, scalability
 		\item A long time in the making [1] % it has taken over a decade without any widespread adoption
 	\end{itemize}
 	\textit{\tiny $^{1}$Past, Present and Future of Computational Storage: A
@@ -204,14 +201,26 @@ platform}
 \end{frame}
 
 % page 2
-\begin{frame}{Why Computational Storage}
+% \begin{frame}{Why Computational Storage}
+% 	\begingroup
+% 	\small
+% 	\begin{itemize}
+% 		\item Von Neumann architecture
+% 		\item Memory bottlenecks
+% 		\item Energy efficiency
+% 	\end{itemize}
+% 	\endgroup
+% \end{frame}
+
+% page 2
+\begin{frame}{Our Contribution}
 	\begingroup
 	\small
-	% Where do the benefits come from; von nuemann, bandwidth bottlenecks
-	\begin{figure}
-	   \centering
-	   \includegraphics[width=0.8\textwidth]{resources/images/storage-bottleneck.png}
-	\end{figure}
+	\begin{itemize}
+		\item Simple and easy to use (OpenCSD)
+		\item Intuitive pre-existing offloading interface (xattr)
+		\item \underline{CSD multi-user tenant filesystem (FluffleFS)} % Presentation focus
+	\end{itemize}
 	\endgroup
 \end{frame}
 
@@ -219,17 +228,10 @@ platform}
 \begin{frame}{Zoned NameSpaces (ZNS)}
 	\begingroup
 	\small
-	\begin{itemize}
-		 % nand flash needs to be linearly written while block interface allows arbitrary read / write and erase
-		\item Better reflect Flash storage
-		\item Block interface
-		% To support this interface SSDs do a lot of internal translation
-		\item The semantic gap
-		% Expose a more natural interface of flash and make the host take care of translations
-		\item host-managed
-		\item Ratified extension [2]
-		\item First commercial devices
-	\end{itemize}
+	\begin{figure}
+		\centering
+		\includegraphics[width=1\textwidth]{resources/images/zns-vs-conventional-layout.pdf}
+	\end{figure}
 	\textit{\tiny $^{2}$NVM Express Zoned Namespace Command Set Specification 1.1b - 
 	https://nvmexpress.org/developers/nvme-command-set-specifications/}
 	\endgroup
@@ -239,13 +241,18 @@ platform}
 \begin{frame}{Log-structured FileSystem (LFS)}
 	\begingroup
 	\small
+	\begin{itemize}
+		\item Append only writes
+		\item Journaling, snapshotting and revovery
+		\item Perfect match for ZNS
+	\end{itemize}
 	% Append only writes
 	% Simple support for journaling, snapshotting and revovery
 	% Our design based on F2FS to prevent write-amplification
-	\begin{figure}
-		\centering
-		\includegraphics[width=0.7\textwidth]{resources/images/f2fs-nat.pdf}
-	\end{figure}
+	% \begin{figure}
+	% 	\centering
+	% 	\includegraphics[width=0.7\textwidth]{resources/images/f2fs-nat.pdf}
+	% \end{figure}
 	\textit{\tiny $^{3}$The design and implementation of a log-structured file system \\}
 	\textit{\tiny $^{4}$F2FS: A New File System for Flash Storage}
 	\endgroup
@@ -259,34 +266,25 @@ platform}
 	% to implement in virtual machines
 	\begin{figure}
 		\centering
-		\includegraphics[width=0.7\textwidth]{resources/images/ubpf-abi.pdf}
+		\includegraphics[width=1\textwidth]{resources/images/ubpf-simple.png}
 	 \end{figure}
 	\endgroup
 \end{frame}
 
 % page 6
-\begin{frame}{OpenCSD}
+\begin{frame}{FluffleFS}
 	\begingroup
-	\small Module based, simple to use \& install
-	\begin{figure}
-		\centering
-		\includegraphics[width=0.8\textwidth]{resources/images/module-dependencies.pdf}
-	\end{figure}
+	\small FUSE LFS with concurrent regular and CSD access even to the same file.
+	% How does FluffleFS combine these technologies
+	\begin{itemize}
+		\item Why ZNS, LFS \& eBPF?
+		\item CSD kernels operate on snapshots % concurrent regular and offloaded access even on the same file
+		\item PID + inode pairs for xattr state % in memory only
+	\end{itemize}
 	\endgroup
 \end{frame}
 
 % page 7
-\begin{frame}{FluffleFS}
-	\begingroup
-	% \small An emulated programmable computational flash storage device
-	% \begin{figure}
-	% 	\centering
-	% 	\includegraphics[width=0.8\textwidth]{resources/images/zcsd-arch-final}
-	% \end{figure}
-	\endgroup
-\end{frame}
-
-% page 8
 \begin{frame}{Evaluation Microbenchmarks}
 	\begingroup
 	% \small An emulated programmable computational flash storage device
@@ -297,25 +295,48 @@ platform}
 	\endgroup
 \end{frame}
 
-% page 9
-\begin{frame}{Evaluation Application}
+% page 8
+% \begin{frame}{Evaluation Application}
+% 	\begingroup
+% 	% \small An emulated programmable computational flash storage device
+% 	% \begin{figure}
+% 	% 	\centering
+% 	% 	\includegraphics[width=0.8\textwidth]{resources/images/zcsd-arch-final}
+% 	% \end{figure}
+% 	\endgroup
+% \end{frame}
+
+% page 8
+\begin{frame}{In short}
 	\begingroup
-	% \small An emulated programmable computational flash storage device
+	\small OpenCSD \& FluffleFS demonstrate a filesystem design that allows for
+	multi-user tenant CSDs agnostic to vendor SSD implementations.
+	\endgroup
+\end{frame}
+
+% page 9
+\begin{frame}{Future Work}
+	\begingroup
+	\small Filesystem agnostic integration for CSDs \& security
 	% \begin{figure}
 	% 	\centering
-	% 	\includegraphics[width=0.8\textwidth]{resources/images/zcsd-arch-final}
+	% 	\includegraphics[width=0.8\textwidth]{resources/images/csx-fs-agnostic.png}
 	% \end{figure}
 	\endgroup
 \end{frame}
 
 % page 10
-\begin{frame}{Future Work}
+\begin{frame}{Further Reading}
 	\begingroup
-	\small Improve filesystem integration \& security
-	\begin{figure}
-		\centering
-		\includegraphics[width=0.8\textwidth]{resources/images/csx-fs-agnostic.png}
-	\end{figure}
+	\small Try it today! \underline{\url{https://github.com/Dantali0n/qemu-csd}}
+	\begin{itemize}
+		\item OpenCSD: Log-Structured Filesystem enabled Computational
+		Storage Device platform - https://tinyurl.com/opencsd-thesis
+		\item ZCSD: a Computational Storage Device over Zoned Namespaces (ZNS)
+			SSDs - https://arxiv.org/abs/2112.00142
+		\item Past, Present and Future of Computational Storage: A Survey
+			- https://arxiv.org/abs/2112.09691
+	\end{itemize}
 	\endgroup
 \end{frame}
 
