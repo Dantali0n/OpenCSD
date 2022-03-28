@@ -43,7 +43,7 @@ namespace qemucsd::nvme_csd {
 
 		nvme_instance = this;
 
-        register_namespaces();
+        register_msr_nvmecsd_namespaces();
 	}
 
 	NvmeCsd::~NvmeCsd() {
@@ -51,7 +51,7 @@ namespace qemucsd::nvme_csd {
 		if(vm_mem != nullptr) free(vm_mem);
 	}
 
-    void NvmeCsd::register_namespaces() {
+    void NvmeCsd::register_msr_nvmecsd_namespaces() {
         measurements::register_namespace(
             "NVME_CSD][vm_init", msr[MSRI_VM_INIT]);
         measurements::register_namespace(

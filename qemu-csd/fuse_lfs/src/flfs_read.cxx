@@ -26,6 +26,10 @@
 
 namespace qemucsd::fuse_lfs {
 
+    /**
+     *
+     * @return
+     */
     void FuseLFS::read_regular(fuse_req_t req, struct stat *stbuf,
         size_t size, off_t offset, struct fuse_file_info *fi)
     {
@@ -113,6 +117,10 @@ namespace qemucsd::fuse_lfs {
         free(blk);
     }
 
+    /**
+     *
+     * @return
+     */
     int FuseLFS::read_snapshot(csd_unique_t *context, size_t size, off_t off,
                                void *buffer, struct snapshot *snap)
     {

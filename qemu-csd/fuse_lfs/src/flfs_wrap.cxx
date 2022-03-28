@@ -64,7 +64,7 @@ namespace qemucsd::fuse_lfs {
         "FUSE_LFS][removexattr"
     };
 
-    void FuseLFSWrapper::register_namespaces() {
+    void FuseLFSWrapper::register_msr_wrap_namespaces() {
         for(uint32_t i = 0; i < 22; i++) {
             measurements::register_namespace(msr_names[i], msr[i]);
         }
@@ -73,7 +73,7 @@ namespace qemucsd::fuse_lfs {
     int FuseLFSWrapper::initialize(int argc, char* argv[],
         arguments::options *options, nvme_zns::NvmeZnsBackend* nvme)
     {
-        register_namespaces();
+        register_msr_wrap_namespaces();
 
         try{
             FuseLFS flfs(options, nvme);

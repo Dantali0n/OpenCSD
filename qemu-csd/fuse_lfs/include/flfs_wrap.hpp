@@ -56,7 +56,7 @@ namespace qemucsd::fuse_lfs {
             MSRI_LISTXATTR = 20, MSRI_REMOVEXATTR = 21
         };
 
-        static void register_namespaces();
+        static void register_msr_wrap_namespaces();
     public:
         static int initialize(int argc, char* argv[],
             arguments::options *options, nvme_zns::NvmeZnsBackend* nvme);

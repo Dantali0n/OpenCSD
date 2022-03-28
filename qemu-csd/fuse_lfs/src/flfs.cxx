@@ -65,7 +65,7 @@ namespace qemucsd::fuse_lfs {
         "FUSE_LFS][REG][getattr", "FUSE_LFS][REG][setattr",
     };
 
-    void FuseLFS::register_reg_namespaces() {
+    void FuseLFS::register_msr_reg_namespaces() {
         for(uint32_t i = 0; i < 5; i++) {
             measurements::register_namespace(msr_reg_names[i], msr_reg[i]);
         }
@@ -111,7 +111,7 @@ namespace qemucsd::fuse_lfs {
             goto err_out1;
         }
 
-        register_reg_namespaces();
+        register_msr_reg_namespaces();
 
         if(run_init() != FLFS_RET_NONE) {
             ret = 1;
@@ -1706,13 +1706,14 @@ namespace qemucsd::fuse_lfs {
             else
                 get_csd_xattr(req, entry.write_stream_kernel, size);
         }
-        else if(strcmp(CSD_XATTR_KEYS[CSD_WRITE_EVENT], name) == 0) {
-            if(set)
-                set_csd_xattr(req, &entry, value, size, flags,
-                              SNAP_WRITE_EVENT);
-            else
-                get_csd_xattr(req, entry.write_stream_kernel, size);
-        }
+        // Read events are not supported as they can not return any data
+//        else if(strcmp(CSD_XATTR_KEYS[CSD_READ_EVENT], name) == 0) {
+//            if(set)
+//                set_csd_xattr(req, &entry, value, size, flags,
+//                              SNAP_WRITE_EVENT);
+//            else
+//                get_csd_xattr(req, entry.write_stream_kernel, size);
+//        }
         else if(strcmp(CSD_XATTR_KEYS[CSD_WRITE_STREAM], name) == 0) {
             if(set)
                 set_csd_xattr(req, &entry, value, size, flags,
@@ -2222,6 +2223,7 @@ namespace qemucsd::fuse_lfs {
         }
         #endif
 
+        // Manually fix offset with O_APPEND when it does not match size
         if(fi->flags & O_APPEND && off != e.attr.st_size) {
             output.warning("External call requested O_APPEND with offset ",
                 "different from size! fixing offset..");

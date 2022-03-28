@@ -72,7 +72,7 @@ namespace qemucsd::fuse_lfs {
      * lookup is called in a snapshot context the file is always newer and FUSE
      * will invalidate internal caches.
      */
-    #define FLFS_FAKE_MTIME
+    // #define FLFS_FAKE_MTIME
 
     #define flfs_min(x, y) ((x) < (y) ? (x) : (y))
 
@@ -142,18 +142,20 @@ namespace qemucsd::fuse_lfs {
      *         I/O. The actual I/O request is thus only executed by the CSD
      *         kernel.
      *
-     * event: A event happens after a read / write request. The read / write
+     * event: A event happens after a request. The read / write
      *        request happens regularly and the result is presented to a kernel.
+     *        Only write events are supported as a read event could not return
+     *        any data.
      */
     static const char* CSD_XATTR_KEYS[4] = {
         "user.process.csd_read_stream",
-        "user.process.csd_read_event",
+        // "user.process.csd_read_event",
         "user.process.csd_write_stream",
         "user.process.csd_write_event",
     };
     enum csd_xattr_key {
         CSD_READ_STREAM  = 0,
-        CSD_READ_EVENT   = 1,
+        // CSD_READ_EVENT   = 1,
         CSD_WRITE_STREAM = 2,
         CSD_WRITE_EVENT  = 3,
     };

@@ -61,7 +61,7 @@ namespace qemucsd::fuse_lfs {
             MSRI_CSD_GETATTR= 3, MSRI_CSD_SETATTR = 4,
         };
 
-        static void register_csd_namespaces();
+        static void register_msr_csd_namespaces();
     public:
         FuseLFSCSD(arguments::options *options, nvme_zns::NvmeZnsBackend *nvme);
         virtual ~FuseLFSCSD();

@@ -29,7 +29,7 @@ namespace qemucsd::fuse_lfs {
     FuseLFSCSD::FuseLFSCSD(qemucsd::arguments::options *options,
         nvme_zns::NvmeZnsBackend *nvme)
     {
-        register_csd_namespaces();
+        register_msr_csd_namespaces();
 
         csd_instance = new nvme_csd::NvmeCsd(options->ubpf_mem_size,
             options->ubpf_jit, nvme);
@@ -45,14 +45,19 @@ namespace qemucsd::fuse_lfs {
         "FUSE_LFS][CSD][getattr", "FUSE_LFS][CSD][setattr",
     };
 
-    void FuseLFSCSD::register_csd_namespaces() {
+    void FuseLFSCSD::register_msr_csd_namespaces() {
         for(uint32_t i = 0; i < 5; i++) {
             measurements::register_namespace(msr_csd_names[i], msr_csd[i]);
         }
     }
 
     /**
+     * Determine the selection data blocks that need to be passed to the CSD
+     * kernel. These are flattened one after another and only include the exact
+     * blocks required for the kernel to run.
      *
+     * Kernels can include bpf_helpers_flfs.h to operate on these flattened
+     * blocks.
      */
     void FuseLFSCSD::flatten_data_blocks(uint64_t size, uint64_t off,
         data_map_t *blocks, std::vector<uint64_t> *flat_blocks)
@@ -248,8 +253,8 @@ namespace qemucsd::fuse_lfs {
 
     void FuseLFS::setattr_csd(fuse_req_t req, csd_unique_t *context,
         struct stat *attr, int to_set, struct fuse_file_info *fi)
-    {
-        measurements::measure_guard msr_guard(msr_csd[MSRI_CSD_SETATTR]);
+    {/*
+*/        measurements::measure_guard msr_guard(msr_csd[MSRI_CSD_SETATTR]);
         struct snapshot snap;
         if(get_snapshot(context, &snap, SNAP_FILE) != FLFS_RET_NONE) {
             fuse_reply_err(req, EIO);

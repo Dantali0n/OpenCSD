@@ -86,7 +86,7 @@ namespace qemucsd::nvme_csd {
             MSRI_BPF_ZONE_SIZE = 7, MSRI_BPF_MEM_INFO = 8,
             MSRI_BPF_CALL_INFO = 9,
         };
-        static void register_namespaces();
+        static void register_msr_nvmecsd_namespaces();
 	public:
 		NvmeCsd(size_t vm_mem_size, bool vm_jit,
             nvme_zns::NvmeZnsBackend *nvme);

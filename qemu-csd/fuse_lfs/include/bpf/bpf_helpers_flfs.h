@@ -70,9 +70,16 @@ struct __attribute__((packed)) flfs_call {
     enum flfs_operations op;
     struct dimensions dims;
     struct inode ino;
-    // After this struct is initial_data_lba
+    // After this struct is initial_data_lba and the subsequent flattened data
+    // blocks
 };
 
+/**
+ * Find the flattened data blocks FluffleFS provides in filesystem specific
+ * kernel data
+ * @param call_info parameter with filesystem specific data as can be retrieved
+ *        from bpf_get_call_info defined in bpf_helpers_prog.h
+ */
 static void find_data_lba(uint64_t **call_info) {
     *call_info = (uint64_t*)((uint8_t*)*call_info + sizeof(struct flfs_call));
 }
