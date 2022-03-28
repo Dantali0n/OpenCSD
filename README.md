@@ -506,16 +506,6 @@ including:
           manages locks (mutexes)
     - [ ] Figure out how SPDK can notify the caller of where the data was
           written
-- Week 18
-- Week 20
-- Week 22
-- Week 24
-- Week 26
-- Week 28
-- Week 30
-- Week 32
-- Week 34
-- Week 36
 
 ### Logbook
 
@@ -656,13 +646,6 @@ see source files such as `fuse_lfs_disc.hpp` until design is frozen.
 - A kernel _CAN NOT_ return more data than is specified in the read request.
 - A race condition in update_file_handle can potentially remove other unrelated
   file handles from open_inode_vect.
-- Since invalidating FUSE internal caches depends on lookup / getattr their
-  modification time; Reading a file regularly, setting the extended attributes
-  and then reading the file again to get a snapshotted read will result in the
-  read becoming a regular read if all these operations are performed within the
-  same second. Mtime is Hjiacked to have modification times of regular files
-  life in the past to circumvent this. See `FLFS_FAKE_MTIME` and `ino_fake_mtime`
-  in the fuse_lfs module.
 
 #### Threading and Concurrency
 
