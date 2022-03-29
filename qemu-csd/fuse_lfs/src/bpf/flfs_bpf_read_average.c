@@ -46,20 +46,7 @@ int main() {
     if(*cur_data_lba == 0) return -2;
 
     // Ensure the read kernel is being used for a read operation
-    if(call->op == FLFS_WRITE) return -3;
-
-    // Advance offset blocks until the right data lba is found
-    // TODO(Dantali0n): Improve this by only sending relevant data lbas to
-    //                  kernel
-//    if(call->dims.offset > 0) {
-//        uint64_t offset_lbas = call->dims.offset / sector_size;
-//        for (uint64_t i = 0; i < offset_lbas; i++) {
-//            next_data_lba(&cur_data_lba);
-//        }
-//
-//        // Validate advanced data_lba has not become 0
-//        if(*cur_data_lba == 0) return -4;
-//    }
+    if(call->op == FLFS_READ_STREAM) return -3;
 
     uint64_t buffer_size;
     void *buffer;

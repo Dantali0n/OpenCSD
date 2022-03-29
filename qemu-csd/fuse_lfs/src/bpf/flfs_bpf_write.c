@@ -51,7 +51,7 @@ int main() {
     bpf_get_mem_info(&buffer, &buffer_size);
 
     uint64_t data_limit = call->dims.size < call->ino.size ?
-        call->dims.size : call->ino.size;
+                          call->dims.size : call->ino.size;
     uint64_t buffer_offset = 0;
     uint64_t zone, sector;
     while(buffer_offset < data_limit) {
