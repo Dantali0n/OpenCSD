@@ -646,6 +646,18 @@ see source files such as `fuse_lfs_disc.hpp` until design is frozen.
 - A kernel _CAN NOT_ return more data than is specified in the read request.
 - A race condition in update_file_handle can potentially remove other unrelated
   file handles from open_inode_vect.
+- Single read and write operations for kernels are limited to 512K strides.
+- CSD kernels are written such that they require to be sector aligned.
+
+#### Zone / write pointer synchronization across filesystem and device
+
+- Introduce nvme_zns ZONE_FULL error return code.
+- Introduce a better state management callback function for nvme_zns_spdk.
+- Make FluffleFS resilent to failing appends due to full zones
+  (ONLY FOR LOG ZONE).
+- Make FluffleFS ignore when written data does not exactly end up on the
+  expected sector (ONLY FOR LOG ZONE).
+- Kernels must return when it failed due to the LOG zone being full.
 
 #### Threading and Concurrency
 
