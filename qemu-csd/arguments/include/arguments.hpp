@@ -53,6 +53,7 @@ namespace qemucsd::arguments {
 	static const char *DEFAULT_SPDK_NAME = "";
     static const char *DEFAULT_INPUT_FILE = "integers.dat";
 	static const DeviceInitMode DEFAULT_DEV_INIT_MODE = DEV_INIT_PRESERVE;
+    // Must be large enough to support the 512K request stride
 	static constexpr uint64_t DEFAULT_UBPF_MEM_SIZE = 1024*128*8;
     static constexpr bool DEFAULT_UBPF_JIT = false;
 
