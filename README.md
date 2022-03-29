@@ -648,6 +648,45 @@ see source files such as `fuse_lfs_disc.hpp` until design is frozen.
   file handles from open_inode_vect.
 - Single read and write operations for kernels are limited to 512K strides.
 - CSD kernels are written such that they require to be sector aligned.
+- CSD write event kernels can only perform append operations, If the write
+  partially overwrites pre-existing data an error will be raised.
+- Endian conversions between eBPF and host architecture not covered, assumed to
+  be the same.
+- Write kernels are assumed to behave and communicate accurate information about
+  operations they performed.
+- Event write kernel in current form makes little practical sense, due to write
+  first happening regularly submitted from host and afterwards kernel requires
+  data to be read again before computing results. See practical write event
+  kernel.
+
+#### Practical write event kernel proposal.
+
+- Upon a write event kernel submission:
+  - The filesystem submits the write request data alongside its own write
+    kernel. In addition, the user submits 1 intermediate kernel and 1 finalize
+    kernel.
+    - This write kernel runs first and performs the native filesystem write
+      keeping track of written sectors and their locations.
+    - After each sector the intermediate kernel runs and is shown the written
+      sector data (ZERO COPY). It is allowed to submit state, an arbitrary
+      segment of memory  that will be made available the next time the user
+      submitted kernel runs. THE INTERMEDIATE KERNEL IS NOT ALLOWED TO PERFORM
+      ANY READ / WRITE OPERATIONS.
+    - After the filesystem write kernel has finalized and all intermediate
+      kernels have run only then is the finalize kernel called. This kernel is
+      allowed to perform read and write operations.
+    - The finalize kernel reports the actual final size of the write operation
+      along with any written LBAs that are now also part of the file.
+    - The CSD runtime also reports read and written locations so the
+      filesystem can verify the kernels behavior.
+    - Finally, the return data from the kernel is used to synchronize the file`
+      datastructures and finalize the changes to the file.
+- The main advantages of such an elaborate mechanism are
+  - It prevents the event kernel from having to reread the data that was just
+    written for the write request (ZERO COPY).
+  - The data of the write request only has to be moved once instead of twice.
+  - It reduces the number of round-trips between the host and device to just one
+    from two.
 
 #### Zone / write pointer synchronization across filesystem and device
 
