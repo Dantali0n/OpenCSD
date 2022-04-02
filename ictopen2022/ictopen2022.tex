@@ -185,46 +185,134 @@ platform}
 
 \begin{document}
 
+% This presentation is about OpenCSD and FluffleFS a open-source, open-data
+% simulation platform with multi-user tenant filesystem for Compational Storage
+% Devices. While this work solves several open research questions we will only
+% be able to highlight one today. Particularly, compatability with user
+% compiled code, safety and synchronization are not covered. First we
+% demonstrate why we need Computational storage in the first place.
+
 % page 1
+% We life in a data-driven society, a world exploding data. So much data that
+% we are expected to store 200 Zettabytes of data in total by 2050.
+% Such high data capacity and throughput requirements pose signficant challenges
+% to existing and future technolgies.
 \frame{\titlepage}
-\begin{frame}{What is Computational Storage}
+\begin{frame}{Data-driven society}
 	\begingroup
 	\small
-	\begin{itemize}
-		\item Bring compute closer to storage
-		\item Many benefits and challenges % Energy efficient, reduce host load, scalability
-		\item A long time in the making [1] % it has taken over a decade without any widespread adoption
-	\end{itemize}
-	\textit{\tiny $^{1}$Past, Present and Future of Computational Storage: A
-	Survey, Corne Lukken \& Animesh Trivedi - https://arxiv.org/abs/2112.09691}
-	\endgroup
-\end{frame}
-
-% page 2
-% \begin{frame}{Why Computational Storage}
-% 	\begingroup
-% 	\small
-% 	\begin{itemize}
-% 		\item Von Neumann architecture
-% 		\item Memory bottlenecks
-% 		\item Energy efficiency
-% 	\end{itemize}
-% 	\endgroup
-% \end{frame}
-
-% page 2
-\begin{frame}{Our Contribution}
-	\begingroup
-	\small
-	\begin{itemize}
-		\item Simple and easy to use (OpenCSD)
-		\item Intuitive pre-existing offloading interface (xattr)
-		\item \underline{CSD multi-user tenant filesystem (FluffleFS)} % Presentation focus
-	\end{itemize}
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.9\textwidth]{resources/images/data-problem.png}
+	\end{figure}
+	% \begin{itemize}
+	% 	\item Bring compute closer to storage
+	% 	\item Many benefits and challenges % Energy efficient, reduce host load, scalability
+	% 	\item A long time in the making [1] % it has taken over a decade without any widespread adoption
+	% \end{itemize}
+	% \textit{\tiny $^{1}$Past, Present and Future of Computational Storage: A
+	% Survey, Corne Lukken \& Animesh Trivedi - https://arxiv.org/abs/2112.09691}
 	\endgroup
 \end{frame}
 
 % page 3
+% Perhaps the most prominent bottleneck in computer systems today is the one
+% caused by the Von Neumann architecture. This architecture imposes restrictions
+% on the location of data a CPU is able to operate on. Being it must either be
+% in system memory, cache or a register. This prevents processors from directly
+% operating on data provided by peripherals such as SSD flash storage. In
+% addition the memory controller often has lower bandwidth then the interface
+% used to connect peripherals while internally many flash devices togeteher are
+% often able to saturate the bandwidth of peripheral interface as well. This
+% leads to substantial bottlenecks primarily in enterprise SSD storage servers.
+\begin{frame}{Von Neumann bottleneck}
+	\begingroup
+	\small
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.7\textwidth]{resources/images/bottleneck.png}
+	\end{figure}
+	% \begin{itemize}
+	% 	\item Von Neumann architecture
+	% 	\item Memory bottlenecks
+	% 	\item Energy efficiency
+	% \end{itemize}
+	\endgroup
+\end{frame}
+
+% page 4
+% With computational storage, flash storage devices are fitted with their own
+% computational elements and memory. Often a combination of a regular processor
+% combined with a field-programmable gate array, a subject we are unfortunately
+% not able to cover further today. With computational storage the host system
+% sends a user provided program along with metadata upon a particular I/O event
+% or at the users descretion to the device for execution. All data from the
+% storage device is thus moved internally an only the result of the execution is
+% returned to the host for further processing. While the result still has to be
+% moved to system memor, the computation often is reductive in nature, reducing
+% the amount of bandwidth occupied on the perihperal interfaces and memory
+% controller.
+\begin{frame}{Computational Storage Devices}
+	\begingroup
+	\small
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.7\textwidth]{resources/images/csd.png}
+	\end{figure}
+	% \begin{itemize}
+	% 	\item Von Neumann architecture
+	% 	\item Memory bottlenecks
+	% 	\item Energy efficiency
+	% \end{itemize}
+	\endgroup
+\end{frame}
+
+% page 5
+% But such a heregoenous distributed system comes with many challenges and
+% complexities. Of which it be impossible to cover them all today. Instead we
+% focus on a prime example which is concurrent write modifcations to the same
+% file. How can we ensure that in multi-user tenant systems concurrent writes
+% partly on computational storage and partly executed by the host will not
+% override each others data. In the next slides some of the technologies used
+% to overcome this challenge are demonstrated.
+\begin{frame}{Challenges}
+	\begingroup
+	\small
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.7\textwidth]{resources/images/challenges.png}
+	\end{figure}
+	% \begin{itemize}
+	% 	\item Von Neumann architecture
+	% 	\item Memory bottlenecks
+	% 	\item Energy efficiency
+	% \end{itemize}
+	\endgroup
+\end{frame}
+
+% page 2
+% \begin{frame}{Our Contribution}
+% 	\begingroup
+% 	\small
+% 	\begin{itemize}
+% 		\item Simple and easy to use (OpenCSD)
+% 		\item Intuitive pre-existing offloading interface (xattr)
+% 		\item \underline{CSD multi-user tenant filesystem (FluffleFS)} % Presentation focus
+% 	\end{itemize}
+% 	\endgroup
+% \end{frame}
+
+% page 3
+% First is zoned namespaces. A ratified extensions to the NVMe specification
+% the most prominent protocol used with Flash storage today. While the
+% commercial availability of ZNS devices is still poor its benefits have already
+% been prominently demonstrated in scientific literature. With zoned namespaces
+% the host can no longer issue random writes as we have become used to from the
+% traditional block interface. This means writes can no longer overwrite
+% previously written data instead all writes are appended to the current write
+% pointer separated across individual zones. This results in each zone being
+% written sequentially. Should the host desire to erase data it must do so one
+% entire zone at a time.
 \begin{frame}{Zoned NameSpaces (ZNS)}
 	\begingroup
 	\small
@@ -238,14 +326,29 @@ platform}
 \end{frame}
 
 % page 4
-\begin{frame}{Log-structured FileSystem (LFS)}
+% We combine ZNS with a Log-structured File System,
+% A filesystem design from the late 90's repopularized partly due to flash
+% storage.
+% LFS is Append-only, all writes go to the current tail of the log, even if the
+% actual write overwrites parts of an already existing file. This allows to
+% create in-memory representations of a file called snapshots that can be
+% guaranteed to be immutable during the execution of a computational storage
+% device program, often called kernels. Moreover this allows regular I/O 
+% requests to happen concurrently even if the I/O goes to the same file.
+% However, it does mean that the execution of the kernel can potentially operate
+% on partially stale data.
+\begin{frame}{Log-structured File System (LFS)}
 	\begingroup
 	\small
-	\begin{itemize}
-		\item Append only writes
-		\item Journaling, snapshotting and revovery
-		\item Perfect match for ZNS
-	\end{itemize}
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.7\textwidth]{resources/images/lfs.png}
+	\end{figure}
+	% \begin{itemize}
+	% 	\item Append only writes
+	% 	\item Journaling, snapshotting and revovery
+	% 	\item Perfect match for ZNS
+	% \end{itemize}
 	% Append only writes
 	% Simple support for journaling, snapshotting and revovery
 	% Our design based on F2FS to prevent write-amplification
@@ -253,25 +356,29 @@ platform}
 	% 	\centering
 	% 	\includegraphics[width=0.7\textwidth]{resources/images/f2fs-nat.pdf}
 	% \end{figure}
-	\textit{\tiny $^{3}$The design and implementation of a log-structured file system \\}
+	\textit{\tiny $^{3}$The design and implementation of a Log-structured File System \\}
 	\textit{\tiny $^{4}$F2FS: A New File System for Flash Storage}
 	\endgroup
 \end{frame}
 
 % page 5
-\begin{frame}{extended Berkely Packet Filter (eBPF)}
-	\begingroup
-	\small
-	% used in the Linux kernel but effectively its an ISA like x86 but easy
-	% to implement in virtual machines
-	\begin{figure}
-		\centering
-		\includegraphics[width=1\textwidth]{resources/images/ubpf-simple.png}
-	 \end{figure}
-	\endgroup
-\end{frame}
+% \begin{frame}{extended Berkely Packet Filter (eBPF)}
+% 	\begingroup
+% 	\small
+% 	% used in the Linux kernel but effectively its an ISA like x86 but easy
+% 	% to implement in virtual machines
+% 	\begin{figure}
+% 		\centering
+% 		\includegraphics[width=1\textwidth]{resources/images/ubpf-simple.png}
+% 	 \end{figure}
+% 	\endgroup
+% \end{frame}
 
 % page 6
+% With these technologies it is clear how we can support multi-user tenent
+% file system access in a computational storage device setting. We now
+% demonstrate the exact mechanism of registering and offloading programs as used
+% in FluffleFS.
 \begin{frame}{FluffleFS}
 	\begingroup
 	\small FUSE LFS with concurrent regular and CSD access even to the same file.
@@ -307,19 +414,19 @@ platform}
 % \end{frame}
 
 % page 8
-\begin{frame}{In short}
-	\begingroup
-	\small OpenCSD \& FluffleFS demonstrate a filesystem design that allows for
-	multi-user tenant CSDs agnostic to vendor SSD implementations.
-	\endgroup
-\end{frame}
+% \begin{frame}{In short}
+% 	\begingroup
+% 	\small OpenCSD \& FluffleFS demonstrate a filesystem design that allows for
+% 	multi-user tenant CSDs agnostic to vendor SSD implementations.
+% 	\endgroup
+% \end{frame}
 
 % page 9
 \begin{frame}{Future Work}
 	\begingroup
 	\small
 	\begin{itemize}
-		\item Filesystem agnostic integration for CSDs
+		\item File system agnostic integration for CSDs
 		\item Static analysis \& security
 		\item Endianness conversions
 	\end{itemize}
@@ -331,6 +438,15 @@ platform}
 \end{frame}
 
 % page 10
+% All software and data to this project is open source, this includes scripts to
+% perform measurements, raw measurement data, scripts to generate graphs and
+% even source files to this very presentation. We heavily encourage anyone to
+% try it today, there is an extensive readme which includes a video on how to
+% setup the project and the source code is extensively documented as well.
+% I can not stress enough how important I think this sort of openenness is
+% for the reproducability in computer science research. In highly encourage
+% everyone to re-evelauate what they are doing to ensure others can reproduce
+% their works as well. Thanks you for listening.
 \begin{frame}{Further Reading}
 	\begingroup
 	\small Try it today! \underline{\url{https://github.com/Dantali0n/qemu-csd}}
