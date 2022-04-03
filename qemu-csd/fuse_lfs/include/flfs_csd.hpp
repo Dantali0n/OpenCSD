@@ -51,7 +51,8 @@ namespace qemucsd::fuse_lfs {
             data_map_t *blocks, std::vector<uint64_t> *flat_blocks);
 
         virtual void create_csd_context(struct snapshot *snap, size_t size,
-            off_t off, bool write, void *&call, uint64_t &call_size) = 0;
+            off_t off, enum flfs_operations op, void *&call,
+            uint64_t &call_size) = 0;
 
         /** Measurement Instrumentation */
         static size_t msr_csd[5];

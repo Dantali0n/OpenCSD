@@ -54,9 +54,10 @@ namespace qemucsd::fuse_lfs {
             const char *buf, size_t size, off_t off,
             struct write_context *wr_context, struct fuse_file_info *fi) = 0;
 
-        virtual void write_snapshot(fuse_req_t req, csd_unique_t *context,
-            const char *buf, size_t size, off_t off,
-            struct write_context *wr_context, struct fuse_file_info *fi) = 0;
+        // Implemented but not used, commented out to remove clutter
+//        virtual void write_snapshot(fuse_req_t req, csd_unique_t *context,
+//            const char *buf, size_t size, off_t off,
+//            struct write_context *wr_context, struct fuse_file_info *fi) = 0;
     };
 
 }

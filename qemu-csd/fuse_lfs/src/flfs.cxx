@@ -1699,27 +1699,30 @@ namespace qemucsd::fuse_lfs {
             else
                 get_csd_xattr(req, entry.read_stream_kernel, size);
         }
-        else if(strcmp(CSD_XATTR_KEYS[CSD_WRITE_STREAM], name) == 0) {
-            if(set)
-                set_csd_xattr(req, &entry, value, size, flags,
-                              SNAP_WRITE_STREAM);
-            else
-                get_csd_xattr(req, entry.write_stream_kernel, size);
-        }
-        // Read events are not supported as they can not return any data
+        /** Write streams are not supported as all data still has to moved
+         *  between host and device */
+//        else if(strcmp(CSD_XATTR_KEYS[CSD_WRITE_STREAM], name) == 0) {
+//            if(set)
+//                set_csd_xattr(req, &entry, value, size, flags,
+//                              SNAP_WRITE_STREAM);
+//            else
+//                get_csd_xattr(req, entry.write_stream_kernel, size);
+//        }
+        /** Read events are not supported as they can not return any data (all
+         *  return data would already be occupied by the regular read) */
 //        else if(strcmp(CSD_XATTR_KEYS[CSD_READ_EVENT], name) == 0) {
 //            if(set)
 //                set_csd_xattr(req, &entry, value, size, flags,
 //                              SNAP_WRITE_EVENT);
 //            else
-//                get_csd_xattr(req, entry.write_stream_kernel, size);
+//                get_csd_xattr(req, entry.read_event_kernel, size);
 //        }
-        else if(strcmp(CSD_XATTR_KEYS[CSD_WRITE_STREAM], name) == 0) {
+        else if(strcmp(CSD_XATTR_KEYS[CSD_WRITE_EVENT], name) == 0) {
             if(set)
                 set_csd_xattr(req, &entry, value, size, flags,
-                              SNAP_WRITE_STREAM);
+                              SNAP_WRITE_EVENT);
             else
-                get_csd_xattr(req, entry.write_stream_kernel, size);
+                get_csd_xattr(req, entry.write_event_kernel, size);
         }
         // Any other key either can't be set or does not exist
         else {
@@ -2146,7 +2149,7 @@ namespace qemucsd::fuse_lfs {
         }
 
         // Try to prevent reads accessing non-existing data blocks, this is
-        // an incomplete solution!
+        // an incomplete solution! Does not prevent reading hole
         if(e.attr.st_size < offset) {
             fuse_reply_buf(req, nullptr, 0);
             return;
@@ -2241,15 +2244,15 @@ namespace qemucsd::fuse_lfs {
         wr_context.cur_db_blk_num = (off / SECTOR_SIZE) / DATA_BLK_LBA_NUM;
         wr_context.cur_db_lba_index = (off / SECTOR_SIZE) % DATA_BLK_LBA_NUM;
 
-        csd_unique_t csd_context = {ino, context->pid};
-        if(has_snapshot(&csd_context, SNAP_WRITE_STREAM)) {
-            write_csd(req, &csd_context, buffer, size, off, &wr_context, fi);
-            return;
-        }
-
         // Check if inode exists and lock
         if(lock_inode(ino) != FLFS_RET_NONE) {
             fuse_reply_err(req, ENOENT);
+            return;
+        }
+
+        csd_unique_t csd_context = {ino, context->pid};
+        if(has_snapshot(&csd_context, SNAP_WRITE_EVENT)) {
+            write_csd(req, &csd_context, buffer, size, off, &wr_context, fi);
             return;
         }
 

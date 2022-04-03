@@ -326,7 +326,8 @@ namespace qemucsd::fuse_lfs {
         /** CSD interface method */
 
         void create_csd_context(struct snapshot *snap, size_t size,
-            off_t off, bool write, void *&call, uint64_t &call_size) override;
+            off_t off, enum flfs_operations op, void *&call,
+            uint64_t &call_size) override;
 
         void lookup_csd(fuse_req_t req, csd_unique_t *context) override;
 
@@ -360,10 +361,11 @@ namespace qemucsd::fuse_lfs {
         void write_regular(fuse_req_t req, fuse_ino_t ino, const char *buf,
             size_t size, off_t off, struct write_context *wr_context,
             struct fuse_file_info *fi) override;
-        void write_snapshot(fuse_req_t req, csd_unique_t *context,
-            const char *buf, size_t size, off_t off,
-            struct write_context *wr_context,
-            struct fuse_file_info *fi) override;
+        // Implemented but not used, commented out to remove clutter
+//        void write_snapshot(fuse_req_t req, csd_unique_t *context,
+//            const char *buf, size_t size, off_t off,
+//            struct write_context *wr_context,
+//            struct fuse_file_info *fi) override;
 
         // TODO(Dantali0n): Move xattr methods to separate interface
 

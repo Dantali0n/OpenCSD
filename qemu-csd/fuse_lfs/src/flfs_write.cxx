@@ -52,7 +52,7 @@ namespace qemucsd::fuse_lfs {
         #ifdef QEMUCSD_DEBUG
         else if(offset != 0) {
             output.warning("[write_sector] No pre-existing data but offset ",
-                            "is non zero. In debug this buffer will be zerosd...");
+                            "is non zero. In debug this buffer will be zerod...");
             memset(buffer, 0, offset);
         }
         #endif
@@ -146,76 +146,80 @@ namespace qemucsd::fuse_lfs {
         fuse_reply_write(req, size);
     }
 
-    void FuseLFS::write_snapshot(fuse_req_t req, csd_unique_t *context,
-        const char *buffer, size_t size, off_t off,
-        struct write_context *wr_context, struct fuse_file_info *fi)
-    {
-        struct snapshot snap;
-
-        if(get_snapshot(context, &snap, SNAP_FILE) != FLFS_RET_NONE) {
-            fuse_reply_err(req, EIO);
-            return;
-        }
-
-        // Create data_block and fetch existing data_block info if it exists
-        struct data_block cur_db_blk = {0};
-        if(snap.inode_data.first.size > 0)
-            cur_db_blk = snap.data_blocks.at(wr_context->cur_db_blk_num);
-
-        uint64_t write_res_lba;
-        uint64_t b_off = 0;
-        uint64_t s_size = size;
-        uint64_t s_off = off % SECTOR_SIZE;
-        for(uint64_t i = 0; i < wr_context->num_sectors; i++) {
-            if(write_sector(
-                s_size + s_off > SECTOR_SIZE ? SECTOR_SIZE - s_off : s_size,
-                s_off, cur_db_blk.data_lbas[wr_context->cur_db_lba_index],
-                buffer + b_off, write_res_lba) != FLFS_RET_NONE)
-            {
-                fuse_reply_err(req, EIO);
-                return;
-            }
-
-            // Update location of data for current sector
-            cur_db_blk.data_lbas[wr_context->cur_db_lba_index] = write_res_lba;
-
-            // Increment data index in current data_block
-            wr_context->cur_db_lba_index += 1;
-
-            // Handle overflow to next data block
-            if(wr_context->cur_db_lba_index >= DATA_BLK_LBA_NUM) {
-                snap.data_blocks.insert_or_assign(wr_context->cur_db_blk_num,
-                    cur_db_blk);
-
-                wr_context->cur_db_lba_index = 0;
-                wr_context->cur_db_blk_num += 1;
-
-                memset(&cur_db_blk, 0, sizeof(data_block));
-            }
-
-            // Get new data_block if file sufficiently sized such that it should
-            // exist.
-            if(wr_context->cur_db_lba_index == 0 && snap.inode_data.first.size >
-                DATA_BLK_LBA_NUM * SECTOR_SIZE * wr_context->cur_db_blk_num)
-            {
-                cur_db_blk = snap.data_blocks.at(wr_context->cur_db_blk_num);
-            }
-
-            // Compute offset into provided data buffer
-            b_off += SECTOR_SIZE - s_off;
-            // Reduce remaining size to be written
-            s_size -= SECTOR_SIZE - s_off;
-            // Only first write has sector offset.
-            if(i == 0) s_off = 0;
-        }
-
-        snap.data_blocks.insert_or_assign(wr_context->cur_db_blk_num,
-            cur_db_blk);
-        snap.inode_data.first.size = snap.inode_data.first.size > off + size ?
-            snap.inode_data.first.size : off + size;
-
-        update_snapshot(context, &snap, SNAP_FILE);
-        fuse_reply_write(req, size);
-    }
+    /**
+     * Make changes to an existing snapshot by writing buffer for size at off.
+     * Updates the snapshot afterwards.
+     */
+//    void FuseLFS::write_snapshot(fuse_req_t req, csd_unique_t *context,
+//        const char *buffer, size_t size, off_t off,
+//        struct write_context *wr_context, struct fuse_file_info *fi)
+//    {
+//        struct snapshot snap;
+//
+//        if(get_snapshot(context, &snap, SNAP_FILE) != FLFS_RET_NONE) {
+//            fuse_reply_err(req, EIO);
+//            return;
+//        }
+//
+//        // Create data_block and fetch existing data_block info if it exists
+//        struct data_block cur_db_blk = {0};
+//        if(snap.inode_data.first.size > 0)
+//            cur_db_blk = snap.data_blocks.at(wr_context->cur_db_blk_num);
+//
+//        uint64_t write_res_lba;
+//        uint64_t b_off = 0;
+//        uint64_t s_size = size;
+//        uint64_t s_off = off % SECTOR_SIZE;
+//        for(uint64_t i = 0; i < wr_context->num_sectors; i++) {
+//            if(write_sector(
+//                s_size + s_off > SECTOR_SIZE ? SECTOR_SIZE - s_off : s_size,
+//                s_off, cur_db_blk.data_lbas[wr_context->cur_db_lba_index],
+//                buffer + b_off, write_res_lba) != FLFS_RET_NONE)
+//            {
+//                fuse_reply_err(req, EIO);
+//                return;
+//            }
+//
+//            // Update location of data for current sector
+//            cur_db_blk.data_lbas[wr_context->cur_db_lba_index] = write_res_lba;
+//
+//            // Increment data index in current data_block
+//            wr_context->cur_db_lba_index += 1;
+//
+//            // Handle overflow to next data block
+//            if(wr_context->cur_db_lba_index >= DATA_BLK_LBA_NUM) {
+//                snap.data_blocks.insert_or_assign(wr_context->cur_db_blk_num,
+//                    cur_db_blk);
+//
+//                wr_context->cur_db_lba_index = 0;
+//                wr_context->cur_db_blk_num += 1;
+//
+//                memset(&cur_db_blk, 0, sizeof(data_block));
+//            }
+//
+//            // Get new data_block if file sufficiently sized such that it should
+//            // exist.
+//            if(wr_context->cur_db_lba_index == 0 && snap.inode_data.first.size >
+//                DATA_BLK_LBA_NUM * SECTOR_SIZE * wr_context->cur_db_blk_num)
+//            {
+//                cur_db_blk = snap.data_blocks.at(wr_context->cur_db_blk_num);
+//            }
+//
+//            // Compute offset into provided data buffer
+//            b_off += SECTOR_SIZE - s_off;
+//            // Reduce remaining size to be written
+//            s_size -= SECTOR_SIZE - s_off;
+//            // Only first write has sector offset.
+//            if(i == 0) s_off = 0;
+//        }
+//
+//        snap.data_blocks.insert_or_assign(wr_context->cur_db_blk_num,
+//            cur_db_blk);
+//        snap.inode_data.first.size = snap.inode_data.first.size > off + size ?
+//            snap.inode_data.first.size : off + size;
+//
+//        update_snapshot(context, &snap, SNAP_FILE);
+//        fuse_reply_write(req, size);
+//    }
 
 }

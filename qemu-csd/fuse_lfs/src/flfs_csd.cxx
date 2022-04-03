@@ -81,10 +81,11 @@ namespace qemucsd::fuse_lfs {
     }
 
     /**
-     *
+     * Create the filesystem specific data structure to pass to CSD kernels.
+     * Datastructure is different for read_stream vs write_event kernels.
      */
     void FuseLFS::create_csd_context(struct snapshot *snap, size_t size,
-        off_t off, bool write, void *&call, uint64_t &call_size)
+        off_t off, enum flfs_operations op, void *&call, uint64_t &call_size)
     {
         uint64_t fcall_size = sizeof(struct flfs_call);
         struct flfs_call context = {};
@@ -98,13 +99,30 @@ namespace qemucsd::fuse_lfs {
         context.ino.type = snap->inode_data.first.type == INO_T_FILE ?
             FLFS_FILE : FLFS_DIR;
 
-        context.op = write ? FLFS_WRITE : FLFS_READ;
+        context.op = op;
 
+        // Provide sector aligned data to be written, ensure any pre-existing
+        // data in first and last sector are padded with result from drive.
+        if(op == FLFS_WRITE_EVENT) {
+            fcall_size += sizeof(struct flfs_write_call);
+
+            // First sector (pre) pad if data exists and not sector aligned
+            if(off < context.ino.size && off % SECTOR_SIZE != 0) {
+            }
+
+
+            // Last sector (post) pad if data exists and not sector aligned
+            if(off + size < context.ino.size && off + size % SECTOR_SIZE != 0) {
+            }
+        }
+
+        // Provide flattened data blocks to kernel.
         std::vector<uint64_t> flat_blocks;
         flatten_data_blocks(size, off, &snap->data_blocks,
-            &flat_blocks);
+                            &flat_blocks);
 
         uint64_t lbas_size = flat_blocks.size() * sizeof(uint64_t);
+
         call_size = lbas_size + fcall_size;
         call = malloc(call_size);
         memcpy(call, &context, fcall_size);
@@ -139,6 +157,11 @@ namespace qemucsd::fuse_lfs {
         fuse_reply_entry(req, &e);
     }
 
+    /**
+     * Run the read operation through the offloaded CSD functionality.
+     * @attention read_csd fastly different from write_csd stream vs event
+     *            kernel.
+     */
     void FuseLFS::read_csd(fuse_req_t req, csd_unique_t *context, size_t size,
         off_t off, struct fuse_file_info *fi)
     {
@@ -187,7 +210,8 @@ namespace qemucsd::fuse_lfs {
          * execution. */
         void *call = nullptr;
         uint64_t call_size;
-        create_csd_context(&file_snap, size, off, false, call, call_size);
+        create_csd_context(&file_snap, size, off, FLFS_READ_STREAM, call,
+            call_size);
 
         /** Launch the uBPF vm with the read kernel and filesystem context */
         int64_t result_size = csd_instance->nvm_cmd_bpf_run_fs(kernel_data,
@@ -195,12 +219,14 @@ namespace qemucsd::fuse_lfs {
         free(kernel_data);
         free(call);
 
+        /** Use results of less than 0 for errors */
         if(result_size < 0) {
             output.error("Kernel encountered error ", result_size);
             fuse_reply_err(req, EIO);
             return;
         }
 
+        /** Fetch the result data from the kernel */
         void *result_data = malloc(result_size);
         csd_instance->nvm_cmd_bpf_result(result_data);
 
@@ -208,6 +234,11 @@ namespace qemucsd::fuse_lfs {
         free(result_data);
     }
 
+    /**
+     * Run the write operation through the offloaded CSD functionality.
+     * @attention write_csd fastly different from read_csd event vs stream
+     *            kernel.
+     */
     void FuseLFS::write_csd(fuse_req_t req, csd_unique_t *context,
         const char *buf, size_t size, off_t off,
         struct write_context *wr_context, struct fuse_file_info *fi)
