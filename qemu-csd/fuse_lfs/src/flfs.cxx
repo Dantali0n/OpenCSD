@@ -1748,20 +1748,20 @@ namespace qemucsd::fuse_lfs {
         conn->want &= ~(FUSE_CAP_PARALLEL_DIROPS);
         conn->want &= ~(FUSE_CAP_HANDLE_KILLPRIV);
 
-        if(conn->capable & FUSE_CAP_SPLICE_READ) {
-            output.info("Enabling splice read");
-            conn->want |= FUSE_CAP_SPLICE_READ;
-        }
-
-        if(conn->capable & FUSE_CAP_SPLICE_MOVE) {
-            output.info("Enabling splice move");
-            conn->want |= FUSE_CAP_SPLICE_MOVE;
-        }
-
-        if(conn->capable & FUSE_CAP_SPLICE_WRITE) {
-            output.info("Enabling splice write");
-            conn->want |= FUSE_CAP_SPLICE_WRITE;
-        }
+//        if(conn->capable & FUSE_CAP_SPLICE_READ) {
+//            output.info("Enabling splice read");
+//            conn->want |= FUSE_CAP_SPLICE_READ;
+//        }
+//
+//        if(conn->capable & FUSE_CAP_SPLICE_MOVE) {
+//            output.info("Enabling splice move");
+//            conn->want |= FUSE_CAP_SPLICE_MOVE;
+//        }
+//
+//        if(conn->capable & FUSE_CAP_SPLICE_WRITE) {
+//            output.info("Enabling splice write");
+//            conn->want |= FUSE_CAP_SPLICE_WRITE;
+//        }
 
         if(conn->capable & FUSE_CAP_AUTO_INVAL_DATA)
             conn->want |= FUSE_CAP_AUTO_INVAL_DATA;
@@ -2149,10 +2149,15 @@ namespace qemucsd::fuse_lfs {
         }
 
         // Try to prevent reads accessing non-existing data blocks, this is
-        // an incomplete solution! Does not prevent reading hole
+        // an incomplete solution! Does not prevent reading holes!
         if(e.attr.st_size < offset) {
             fuse_reply_buf(req, nullptr, 0);
             return;
+        }
+
+        // Do not return data from buffers past end of file (EOF)
+        if(e.attr.st_size < offset + size) {
+            size = e.attr.st_size - offset;
         }
 
         #ifdef QEMUCSD_DEBUG

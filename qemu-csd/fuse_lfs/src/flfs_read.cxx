@@ -111,7 +111,8 @@ namespace qemucsd::fuse_lfs {
             db_lba_index += 1;
         }
 
-        fuse_reply_buf(req, (const char*)buffer, flfs_min(data_limit, size));
+        fuse_reply_buf(req, (const char*)buffer + (offset % SECTOR_SIZE),
+            flfs_min(data_limit, size));
 
         free(buffer);
         free(blk);
