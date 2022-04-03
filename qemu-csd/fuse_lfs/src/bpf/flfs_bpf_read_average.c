@@ -36,7 +36,7 @@ int main() {
     bpf_get_call_info((void**)&call);
 
     uint64_t *cur_data_lba = (uint64_t*)call;
-    find_data_lba((uint64_t**)&cur_data_lba);
+    find_data_lba((uint64_t**)&cur_data_lba, false);
 
     uint64_t zone_capacity = bpf_get_zone_capacity();
     uint64_t zone_size = bpf_get_zone_size();

@@ -34,7 +34,8 @@ int main() {
     bpf_get_call_info((void**)&call);
 
     uint64_t *cur_data_lba = (uint64_t*)call;
-    find_data_lba((uint64_t**)&cur_data_lba);
+    // Set find_data_lba write=true
+    find_data_lba((uint64_t**)&cur_data_lba, true);
 
     uint64_t zone_capacity = bpf_get_zone_capacity();
     uint64_t zone_size = bpf_get_zone_size();
@@ -43,23 +44,12 @@ int main() {
     if(call == 0) return -1;
     if(*cur_data_lba == 0) return -2;
 
-    // Ensure the read kernel is being used for a read operation
-    if(call->op == FLFS_READ_STREAM) return -3;
+    // Ensure the write kernel is being used for a read operation
+    if(call->op == FLFS_WRITE_EVENT) return -3;
 
     uint64_t buffer_size;
     void *buffer;
     bpf_get_mem_info(&buffer, &buffer_size);
-
-    uint64_t data_limit = call->dims.size < call->ino.size ?
-                          call->dims.size : call->ino.size;
-    uint64_t buffer_offset = 0;
-    uint64_t zone, sector;
-    while(buffer_offset < data_limit) {
-        lba_to_position(*cur_data_lba, zone_size, &zone, &sector);
-        bpf_read(zone, sector, 0, sector_size, buffer + buffer_offset);
-        buffer_offset = buffer_offset + sector_size;
-        next_data_lba(&cur_data_lba);
-    }
 
     bpf_return_data(buffer, data_limit);
 

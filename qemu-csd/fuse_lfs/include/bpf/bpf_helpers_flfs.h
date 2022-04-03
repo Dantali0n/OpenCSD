@@ -23,6 +23,7 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifndef FLFS_BPF_HELPERS_H
 #define FLFS_BPF_HELPERS_H
@@ -134,13 +135,14 @@ struct __attribute__((packed)) flfs_write_return {
     // After this are the flattened LBas of kernel written data
 };
 
+
 /**
  * Find the flattened data blocks FluffleFS provides in filesystem specific
  * kernel data.
  * @param call_info parameter with filesystem specific data as can be retrieved
  *        from bpf_get_call_info defined in bpf_helpers_prog.h
  */
-static void find_data_lba(uint64_t **call_info, bool write = false) {
+static void find_data_lba(uint64_t **call_info, bool write) {
     *call_info = (uint64_t*)((uint8_t*)*call_info + sizeof(struct flfs_call));
 
     if(write)
