@@ -215,7 +215,7 @@ platform}
 	\endgroup
 \end{frame}
 
-% page 3
+% page 2
 % Perhaps the most prominent bottleneck in computer systems today is the one
 % caused by the Von Neumann architecture. This architecture imposes restrictions
 % on the location of data a CPU is able to operate on. Being it must either be
@@ -240,7 +240,7 @@ platform}
 	\endgroup
 \end{frame}
 
-% page 4
+% page 3
 % With computational storage, flash storage devices are fitted with their own
 % computational elements and memory. Often a combination of a regular processor
 % combined with a field-programmable gate array, a subject we are unfortunately
@@ -267,7 +267,7 @@ platform}
 	\endgroup
 \end{frame}
 
-% page 5
+% page 4
 % But such a heregoenous distributed system comes with many challenges and
 % complexities. Of which it be impossible to cover them all today. Instead we
 % focus on a prime example which is concurrent write modifcations to the same
@@ -302,7 +302,7 @@ platform}
 % 	\endgroup
 % \end{frame}
 
-% page 3
+% page 5
 % First is zoned namespaces. A ratified extensions to the NVMe specification
 % the most prominent protocol used with Flash storage today. While the
 % commercial availability of ZNS devices is still poor its benefits have already
@@ -325,7 +325,7 @@ platform}
 	\endgroup
 \end{frame}
 
-% page 4
+% page 6
 % We combine ZNS with a Log-structured File System,
 % A filesystem design from the late 90's repopularized partly due to flash
 % storage.
@@ -374,24 +374,71 @@ platform}
 % 	\endgroup
 % \end{frame}
 
-% page 6
+% page 7
 % With these technologies it is clear how we can support multi-user tenent
 % file system access in a computational storage device setting. We now
 % demonstrate the exact mechanism of registering and offloading programs as used
-% in FluffleFS.
+% in FluffleFS. First is the compilation process of the kernel by the end user.
+% This is done through two header files one for CSD operations itself such as
+% reading from the storage device and returning data to the host. The other
+% specific to the FluffleFS filesystem. It should be noted that the CSD header
+% is already written in a manor that allows for vendor agnostic implementation.
+% Meaning that this header prevents users from having to recompile their kernels
+% for different CSD vendors. Designing an file system agnostic interface
+% remains an open research question, however.
 \begin{frame}{FluffleFS}
 	\begingroup
-	\small FUSE LFS with concurrent regular and CSD access even to the same file.
+	\small % FUSE LFS with concurrent regular and CSD access even to the same file.
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.7\textwidth]{resources/images/compile.png}
+	\end{figure}
 	% How does FluffleFS combine these technologies
-	\begin{itemize}
-		\item Why ZNS, LFS \& eBPF?
-		\item CSD kernels operate on snapshots % concurrent regular and offloaded access even on the same file
-		\item PID + inode pairs for xattr state % in memory only
-	\end{itemize}
+	% \begin{itemize}
+	% 	\item Why ZNS, LFS \& eBPF?
+	% 	\item CSD kernels operate on snapshots % concurrent regular and offloaded access even on the same file
+	% 	\item PID + inode pairs for xattr state % in memory only
+	% \end{itemize}
 	\endgroup
 \end{frame}
 
-% page 7
+% page 8
+% Now I imagine this particular diagram can seem daunting but lets go through
+% it step by step. First are the bold arrows with underlined word, each word
+% represents a specific system call that is implemented by POSIX complaint
+% operating systems and Windows. First, the user program issues the stat call on
+% the compiled kernel file, this provides an inode number which is temporarily
+% stored in a key value pair as shown in the top left. Second, the user
+% issues an open on the file that is going to be offloaded to the CSD. Third,
+% and this is key, the user calls set extended attribute on the offloaded file,
+% configuring a specific key value pair that indicates to the filesystem that
+% this offloading should occur. As soon as this extended attribute is set, the
+% file system snapshots both the kernel and target file and moves their in-memory
+% representations onto the CSD. Lastly, the user issues a read command on the
+% file, this bypasses the host filesystem and instead a process is spawned on
+% the CSD. The CSD process runs the snapshotted kernel operating on the
+% snapshotted file. In the end the results of the kernel are returned to the
+% user as if it was the data that was read from the file. And this is how we
+% achieve CSD offloading without any changes to existing operating systems APIs.
+% No changes, to existing operating systems are necessary to achieve this
+% process in this way.
+\begin{frame}{FluffleFS}
+	\begingroup
+	\small % FUSE LFS with concurrent regular and CSD access even to the same file.
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.9\textwidth]{resources/images/offloading.png}
+	\end{figure}
+	% How does FluffleFS combine these technologies
+	% \begin{itemize}
+	% 	\item Why ZNS, LFS \& eBPF?
+	% 	\item CSD kernels operate on snapshots % concurrent regular and offloaded access even on the same file
+	% 	\item PID + inode pairs for xattr state % in memory only
+	% \end{itemize}
+	\endgroup
+\end{frame}
+
+% page 9
 \begin{frame}{Evaluation Microbenchmarks}
 	\begingroup
 	% \small An emulated programmable computational flash storage device
@@ -421,23 +468,23 @@ platform}
 % 	\endgroup
 % \end{frame}
 
-% page 9
-\begin{frame}{Future Work}
-	\begingroup
-	\small
-	\begin{itemize}
-		\item File system agnostic integration for CSDs
-		\item Static analysis \& security
-		\item Endianness conversions
-	\end{itemize}
-	% \begin{figure}
-	% 	\centering
-	% 	\includegraphics[width=0.8\textwidth]{resources/images/csx-fs-agnostic.png}
-	% \end{figure}
-	\endgroup
-\end{frame}
-
 % page 10
+% \begin{frame}{Future Work}
+% 	\begingroup
+% 	\small
+% 	\begin{itemize}
+% 		\item File system agnostic integration for CSDs
+% 		\item Static analysis \& security
+% 		\item Endianness conversions
+% 	\end{itemize}
+% 	% \begin{figure}
+% 	% 	\centering
+% 	% 	\includegraphics[width=0.8\textwidth]{resources/images/csx-fs-agnostic.png}
+% 	% \end{figure}
+% 	\endgroup
+% \end{frame}
+
+% page 11
 % All software and data to this project is open source, this includes scripts to
 % perform measurements, raw measurement data, scripts to generate graphs and
 % even source files to this very presentation. We heavily encourage anyone to
