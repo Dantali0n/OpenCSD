@@ -135,7 +135,6 @@ struct __attribute__((packed)) flfs_write_return {
     // After this are the flattened LBas of kernel written data
 };
 
-
 /**
  * Find the flattened data blocks FluffleFS provides in filesystem specific
  * kernel data.

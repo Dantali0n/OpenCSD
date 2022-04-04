@@ -46,7 +46,7 @@ int main() {
     if(*cur_data_lba == 0) return -2;
 
     // Ensure the read kernel is being used for a read operation
-    if(call->op == FLFS_READ_STREAM) return -3;
+    if(call->op != FLFS_READ_STREAM) return -3;
 
     uint64_t buffer_size;
     void *buffer;

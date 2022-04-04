@@ -45,7 +45,7 @@ int main() {
     if(*cur_data_lba == 0) return -2;
 
     // Ensure the write kernel is being used for a read operation
-    if(call->op == FLFS_WRITE_EVENT) return -3;
+    if(call->op != FLFS_WRITE_EVENT) return -3;
 
     uint64_t buffer_size;
     void *buffer;
