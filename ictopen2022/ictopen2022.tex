@@ -439,13 +439,26 @@ platform}
 \end{frame}
 
 % page 9
-\begin{frame}{Evaluation Microbenchmarks}
+% Knowing how offloading is achieved we can now turn to a practical example.
+% Background compression algorithms often check if a file is fit for compression
+% prior to compressing it. This is done by computing the shannon entropy across
+% the first portion of a file, in our case 512k. The shannon entropy is measured
+% as a single 32 bits float with a value between 0 and 8. 8 being entirely 
+% incompressable and 0 meaning compressable to 0 size. We perform this
+% computation for 32 individual files with both the computation performed by the
+% host and offloaded. With the offloaded application almost the entire spent is
+% waiting for the result of the kernel. During this time the operating system
+% can schedule other processes to use the CPU instead. This means that for this
+% application the host load is signifcantly reduced. Since such a compression
+% task runs in the background it would be acceptable if the total execution time
+% would be longer, however, this is not the case in our results.
+\begin{frame}{Evaluation Background Compression}
 	\begingroup
 	% \small An emulated programmable computational flash storage device
-	% \begin{figure}
-	% 	\centering
-	% 	\includegraphics[width=0.8\textwidth]{resources/images/zcsd-arch-final}
-	% \end{figure}
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.8\textwidth]{resources/images/results.pdf}
+	\end{figure}
 	\endgroup
 \end{frame}
 
