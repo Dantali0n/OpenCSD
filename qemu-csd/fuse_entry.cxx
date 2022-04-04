@@ -27,6 +27,11 @@
     using namespace backward;
 #endif
 
+extern "C" {
+    #include <stdlib.h>
+    #include <signal.h>
+}
+
 /**
 * Stack trace printer when encountering seg faults.
 */

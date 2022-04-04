@@ -44,7 +44,7 @@ namespace qemucsd::fuse_lfs {
         inode_entry_t entry;
         get_inode(stbuf->st_ino, &entry);
 
-        // Variables corresponding to initial data_block
+        // Variables corresponding to initial data_block, sector aligned
         uint64_t db_block_num;
         uint64_t db_num_lbas = offset / SECTOR_SIZE;
         db_block_num = db_num_lbas / DATA_BLK_LBA_NUM;
@@ -59,19 +59,24 @@ namespace qemucsd::fuse_lfs {
             return;
         }
 
+        // Amount of data to return to the caller.
         uint64_t data_limit = flfs_min(size, stbuf->st_size);
         // Initial lba index in the data_block
         uint64_t db_lba_index = db_num_lbas % DATA_BLK_LBA_NUM;
 
-        // Round buffer size to nearest higher multiple of SECTOR_SIZE
+        // Round buffer size to account for offset of first and last sector
+        // as well as sector alignment
         auto buffer = (uint8_t*) malloc(
-            data_limit + (SECTOR_SIZE-1) & (-SECTOR_SIZE));
+            data_limit + (offset % SECTOR_SIZE) + (size % SECTOR_SIZE)
+            + (SECTOR_SIZE-1) & (-SECTOR_SIZE));
 
         // Loop through the data until the buffer is filled to the required size
         uint64_t buffer_offset = 0;
         struct data_position data_pos = {0};
-        while(buffer_offset < data_limit) {
 
+        // Read limit to account for first sector offset.
+        uint64_t  read_limit = data_limit + (offset % SECTOR_SIZE);
+        while(buffer_offset < read_limit) {
             // Detect db_lba_index overflow and fetch next data_block
             if(db_lba_index >= DATA_BLK_LBA_NUM) {
                 db_lba_index = 0;
