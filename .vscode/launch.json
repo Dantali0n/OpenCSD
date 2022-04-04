@@ -85,7 +85,7 @@
             "type": "gdb",
             "request": "launch",
             "target": "./build/qemu-csd/fuse-entry",
-            "arguments": "-- -s -d test",
+            "arguments": "-- -d -o max_read=2147483647 test",
             "cwd": "${workspaceRoot}",
             "ssh": {
                 "host": "127.0.0.1",
@@ -103,12 +103,12 @@
             "type": "gdb",
             "request": "launch",
             "target": "./build/qemu-csd/fuse-entry-spdk",
-            "arguments": "-- -s -d test",
+            "arguments": "-- -d -o max_read=2147483647 test",
             "cwd": "${workspaceRoot}",
             "ssh": {
                 "host": "127.0.0.1",
                 "port": 7777,
-                "cwd": "/home/arch/qemu-csd/",
+                "cwd": "/home/arch/qemu-csd",
                 "user": "root",
                 "password": "arch",
                 "bootstrap":
