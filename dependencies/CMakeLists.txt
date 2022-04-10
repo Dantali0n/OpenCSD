@@ -97,16 +97,16 @@ endif()
 # ----------------------------- #
 
 if(${QEMUCSD_WINDOWS})
-    set(boost_source_url https://nextcloud.dantalion.nl/index.php/s/iqsfQe9H6GsfXcy/download)
+    set(boost_source_url https://nextcloud.dantalion.nl/index.php/s/34HknQ4FT6SspMp/download)
     set(boost_source_file boost.zip)
-    set(boost_source_hash a0e7ce67c52d816708fdeccdd8c9725626ba61254c13c18770498cacd514710a)
+    set(boost_source_hash f22143b5528e081123c3c5ed437e92f648fe69748e95fa6e2bd41484e2986cc3)
     set(boost_source_bootstrap bootstrap.bat)
     set(boost_source_build b2.exe)
     set(boost_source_build_param link=static threading=multi)
 else()
-    set(boost_source_url https://nextcloud.dantalion.nl/index.php/s/2W7NMFYet8kJeCD/download)
+    set(boost_source_url https://nextcloud.dantalion.nl/index.php/s/zC9wqP62SMkaJij/download)
     set(boost_source_file boost.tar.bz2)
-    set(boost_source_hash 83bfc1507731a0906e387fc28b7ef5417d591429e51e788417fe9ff025e116b1)
+    set(boost_source_hash 8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc)
     set(boost_source_bootstrap ./bootstrap.sh)
     set(boost_source_build ./b2)
     set(boost_source_build_param threading=multi)
@@ -142,7 +142,7 @@ extract_archive(
 
 add_custom_command(OUTPUT boost-bootstrap PRE_BUILD
     COMMAND ${boost_source_bootstrap}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/boost/boost_1_74_0
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/boost/boost_1_78_0
     DEPENDS boost_extract
 )
 
@@ -160,7 +160,7 @@ else()
 endif()
 add_custom_command(OUTPUT boost-install PRE_BUILD
     COMMAND ${boost_source_build} address-model=${BOOST_ADDRESS} runtime-debugging=${BOOST_RUN_DEBUG} variant=${BOOST_BUILD_TYPE} ${boost_source_build_param} install --prefix=${PRJ_ROOT}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/boost/boost_1_74_0
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/boost/boost_1_78_0
     DEPENDS boost-bootstrap activate-build # Boost requires the activate script to work properly
 )
 
@@ -175,8 +175,8 @@ if(${QEMUCSD_WINDOWS})
     directory_exists("${PRJ_HEADERS}/boost" has_directory)
     if(NOT ${has_directory})
         add_custom_command(OUTPUT boost-directory-fix PRE_BUILD
-            COMMAND mv boost-1_74/boost boost
-            COMMAND rm -r boost-1_74
+            COMMAND mv boost-1_78/boost boost
+            COMMAND rm -r boost-1_78
             WORKING_DIRECTORY ${PRJ_HEADERS}
             DEPENDS boost-rename-fix
         )
@@ -235,7 +235,7 @@ add_custom_command(OUTPUT libfuse-compile PRE_BUILD
 add_custom_command(OUTPUT libfuse-configure PRE_BUILD
     COMMAND meson setup --wipe || exit 0
     COMMAND meson --prefix ${PRJ_ROOT} --reconfigure .. -Duseroot=false -Dudevrulesdir=${PRJ_ROOT}/etc/udev/rules.d || exit 0
-    COMMAND meson --prefix ${PRJ_ROOT} .. -Duseroot=false
+    COMMAND meson --prefix ${PRJ_ROOT} .. -Duseroot=false -Dudevrulesdir=${PRJ_ROOT}/etc/udev/rules.d
     DEPENDS libfuse-directory
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libfuse/build
 )
