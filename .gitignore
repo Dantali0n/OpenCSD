@@ -113,6 +113,7 @@ compsys2021/*
 !compsys2021/**/
 !compsys2021/CMakeLists.txt
 !compsys2021/narrative.md
+!compsys2021/vu-logo.png
 !compsys2021/**/*.bib
 !compsys2021/**/*.tex
 !compsys2021/**/*.sty
@@ -125,6 +126,7 @@ ictopen2022/*
 !ictopen2022/**/
 !ictopen2022/CMakeLists.txt
 !ictopen2022/narrative.md
+!ictopen2022/vu-logo.png
 !ictopen2022/**/*.bib
 !ictopen2022/**/*.tex
 !ictopen2022/**/*.sty
@@ -136,6 +138,7 @@ ictopen2022/*
 presentation/*
 !presentation/**/
 !presentation/CMakeLists.txt
+!presentation/vu-logo.png
 !presentation/**/*.bib
 !presentation/**/*.tex
 !presentation/**/*.sty
