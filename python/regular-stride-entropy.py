@@ -1,4 +1,3 @@
-# Shannon Entropy of a file
 import sys
 import math
 import os

@@ -29,7 +29,8 @@ import matplotlib.cm as cm
 import pandas as pd
 import numpy as np
 
-x = [("regular", "offloaded")]
+# x = [("64k", "256k", "1024k", "4096k", "16384k", "65536k", "262144k", "1048576k")]
+x = [("1024k", "4096k", "16384k", "65536k", "262144k", "1048576k")]
 
 def adj_lightness(color, amount=0.5):
     import matplotlib.colors as mc
@@ -41,31 +42,44 @@ def adj_lightness(color, amount=0.5):
     c = colorsys.rgb_to_hls(*mc.to_rgb(c))
     return colorsys.hls_to_rgb(c[0], max(0, min(1, amount * c[1])), c[2])
 
-init_reset = []
-fill_zone = []
-execute = []
-base_std = ([],[])
+bandwidth_flufflefs = []
+base_std_flufflefs = []
+
+bandwidth_passthrough = []
+base_std_passthrough = []
 
 for f in x[0]:
     try:
-        data = pd.read_csv("../measurements/shannon/ictopen-{0}-32.csv".format(f))
-        init_reset_result = sum(data['wait'].values) #  / 1e6
-        fill_zone_result = sum(data['user'].values)  # / 1e6
-        execute_result = sum(data['sys'].values)  # / 1e6
-        result = (init_reset_result + fill_zone_result + execute_result) / len(data['wait'])
-        init_reset.append(init_reset_result / len(data['wait']))
-        fill_zone.append(fill_zone_result / len(data['user']))
-        execute.append(execute_result / len(data['sys']))
+        data = pd.read_csv("../measurements/local/passthrough-read-debug-{0}.csv".format(f))
+        bandwidth = sum(data['bandwidth'].values) / 1048576 / len(data['bandwidth'])# MiB/S
+        bandwidth_flufflefs.append(bandwidth)
+        base_std = ([],[])
         base_std[0].append(
-            abs(min(((x+y+z)) - result for x,y,z in zip(data['wait'].values, data['user'].values, data['sys'].values)))
+            abs(min((x[0] / 1048576) - bandwidth for x in zip(data['bandwidth'].values)))
         )
         base_std[1].append(
-            abs(max(((x+y+z)) - result for x,y,z in zip(data['wait'].values, data['user'].values, data['sys'].values)))
+            abs(max((x[0] / 1048576) - bandwidth for x in zip(data['bandwidth'].values)))
         )
+        base_std_flufflefs.append(base_std)
     except:
-        print("File ../measurements/shannon/ictopen-{0}-32.csv does not exist".format(f))
+        print("File ../measurements/local/passthrough-read-debug-{0}.csv does not exist".format(f))
 
-import pdb; pdb.set_trace()
+for f in x[0]:
+    try:
+        data = pd.read_csv("../measurements/local/passthrough-read-release-{0}.csv".format(f))
+        bandwidth = sum(data['bandwidth'].values) / 1048576 / len(data['bandwidth']) # MiB/S
+        bandwidth_passthrough.append(bandwidth)
+        base_std = ([],[])
+        base_std[0].append(
+            abs(min((x[0] / 1048576) - bandwidth for x in zip(data['bandwidth'].values)))
+        )
+        base_std[1].append(
+            abs(max((x[0] / 1048576) - bandwidth for x in zip(data['bandwidth'].values)))
+        )
+        base_std_passthrough.append(base_std)
+    except:
+        print("File ../measurements/local/passthrough-read-release-{0}.csv does not exist".format(f))
+
 from matplotlib import rcParams
 rcParams['font.family'] = 'Times New Roman'
 # rcParams['font.sans-serif'] = ['times-new-roman']
@@ -78,33 +92,22 @@ plt.rc('xtick', labelsize=fontsize) #fontsize of the x tick labels
 plt.rc('ytick', labelsize=fontsize) #fontsize of the y tick labels
 plt.rc('legend', fontsize=fontsize) #fontsize of the legend
 
-fig, ax = plt.subplots()
-index = np.arange(2)
-num_bars = 2
-# bar_width = 2.6 / num_bars
-bar_width = 0.6 / num_bars
-opacity = 0.95
-
-colors = cm.rainbow(np.linspace(0, 1, 5))
+colors = cm.rainbow(np.linspace(0, 1, 2))
 
 plt.grid(which='both', zorder=1, axis='y')
+plt.xlabel('File Size')
+plt.ylabel('Throughput (MiB/S)')
+plt.title('Sequential Read Performance debug vs release passthrough')
 
-current_bottom = 0
-plt.bar(index + (bar_width * 0.1), init_reset, bar_width,
-        alpha=opacity, color=adj_lightness(colors[0], 1), label='wait', zorder=2)
-plt.bar(index + (bar_width * 0.1), fill_zone, bar_width,
-        alpha=opacity, color=adj_lightness(colors[1], 1), label='user', zorder=2, bottom=init_reset)
-current_bottom = [x + y for x, y in zip(init_reset, fill_zone)]
-plt.bar(index + (bar_width * 0.1), execute, bar_width, yerr=base_std, capsize=5,
-        alpha=opacity, color=adj_lightness(colors[2], 1), label='sys', zorder=2, bottom=current_bottom)
+plt.plot(x[0], bandwidth_flufflefs, color=colors[0], label='debug')
+plt.plot(x[0], bandwidth_passthrough, color=colors[1], label='release')
 
-# plt.title('')
+for (i,y) in enumerate(bandwidth_flufflefs):
+    plt.errorbar(x[0][i], bandwidth_flufflefs[i], yerr=base_std_flufflefs[i], color=colors[0], capsize=10, alpha=0.90)
+    plt.errorbar(x[0][i], bandwidth_passthrough[i], yerr=base_std_passthrough[i], color=colors[1], capsize=10, alpha=0.90)
 
-plt.xlabel('Implementation')
-plt.ylabel('Total wall execution time (seconds)')
-plt.title('Shannon entropy workload (compression)')
 # plt.axhline(y=1, color='#000', alpha=0.5, label='Identical performance')
-plt.xticks(index + ((0.05 / num_bars) * (num_bars / 2)), ("regular", "offloaded"))
+# plt.xticks(index + ((0.05 / num_bars) * (num_bars / 2)), x[0])
 plt.legend()
 
 # ax.set_yscale('log')
