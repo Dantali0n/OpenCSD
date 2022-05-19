@@ -34,6 +34,7 @@ namespace qemucsd::fuse_lfs {
         size_t size, off_t offset, struct fuse_file_info *fi)
     {
         measurements::measure_guard msr_guard(msr_reg[MSRI_REG_READ]);
+
         // Inode is of size 0
         if(stbuf->st_size == 0) {
             reply_buf_limited(req, nullptr, 0, offset, size);
@@ -92,6 +93,13 @@ namespace qemucsd::fuse_lfs {
                     free(blk);
                     return;
                 }
+            }
+
+            if(blk->data_lbas[db_lba_index] == 0) {
+                output.info(
+                    "File sized sufficiently but no actual data at block ",
+                    db_block_num, " with index ", db_lba_index);
+                break;
             }
 
             // Convert the data_block lba at the current index to a position

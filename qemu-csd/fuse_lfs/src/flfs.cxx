@@ -1045,6 +1045,9 @@ namespace qemucsd::fuse_lfs {
     {
         auto lookup = data_blocks->find(entry.inode);
 
+        if(lookup == data_blocks->end())
+            return FLFS_RET_ERR;
+
         // Found data blocks in synchronization data structure
         if(lookup != data_blocks->end()) {
             // Lookup if block_num is in data_blocks for the given inode
@@ -1423,7 +1426,7 @@ namespace qemucsd::fuse_lfs {
     /**
      * Truncate the inode changing its size to what was requested. Can be
      * used to increase and decrease file size.
-     * @threadsafety: thread safe
+     * @threadsafety: single threaded, safety must be managed by caller.
      * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure,
      *         FLFS_RET_ENOENT if the inode could not be found and
      *         FLFS_RET_EISDIR if the inode is a directory
@@ -1510,6 +1513,11 @@ namespace qemucsd::fuse_lfs {
         }
     }
 
+    /**
+     *
+     * TODO(Dantali0n): Lock and Unlock the inode.
+     * @threadsafety: single threaded, safety must be managed by caller.
+     */
     void FuseLFS::setattr_regular(fuse_req_t req, fuse_ino_t ino,
         struct stat *attr, int to_set, struct fuse_file_info *fi)
     {
@@ -2160,6 +2168,12 @@ namespace qemucsd::fuse_lfs {
             size = e.attr.st_size - offset;
         }
 
+        // Don't actually perform 0 sized reads
+        if(size == 0) {
+            fuse_reply_buf(req, nullptr, 0);
+            return;
+        }
+
         #ifdef QEMUCSD_DEBUG
         // Verify inode is regular file
         if(!(e.attr.st_mode & S_IFREG)) {
@@ -2231,6 +2245,23 @@ namespace qemucsd::fuse_lfs {
         }
         #endif
 
+        // Check if inode exists and lock
+        if(lock_inode(ino) != FLFS_RET_NONE) {
+            fuse_reply_err(req, ENOENT);
+            return;
+        }
+
+        // Gap fill, create data blocks for specified offset and ensure
+        // all data_lbas remain zero.
+        if(off > e.attr.st_size) {
+            output.info("Write offsets extends beyond file size, increasing ",
+                        "from ", e.attr.st_size, " to ", off);
+            if(ftruncate(ino, off) != FLFS_RET_NONE) {
+                fuse_reply_err(req, EIO);
+                return;
+            }
+        }
+
         // Manually fix offset with O_APPEND when it does not match size
         if(fi->flags & O_APPEND && off != e.attr.st_size) {
             output.warning("External call requested O_APPEND with offset ",
@@ -2248,12 +2279,6 @@ namespace qemucsd::fuse_lfs {
         // Compute initial data_block and index
         wr_context.cur_db_blk_num = (off / SECTOR_SIZE) / DATA_BLK_LBA_NUM;
         wr_context.cur_db_lba_index = (off / SECTOR_SIZE) % DATA_BLK_LBA_NUM;
-
-        // Check if inode exists and lock
-        if(lock_inode(ino) != FLFS_RET_NONE) {
-            fuse_reply_err(req, ENOENT);
-            return;
-        }
 
         csd_unique_t csd_context = {ino, context->pid};
         if(has_snapshot(&csd_context, SNAP_WRITE_EVENT)) {

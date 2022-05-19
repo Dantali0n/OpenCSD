@@ -70,7 +70,9 @@ int main(int argc, char* argv[]) {
     const struct fuse_operations* ops;
     qemucsd::arguments::options opts;
 
-    NvmeZnsMemoryBackend nvme_memory(1024, 256, 4096);
+//    NvmeZnsMemoryBackend nvme_memory(1024, 256, 4096);
+    // 4GB (8GB sparse)
+    NvmeZnsMemoryBackend nvme_memory(2048, 1024, 4096);
 //    struct qemucsd::spdk_init::ns_entry entry = {0};
 
     // Setup segfault handler to print backward stacktraces

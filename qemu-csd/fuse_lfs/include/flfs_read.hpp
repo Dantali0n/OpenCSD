@@ -29,6 +29,7 @@ extern "C" {
     #include <fuse3/fuse_lowlevel.h>
 }
 
+#include <cstdio>
 #include <cstddef>
 #include <cstdint>
 
