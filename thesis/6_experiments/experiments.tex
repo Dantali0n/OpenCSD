@@ -32,22 +32,25 @@ metrics.
 \begin{enumerate}
     \item Sequential reads \& writes f2fs vs FluffleFS
     (Linegraph transfer rate MB/s - 64k up until 1g filesizes)
+    (Static request size of 512k unless file is smaller)
     \begin{itemize}
         \item Demonstrate what performance can be expected from FluffleFS as
               regular filesystem.
     \end{itemize}
     \item Random reads \& writes f2fs vs FluffleFS
     (Linegraph transfer rate MB/s - 4k, 8k, 16k, 32k, 64k, 128k request sizes)
+    (Static file size of 1g, this is to exhaust caches and their effects)
     \begin{itemize}
         \item Demonstrate what performance can be expected from FluffleFS as
               regular filesystem.
     \end{itemize}
     \item Sequential reads \& writes regular vs passthrough kernel
     (Linegraph transfer rate MB/s - 64k up until 1g filesizes)
+    (Static request size of 512k unless file is smaller)
     \begin{itemize}
         \item Show performance impact of snapshotting and uBPF.
     \end{itemize}
-    \item Sequential reads \& writes concurrently regular \& 1 passthrough 128k
+    \item Sequential reads \& writes concurrently regular \& 1 passthrough 512k
     request size
     (Linegraph, 1, 2, 4, 8 threads, with best performer previous benchmark)
     \begin{itemize}
@@ -73,13 +76,13 @@ metrics.
     \item Offloaded shannon entropy (read stream kernel)
     \begin{itemize}
         \item Go through all files in a directory and determine entropy of first
-              128k of each file. Return a list of files with entropy < 6.
+              512k of each file. Return a list of files with entropy < 6.
         \item Demonstrate that async applications can reduce host load by
               waiting for offloaded tasks (Total CPU time - kernel CPU time)
     \end{itemize}
     \item CSV index generation (write event kernel)
     \begin{itemize}
-        \item Generate indexes for a query replicated from TPC-DS at 128k
+        \item Generate indexes for a query replicated from TPC-DS at 512k
               intervals.
         \item Demonstrate that async applications can reduce host load by
               waiting for offloaded tasks (Total CPU time - kernel CPU time)

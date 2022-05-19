@@ -39,12 +39,12 @@ design requirements. However, the use of QEMU for ZNS SSDs is entirely optional.
 Finally, CMake \cite{cmake} is used to orchestrate the installation of
 dependencies as well as the compilation of binary targets. Due to limitations it
 is advised to rerun CMake after each make command, as this  prevents unnecessary
-recompilation of external dependencies \footnotemark[9]. The combination of this
+recompilation of external dependencies \footnotemark[10]. The combination of this
 isolated dependencies environment managed through CMake with the ability to use
 QEMU for ZNS SSDs emulation is ideal to minimize the complexity as exposed to
 users of OpenCSD.
 
-\footnotetext[9]{Due to limitations in the evaluation of file presence
+\footnotetext[10]{Due to limitations in the evaluation of file presence
 conditions which are not reevaluated when executing the generated makefile.}
 
 As said OpenCSD is comprised of modules using a component architecture.
@@ -135,12 +135,12 @@ FluffleFS which is described in the next section in detail.
 Out of all modules only nvme\_zns has been given an abstract interface so the
 underlying technologies can be easily replaced. However, we argue the design
 requirements are still met as there are virtually no replacements for
-technologies used in other modules such as uBPF and FUSE\footnotemark[10].
+technologies used in other modules such as uBPF and FUSE\footnotemark[11].
 In addition, we feel it would have beneign benefits to create abstract
 interfaces of the C++ STL. Our solution allows for replacing technologies with
 readily available alternatives without creating unnecessary interfaces.
 
-\footnotetext[10]{While alternative technolgies to implement filesystems exist
+\footnotetext[11]{While alternative technolgies to implement filesystems exist
 none of them are in userspace. As a result we argue there is no alternative to
 FUSE.}
 
@@ -148,11 +148,145 @@ FUSE.}
 
 This section describes the filesystem implementation and how it meets the design
 requirements. In addition, it describes how data is layed out on the drive as
-well as how state is represented in memory.
+well as how state is represented in memory. Our implementation borrows heavily
+from F2FS \cite{Lee2015F2FSAN} a filesystem already optimized for flash storage.
+In addition, F2FS is a LFS as per the design requirements. However, FluffleFS is
+written directly for ZNS since it only uses \textit{append}, \textit{read} and
+\textit{reset} NVMe commands. While this might seem like a limitation the
+decoupled interfaces allow to easily create an emulated ZNS device using a
+regular block device.
 
-% Two write pointers, one for RANDOM ZONE and one for LOG ZONE. Use of ZNS is
-% optional but allows for lower write-amplification and more explicit garbage
-% collection
+To describe the filesystem implementation further it is first categorized into
+four topics. Firstly, we describe the layout on the drive with high level parts
+and data structures expanded to fit onto individual sectors. Secondly, the
+in memory representation of filesystem data is described as well as how these
+translate to data on the drive. Third, the operational rules for most filesystem
+operations are described such as when a file exists or not. Lastly, the
+concurrency model of FluffleFS is described as well as some of the concurrency
+limitations.
+
+\subsubsection{Layout}
+
+We briefly reintroduce some fundamental terminology for this section. A ZNS
+device consist of $\{0,...,n-1\}$ zones each with $\{0,...,s-1\}$ sectors whre
+$n$ and $s$ are the number of zones and sectors, respectively. For each of these
+zones $n$ ZNS can define a sector data limit of $l_{n} < s$. Any sector above
+and including $l_{n}$ will be unwriteable for that zone. For simplicity we
+assume that $l_{0} = \{l_{1},...,l_{n-1}\}$. Data is appended within each zone
+on a per sector basis until the zone is full. To achieve this each of these
+zones internally maintains a write-pointer that keeps track of up to which
+sector data was written.This information can be queried, however, this process
+is reasonably expensive. Finally, zones must be erased as entire unit at a time.
+
+Beyond ZNS, FluffleFS uses on drive and in-memory datatsructures with some
+translation between those. All FluffleFs datastructures on drive are scaled to
+fit neatly into a single sector. This scaling of datastructures to fit in
+sectors is dynamic but FluffleFS has to be recompiled to work with a different
+sector size. Typically when referring data on the drive this is expressed in
+terms of \textit{blocks}. Within FluffleFS a block will always be of equal size
+to a sector. Just like ZNS, FluffleFS also keeps track of several pointers.
+These are write-pointers just like ZNS does itself. More importantly are
+wraparound-pointers that allow to use linear drive space as circular contiguous
+space. Given this terminology we can now describe the filesystem layout.
+
+In a very high level overview the data layout of FluffleFS is spraid across
+three parts. These are a fixed zone, random zone and log zone. These names are
+adopted from F2FS and have no relation to ZNS zones. In addition, it should be
+noted that the random zone unlike F2FS does not require random writes and has
+been adopted to be append only as well.
+
+Firstly the fixed and random zone are explained separely from the log zone.
+Their high level layout is shown in figure \ref{figure:flufflelayout}. This high
+level layout shows the data in terms of entire zones indexed from ${0,...,n-1}$.
+In later more detailed sections individual sectors and their datastructures
+are described.
+
+To simplify the filesystem and its management the data in a sector is always
+limited to one specific type of datastructure. In addition, the fixed zones
+limit the types of datastructure to a single one for the entire zone.
+
+\begin{figure}[h!]
+    \centering
+	\includegraphics[width=1\textwidth]{resources/images/fluffle-layout.pdf}
+	\caption{Fixed and Random zone layouts of FluffleFS.}
+    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
+    \label{figure:flufflelayout}
+\end{figure}
+
+Consider the fixed zones as depicted in figure \ref{figure:flufflelayout}. In
+this region the drive layout distinquishes between three different
+datastructures the first two occupying an entire zone.
+
+Firstly, the superblock identifies the filesystem using a magic cookie. In
+addition, it remembers the number of zones, sectors and size of sectors the
+filesystem should occupy. This metadata allows to identify if the partition was
+resized. The superblock is written upon filesystem creation and in principle
+never changed. The implication is that the filesystem can not cope with resizing
+partitions.
+
+Secondly, the dirtyblock keeps track of filesystem opening and shutdown. The 
+block is written upon opening the filesystem and removed once closed completely.
+Other datastructures in combination with the dirtyblock allow to identify and
+recover from unclean shutdowns.
+
+Lastly, FluffleFS keeps track of checkpoints across two checkpoint zones. Each
+checkpoint maintains the wraparound-pointers\footnotemark[12] for both the random
+and log zone. Moreover, after the first sector of zone $(n+1) \bmod{2}$ is
+written then zone $n \bmod{2}$ is reset. The filesystem can always recover by
+reading zone $n$ linearly first and stopping as soon as the first hole is
+encountered. In the rare case that zone $n$ sector $0$ is already a hole, the
+data must reside at $n+1$ sector $0$. The checkpoint system relies on features
+of ZNS that allow to query current write-pointers of individual zones. This
+feature allows to identify that sectors are unwritten. To adapt the checkpoints
+for use with regular block devices a checksum of the random and log pointers can
+be used to prevent against garbage reads.
+
+\footnotetext[12]{FluffleFS manages separate write-pointers from those
+maintained by ZNS devices internally as well as wraparound pointers.}
+
+This concludes the data layout as stored in the fixed zone of FluffleFS, the
+most straightforward region of FluffleFS. Next, the random zone is used to keep
+track of two special management datastructures being NAT and SIT. These have the
+same functionality as in F2FS but the datastructures themselves are different.
+
+Firstly, the NAT blocks keep track of inode and \textit{Logical Block Address}
+(LBA) pairs. Each LBA can easily be translated to a zone and sector allowing to
+determine the information about inodes on the drive. Secondly, the SIT blocks
+maintain which sectors of the drive are occupied using bitmaps.
+
+The appending of NAT and SIT blocks in the random zone happens in interleaved
+fashion. A special type is stored alongside each block so it can be identified.
+When the random zone is filled entirely the data is compacted into the random
+buffer. This is done using a iterative method which can be captured in the
+following steps.
+
+\begin{enumerate}
+    \item Copy from the wraparound-pointer of the random zone the current and
+    next zone into the random buffer.
+    \item Reset the data from the two zones that have been copied into the
+    random buffer.
+    \item Update the wraparound-pointer to keep track of the new start of the
+    zone.
+    \item Write a new checkpoint block to update the random zone
+    wraparound-pointer.
+    \item Update the write-pointer of the random zone to the newly writeable
+    region.
+    \item Read the random buffer and transform into set that only keeps
+    latest inode LBA pairs.
+    \item Flush
+\end{enumerate}
+
+\begin{figure}[h!]
+    \centering
+	\includegraphics[width=1\textwidth]{resources/images/fluffle-layout-log.pdf}
+	\caption{Log zone layout of FluffleFS.}
+    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
+    \label{figure:flufflelayoutlog}
+\end{figure}
+
+\subsubsection{Memory}
+
+\subsubsection{Operational Rules}
 
 \subsubsection{Concurrency}
 
@@ -194,7 +328,7 @@ shared memory. While both solutions provide shared memory they are fundamentally
 different. A shared memory map is a file, leveraging the well known UNIX
 principle \textit{everything is a file}, that allows two or more processes to
 share a region of memory. While regular shared memory is limited to a single
-process although it could share this memory with additional threads.
+process, however, this memory could be shared across additional threads.
 
 this single process shared memory solution is one of the most common found in
 software today. The concepts of such a program are very well understood as
@@ -203,11 +337,14 @@ well as the development using imperative languages being straightforward.
 While shared memory maps are typically found in device drivers, such as those
 for graphics cards, their use consistutes severe additional development effort.
 In conjuction with our design being a simulation there is no scientific value in
-using shared memory maps for our design.
+using shared memory maps for our design. However, for production ready
+implementations this decision needs to be reevaluated.
 
 \subsection{NVMe Namespace Command Set}
 
 \subsection{FUSE Filesystem}
+
+% LD\_PRELOAD / RLTD\_NEXT
 
 \subsection{Extended Attributes}
 
