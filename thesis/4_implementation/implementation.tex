@@ -168,15 +168,18 @@ limitations.
 \subsubsection{Layout}
 
 We briefly reintroduce some fundamental terminology for this section. A ZNS
-device consist of $\{0,...,n-1\}$ zones each with $\{0,...,s-1\}$ sectors whre
-$n$ and $s$ are the number of zones and sectors, respectively. For each of these
-zones $n$ ZNS can define a sector data limit of $l_{n} < s$. Any sector above
+device consist of $\{0,1,...,n-1\}$ zones each with $\{0,1,...,s-1\}$ sectors
+where $n$ and $s$ are the number of zones and sectors, respectively. For each of
+these zones ZNS can define a sector data limit of $l_{n} < s$. Any sector above
 and including $l_{n}$ will be unwriteable for that zone. For simplicity we
 assume that $l_{0} = \{l_{1},...,l_{n-1}\}$. Data is appended within each zone
 on a per sector basis until the zone is full. To achieve this each of these
 zones internally maintains a write-pointer that keeps track of up to which
-sector data was written.This information can be queried, however, this process
-is reasonably expensive. Finally, zones must be erased as entire unit at a time.
+sector data is written. This information can be queried, however, this process
+is reasonably expensive. Unlike regular block devices this write-pointer
+information allows to identify reads that would return garbage data from an
+unwritten sector. We describe reads to such locations as encountering a
+\textit{hole}. Finally, zones must be erased as entire unit at a time.
 
 Beyond ZNS, FluffleFS uses on drive and in-memory datatsructures with some
 translation between those. All FluffleFs datastructures on drive are scaled to
@@ -272,9 +275,25 @@ following steps.
     \item Update the write-pointer of the random zone to the newly writeable
     region.
     \item Read the random buffer and transform into set that only keeps
-    latest inode LBA pairs.
-    \item Flush
+    most recent inode LBA pairs (NAT) and most recent occupied blocks (SIT).
+    \item Flush the set to the random zone at the new write-pointer.
+    \item Erase the random buffer.
 \end{enumerate}
+
+These steps $i$ are repeated for $i = n/2$ times where $n$ is number of zones in
+the random zone. FluffleFS assumes that the random zone is of size
+$n \bmod 2 = 0$. Clearly, the checkpoints does not store write-pointers only
+wraparound-pointers in persistent storage. However, storing those pointers is
+unnecessary as they can be recovered by querying the ZNS device. This is
+achieved by reading from the start of the wraparound-pointer until the first
+hole is encountered.
+
+The main limitation of this approach is that it can only compact information
+for repeated inodes and occupied blocks. Should the random zone contain a
+linearly increasing sequence data that occupies size $n > 2$ then no compaction
+will take place. Such limitations are acceptable as in general filesystem
+recovery and stability features will not contribute towards the research
+questions in this work.
 
 \begin{figure}[h!]
     \centering
