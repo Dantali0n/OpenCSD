@@ -922,6 +922,7 @@ namespace qemucsd::fuse_lfs {
 
     /**
      * Increment the log zone pointer and detect when the log zone is full
+     * TODO(Dantali0n): Respect N_LOG_BUFF_ZONES
      * @return FLFS_RET_NONE upon success, FLFS_RET_LOGZ_FULL if log zone full
      */
     int FuseLFS::advance_log_ptr(struct data_position *log_ptr) const {

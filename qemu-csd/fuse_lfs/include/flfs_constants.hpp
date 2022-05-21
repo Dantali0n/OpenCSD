@@ -264,7 +264,7 @@ namespace qemucsd::fuse_lfs {
     static_assert(N_RAND_BUFF_ZONES == 2);
 
     /**
-     * No need to store LOGZ_BUFF_POS as it is num_zones - 4;
+     * No need to store LOGZ_BUFF_POS as it is num_zones - LOGZ_POS.zone - 4;
      */
     static constexpr uint32_t N_LOG_BUFF_ZONES = 4;
 }
