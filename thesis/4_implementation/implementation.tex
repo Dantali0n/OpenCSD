@@ -289,9 +289,9 @@ achieved by reading from the start of the wraparound-pointer until the first
 hole is encountered.
 
 The main limitation of this approach is that it can only compact information
-for repeated inodes and occupied blocks. Should the random zone contain a
-linearly increasing sequence data that occupies size $n > 2$ then no compaction
-will take place. Such limitations are acceptable as in general filesystem
+for repeated inodes and occupied blocks per two zones. Should the random zone
+contain a linearly increasing sequence data that occupies size $n > 2$ then no
+compaction will take place. Such limitations are acceptable as filesystem
 recovery and stability features will not contribute towards the research
 questions in this work.
 
