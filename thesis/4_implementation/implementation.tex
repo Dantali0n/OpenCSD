@@ -23,26 +23,26 @@ Followed by, sections on filesystem and offloading implementation details.
 \subsection{Framework}
 
 Firstly, OpenCSD consist of many external dependencies, most prominently
-\textit{Storage Performance Development Kit} (SPDK) \cite{spdk} and uBPF
-\cite{ubpf}. These technolgies are used as userspace NVMe SSD driver and as
-virtual machine for the eBPF ISA respectively. Reusing as many as pre-existing
-technologies as possible increases the change of familiarity aiding ease of use.
-More prominently, these existing technologies dramatically lower the amount of
-development effort required to create the prototype. However, our design
-requirements demand these dependencies be installed in an isolated way. To do
-this OpenCSD configures an isolated build environment with dependencies made
-available through an environment file. Moreover, this file configures variables
-such as \textit{PATH} and \textit{LD\_LIBRARY\_PATH}. In addition, OpenCSD
-offers a QEMU installation and accompanying qcow image to emulate a ZNS SSDs.
-This is to overcome the limited availability of these SSDs as stated in the
-design requirements. However, the use of QEMU for ZNS SSDs is entirely optional.
-Finally, CMake \cite{cmake} is used to orchestrate the installation of
-dependencies as well as the compilation of binary targets. Due to limitations it
-is advised to rerun CMake after each make command, as this  prevents unnecessary
-recompilation of external dependencies \footnotemark[10]. The combination of this
-isolated dependencies environment managed through CMake with the ability to use
-QEMU for ZNS SSDs emulation is ideal to minimize the complexity as exposed to
-users of OpenCSD.
+\textit{Storage Performance Development Kit} (SPDK) \cite{spdk},
+FUSE \cite{fuse} and uBPF \cite{ubpf}. These technolgies are used as userspace
+NVMe SSD driver and as virtual machine for the eBPF ISA respectively. Reusing as
+many as pre-existing technologies as possible increases the change of
+familiarity aiding ease of use. More prominently, these existing technologies
+dramatically lower the amount of development effort required to create the
+prototype. However, our design requirements demand these dependencies be
+installed in an isolated way. To do this OpenCSD configures an isolated build
+environment with dependencies made available through an environment file.
+Moreover, this file configures variables such as \textit{PATH} and
+\textit{LD\_LIBRARY\_PATH}. In addition, OpenCSD offers a QEMU installation and
+accompanying qcow image to emulate a ZNS SSDs. This is to overcome the limited
+availability of these SSDs as stated in the design requirements. However, the
+use of QEMU for ZNS SSDs is entirely optional. Finally, CMake \cite{cmake} is
+used to orchestrate the installation of dependencies as well as the compilation
+of binary targets. Due to limitations it is advised to rerun CMake after each
+make command, as this  prevents unnecessary recompilation of external
+dependencies \footnotemark[10]. The combination of this isolated dependencies
+environment managed through CMake with the ability to use QEMU for ZNS SSDs
+emulation is ideal to minimize the complexity as exposed to users of OpenCSD.
 
 \footnotetext[10]{Due to limitations in the evaluation of file presence
 conditions which are not reevaluated when executing the generated makefile.}
@@ -170,10 +170,10 @@ limitations.
 We briefly reintroduce some fundamental terminology for this section. A ZNS
 device consist of $\{0,1,...,n-1\}$ zones each with $\{0,1,...,s-1\}$ sectors
 where $n$ and $s$ are the number of zones and sectors, respectively. For each of
-these zones ZNS can define a sector data limit of $l_{n} < s$. Any sector above
-and including $l_{n}$ will be unwriteable for that zone. For simplicity we
-assume that $l_{0} = \{l_{1},...,l_{n-1}\}$. Data is appended within each zone
-on a per sector basis until the zone is full. To achieve this each of these
+these zones ZNS can define a zone capacity, a limit of $l_{n} < s$. Any sector
+above and including $l_{n}$ will be unwriteable for that zone. For simplicity we
+assume that $l_{0} = \{l_{1},l_{2},...,l_{n-1}\}$. Data is appended within each
+zone on a per sector basis until the zone is full. To achieve this each of these
 zones internally maintains a write-pointer that keeps track of up to which
 sector data is written. This information can be queried, however, this process
 is reasonably expensive. Unlike regular block devices this write-pointer
@@ -254,7 +254,7 @@ same functionality as in F2FS but the datastructures themselves are different.
 
 Firstly, the NAT blocks keep track of inode and \textit{Logical Block Address}
 (LBA) pairs. Each LBA can easily be translated to a zone and sector allowing to
-determine the information about inodes on the drive. Secondly, the SIT blocks
+determine the location of inodes on the drive. Secondly, the SIT blocks
 maintain which sectors of the drive are occupied using bitmaps.
 
 The appending of NAT and SIT blocks in the random zone happens in interleaved
@@ -286,7 +286,8 @@ $n \bmod 2 = 0$. Clearly, the checkpoints does not store write-pointers only
 wraparound-pointers in persistent storage. However, storing those pointers is
 unnecessary as they can be recovered by querying the ZNS device. This is
 achieved by reading from the start of the wraparound-pointer until the first
-hole is encountered.
+hole is encountered. Once again adaptation for regular block devices can be
+achieved by adding checksums to the datastructures.
 
 The main limitation of this approach is that it can only compact information
 for repeated inodes and occupied blocks per two zones. Should the random zone
@@ -294,6 +295,11 @@ contain a linearly increasing sequence data that occupies size $n > 2$ then no
 compaction will take place. Such limitations are acceptable as filesystem
 recovery and stability features will not contribute towards the research
 questions in this work.
+
+This concludes the layout and behavior of the random zone and the accompanying
+random buffer. Lastly, we describe the most involved zone of FluffleFS namely
+the log zone which also has an accompanying log buffer. An overview of the
+layout of these regions is shown in figure \ref{figure:flufflelayoutlog}.
 
 \begin{figure}[h!]
     \centering
@@ -303,9 +309,148 @@ questions in this work.
     \label{figure:flufflelayoutlog}
 \end{figure}
 
+Firstly, the log zone contains three different datastructures that can be
+interleaved to an extend. These datatsructures include raw data, data blocks
+keeping track of raw data and inode blocks keeping track of inodes and data
+blocks. The decoupling of inodes and data blocks reduces write-amplifcation.
+
+For consistency all raw data is always written before the data block that
+indicates their existence is. Only after the data blocks are the inode blocks
+flushed. Next, the NAT blocks are flushed and finally the SIT blocks. This order
+does not prevent data loss during a partial flush but it does prevent
+inconsistent states.
+
+Inside a data block is simply a large consecutive list of LBAs increasing
+with the order of data. However, the end of a data block contains a LBA which
+points to the next data block or zero if it does not exist.
+
+The first data block is found through the inode block by means of an inode
+entry. In addition, these entries contain the parent inode, the inode number
+itself, the type of inode and the size of the inode entry including the null
+terminated name. This null terminated name is placed directly after each
+inode entry. Each inode block is a dynamc list of inode entries and names
+until no more entries or the name of the newly added inode no longer fits
+inside the current block. No optimizations are made to try and balance inode
+entries with their names across multiple inode blocks. Finally, inode entries
+and names are never stored across inode block boundaries.
+
+The overall layout of an inode block is shown in figure
+\ref{figure:fluffleinodeblock}. Importantly, for none of these datastructures
+do we have to store type information as the use for each block can be inferred
+from the NAT blocks and the subsequent inodeblocks they point to.
+A possible improvement includes better capturing this many to one inode to LBA
+relation in the NAT blocks instead of storing each inode LBA pair separately.
+
+\begin{figure}[h!]
+    \centering
+	\includegraphics[width=1\textwidth]{resources/images/fluffle-inodeblock.pdf}
+	\caption{Layout of an inode block in FluffleFS.}
+    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
+    \label{figure:fluffleinodeblock}
+\end{figure}
+
+Finally, the log zone also has a log buffer similar to the random zone and
+buffer. The same compaction method and limitations apply. This concludes the
+layout and behavior as performed for the log zone.
+
+Clearly, all regions combined create a functional data layout that can support
+typical filesystem operations such as the creation, deletion of files and
+reinitialize after a previous clean unmount.
+
 \subsubsection{Memory}
 
+This next section addresses how the filesystem data is represented in memory.
+Firstly, an overview of all these datastructures is given and afterwards their
+structure and use. In additon, we describe which in memory representation are
+synchronized to the drive and how the translations are performed. Several
+techniques are in place to ensure that these in memory representations are
+performant as well as easily be synchronized with the drive contents. Primarily,
+Red-black self-balancing \textit{binary search tree} (BST)s
+\cite{Bayer2004SymmetricBB} are heavily used to ensure datatsructure operations
+can be performed with cost $\mathcal{O}(\log n)$.
+
+In total there are eight large datastructures kept in memory by FluffleFS of
+which three are used for synchronizing with the drive. In no particular order
+these are:
+
+\begin{enumerate}
+    \item inode\_nlookup\_map
+    \item path\_inode\_map
+    \item inode\_lba\_map
+    \item open\_inode\_vect
+    \item nat\_update\_set
+    \item inode\_entries\_map
+    \item data\_blocks\_map
+    \item snapshots\_map
+\end{enumerate}
+
+Most of these datastructures support concurrent access and modification through
+the use of wrapper classes. The types of operations and concurrency supported
+are detailed in a later section. The datastructures responsible for drive
+synchronization include \begin{enumerate*} \item nat\_update\_set 
+    \item inode\_entries\_map \item data\_blocks\_map \end{enumerate*}.
+
+FluffleFS predominantly uses maps that map the inode number to specific data,
+the algorithm underlying these maps is the mentioned red-black self-balancing
+binary search tree. The redundant storing of the same inode number across
+maps could potentially be improved at the cost of concurrency for insertions
+and deletions.
+
+We briefly explain the contents and use of each datastructure. Firstly, the
+inode\_nlookup\_map is used to prevent delayed I/O requests from arriving when
+an inode has already been renamed or deleted (unlinked). FluffleFS will only
+actually remove the stale data from memory once the nlookup count for that inode
+reaches zero.
+
+More complex but less important is the \textit{path\_inode\_map}. This
+datastructure acts as a cache for recently looked up flushed inodes. In addition
+FluffleFS has dedicated datastructures for unflushed data that will be explained
+later. \textit{path\_inode\_map} preserves name inode pairs for the children of
+a given inode. The structure is demonstrated in figure
+\ref{figure:flufflepathmap}. The use of this datastructures allows to perform
+lookups in $\mathcal{O}(2 \log n)$ time. It should be noted that normally FUSE
+manages its own data and inode caches, however, these are incompatible with
+FluffleFS its offloading mechanisms. Due to the high cost and excessive inode
+block reading of a lookup
+otherwise this cache was implemented. Next inode\_lba\_map is shown to alleviate
+some of this cost for cache misses.
+
+\begin{figure}[h!]
+    \centering
+	\includegraphics[width=0.7\textwidth]{resources/images/fluffle-path-map.pdf}
+	\caption{Structure of path map cache for fast lookups.}
+    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
+    \label{figure:flufflepathmap}
+\end{figure}
+
+This inode\_lba\_map maps inode numbers to a small datastructure that retains
+the inode number, its parent inode number and a mutex. The main purpose of this
+datatsructure is to quickly evaluate if an inode exists on the filesystem. In
+addition, the parent inode number reduces the cost of path\_inode\_map misses
+since we can find all children of an inode at cost $\mathcal{O}(n \log n)$. This
+is substantially lower than having to find the LBA of each inode and reading
+the entry from the drive at cost $\mathcal{O}(n + (n \log n))$ especially as
+inode\_lba\_map prevents reading from the drive entirely.
+
+Once the inode is located and its existence is verified the next steps of
+operations can begin. For typical operations such as reading and writting
+FluffleFS must keep track of files opened. This is done through
+open\_inode\_vect. For every opened file a unique file handle is created that is
+associated with the inode, calling PID and the flags from the \textit{open}
+call. For every subsequent call this unique file handle will allow FluffleFS to
+find the relevant information. This datastructure is necessary because in
+\textit{release} and \textit{close} calls it will otherwise not be possible to
+determine the calling PID.
+
+This concludes the datastructures that provide runtime operations and are solely
+represented in memory. The next three datastructures are used to synchronize
+with the drive contents and the final datastructure is solely for offloading.
+
+
+
 \subsubsection{Operational Rules}
+
+
 
 \subsubsection{Concurrency}
 
