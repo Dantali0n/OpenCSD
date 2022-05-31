@@ -148,7 +148,9 @@ coverage:
     paths:
       - build/coverage/*
     reports:
-      cobertura: build/coverage.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: build/coverage.xml
 memory-valgrind:
   stage: memory
   tags:
