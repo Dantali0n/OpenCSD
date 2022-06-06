@@ -1801,6 +1801,7 @@ namespace qemucsd::fuse_lfs {
 
         for(auto &entry : *data_blocks) {
             delete entry.second;
+            delete entry.second;
         }
 
         if(remove_dirtyblock() != FLFS_RET_NONE) {
@@ -1830,6 +1831,8 @@ namespace qemucsd::fuse_lfs {
 
         // TODO(Dantali0n): Do not directly return not found if path_inode_map
         //                  becomes partial / incomplete
+        // TODO(Dantali0n): Access path_inode_map in concurrency / thread safe
+        //                  wrapper.
         // Search for the name in the path_inode_map
         auto result = path_inode_map->find(parent)->second->find(name);
         if(result == path_inode_map->find(parent)->second->end()) {
@@ -2151,12 +2154,15 @@ namespace qemucsd::fuse_lfs {
         output_fi("read", fi);
         #endif
 
-        // Check if inode exists
+        // Check if inode exists, this data can not be passed to subsequent
+        // read_regular call as it is retrieved while inode still unlocked.
         if(inode_stat(ino, &e.attr) == FLFS_RET_ENOENT) {
             fuse_reply_err(req, ENOENT);
             return;
         }
 
+        // TODO(Dantali0n): Move these checks to separate function
+        //                  to be used in both read_regular and read_csd instead
         // Try to prevent reads accessing non-existing data blocks, this is
         // an incomplete solution! Does not prevent reading holes!
         if(e.attr.st_size < offset) {

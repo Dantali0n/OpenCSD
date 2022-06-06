@@ -117,7 +117,7 @@ namespace qemucsd::fuse_lfs {
      * determine type before doing anything else.
      */
     struct __attribute__((packed)) none_block : rand_block_base {
-        // Set type to to RANDZ_NON_BLK
+        // Set type to RANDZ_NON_BLK
         uint8_t padding[SECTOR_SIZE-8];
     };
     static_assert(sizeof(none_block) == SECTOR_SIZE);
