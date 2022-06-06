@@ -200,9 +200,9 @@ been adopted to be append only as well.
 
 Firstly the fixed and random zone are explained separely from the log zone.
 Their high level layout is shown in figure \ref{figure:flufflelayout}. This high
-level layout shows the data in terms of entire zones indexed from ${0,...,n-1}$.
-In later more detailed sections individual sectors and their datastructures
-are described.
+level layout shows the data in terms of entire zones indexed from
+${\{0,1,...,n-1\}}$. In later more detailed sections individual sectors and
+their datastructures are described.
 
 To simplify the filesystem and its management the data in a sector is always
 limited to one specific type of datastructure. In addition, the fixed zones
@@ -229,10 +229,7 @@ partitions.
 
 Secondly, the dirtyblock keeps track of filesystem opening and shutdown. The 
 block is written upon opening the filesystem and removed once closed completely.
-Other datastructures in combination with the dirtyblock allow to identify and
-recover from unclean shutdowns.
-
-Lastly, FluffleFS keeps track of checkpoints across two checkpoint zones. Each
+Other datastructures in combination with the dirtyblock allow to identify andmod
 checkpoint maintains the wraparound-pointers\footnotemark[12] for both the random
 and log zone. Moreover, after the first sector of zone $(n+1) \bmod{2}$ is
 written then zone $n \bmod{2}$ is reset. The filesystem can always recover by
@@ -397,10 +394,10 @@ maps could potentially be improved at the cost of concurrency for insertions
 and deletions.
 
 We briefly explain the contents and use of each datastructure. Firstly, the
-inode\_nlookup\_map is used to prevent delayed I/O requests from arriving when
-an inode has already been renamed or deleted (unlinked). FluffleFS will only
-actually remove the stale data from memory once the nlookup count for that inode
-reaches zero.
+\textit{inode\_nlookup\_map} is used to prevent delayed I/O requests from
+arriving when an inode has already been renamed or deleted (unlinked). FluffleFS
+will only actually remove the stale data from memory once the nlookup count for
+that inode reaches zero.
 
 More complex but less important is the \textit{path\_inode\_map}. This
 datastructure acts as a cache for recently looked up flushed inodes. In addition
@@ -412,8 +409,8 @@ lookups in $\mathcal{O}(2 \log n)$ time. It should be noted that normally FUSE
 manages its own data and inode caches, however, these are incompatible with
 FluffleFS its offloading mechanisms. Due to the high cost and excessive inode
 block reading of a lookup
-otherwise this cache was implemented. Next inode\_lba\_map is shown to alleviate
-some of this cost for cache misses.
+otherwise this cache was implemented. Next \textit{inode\_lba\_map} is shown to
+alleviate some of this cost for cache misses.
 
 \begin{figure}[h!]
     \centering
@@ -423,34 +420,269 @@ some of this cost for cache misses.
     \label{figure:flufflepathmap}
 \end{figure}
 
-This inode\_lba\_map maps inode numbers to a small datastructure that retains
-the inode number, its parent inode number and a mutex. The main purpose of this
-datatsructure is to quickly evaluate if an inode exists on the filesystem. In
-addition, the parent inode number reduces the cost of path\_inode\_map misses
-since we can find all children of an inode at cost $\mathcal{O}(n \log n)$. This
-is substantially lower than having to find the LBA of each inode and reading
-the entry from the drive at cost $\mathcal{O}(n + (n \log n))$ especially as
-inode\_lba\_map prevents reading from the drive entirely.
+This \textit{inode\_lba\_map} maps inode numbers to a small datastructure that
+retains the inode number, its parent inode number and a mutex. The main purpose
+of this datatsructure is to quickly evaluate if an inode exists on the
+filesystem. In addition, the parent inode number reduces the cost of
+\textit{path\_inode\_map} misses since we can find all children of an inode at
+cost $\mathcal{O}(n \log n)$. This is substantially lower than having to find
+the LBA of each inode and reading the entry from the drive at cost
+$\mathcal{O}(n + (n \log n))$ especially as \textit{inode\_lba\_map} prevents
+reading from the drive entirely.
 
 Once the inode is located and its existence is verified the next steps of
 operations can begin. For typical operations such as reading and writting
 FluffleFS must keep track of files opened. This is done through
-open\_inode\_vect. For every opened file a unique file handle is created that is
-associated with the inode, calling PID and the flags from the \textit{open}
-call. For every subsequent call this unique file handle will allow FluffleFS to
-find the relevant information. This datastructure is necessary because in
-\textit{release} and \textit{close} calls it will otherwise not be possible to
-determine the calling PID.
+\textit{open\_inode\_vect}. For every opened file a unique file handle is
+created that is associated with the inode, calling PID and the flags from the
+\textit{open} call. For every subsequent call this unique file handle will allow
+FluffleFS to find the relevant information. This datastructure is necessary
+because in \textit{release} and \textit{close} calls it will otherwise not be
+possible to determine the calling PID.
 
 This concludes the datastructures that provide runtime operations and are solely
 represented in memory. The next three datastructures are used to synchronize
 with the drive contents and the final datastructure is solely for offloading.
 
+Firstly is \textit{inode\_entries\_map} this datastructure keeps unflushed
+\textit{inode\_entries} and name pairs in memory. The absence of this entry on
+the drive is reflected by a zero lba in the \textit{inode\_lba\_map}. Potential
+triggers for flushing this datastructure include calling fsync, entries reaching
+the size of one inode block or based on a timer. An overview of these different
+access patterns for in memory and flushed inode data is shown in figure
+\ref{figure:fluffleinodesync}. The result of the linked map structure is that
+lookups for unflushed data will be substantially faster than flushed
+with $\mathcal{O}(2 \log n)$ compared to $\mathcal{O}(n)$ respectively.
 
+\begin{figure}[h!]
+    \centering
+	\includegraphics[width=0.7\textwidth]{resources/images/fluffle-inode-sync.pdf}
+	\caption{Inode entries synchronization.}
+    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
+    \label{figure:fluffleinodesync}
+\end{figure}
+
+For unflushed inodes this \textit{inode\_entries\_map} works together with the
+\textit{data\_block\_map} that keeps track of unflushed data blocks. Such data
+blocks are linked together and numbered in the corresponding map. Finding the
+data block number and index inside the block are governed by the following
+formulas where $S$ is the size of a sector in bytes, the block number and index
+are represented $d$, $i$ respectively and $o$ is the I/O offset in bytes.
+
+$$d = (o / S) / (S - 8) /8$$
+$$i = (o / S) \bmod{(S - 8) /8}$$
+
+For accessing subsequent data blocks on the drive all previous blocked must be
+accessed to obtain the next block with corresponding complexity
+$\mathcal{O}(n)$. While in memory the \textit{data\_block\_map} allows for
+accesses of $\mathcal{O}(2 \log n)$. Still this design of linked data blocks is
+strongly unrecommended and has a severe flaw causing significant write
+amplifcation. Should the last data block of a particular inode be rewritten due
+to file changes then every other data block needs to be rewritten as well.
+Consider a write to the tail of a file size 1GiB on a drive with 4KiB sectors
+then this will result in 512 data blocks being rewritten. This flaw is
+circumvented by creating a datastructure similar to NAT but for data blocks
+instead of inodes. This feature is not implemented as it does not contribute
+towards the research goals in this work as well as being impeded by time
+constraints.
+
+A comparison of both in memory and on drive representations of data blocks
+is shown in figure \ref{figure:fluffledatablock}.
+
+\begin{figure}[h!]
+    \centering
+	\includegraphics[width=0.7\textwidth]{resources/images/fluffle-data-block.pdf}
+	\caption{Data block layout in memory and on drive.}
+    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
+    \label{figure:fluffledatablock}
+\end{figure}
+
+Lastly are \textit{nat\_update\_set} and \textit{snapshots\_map} these will be
+explained in subsequent sections. This concludes the synchronization
+datastructures and the datastructures altogether. Overall the datastructures
+form a layered but cohesive representation of the state of the filesystem. The
+next section we show how different operations access and modify data step by
+step.
 
 \subsubsection{Operational Rules}
 
+In a filesystem substantial effort goes into designing the individual steps of
+each operation and all their possible concurrent interleavings such that
+together they still guarantee properties such as consistency and atomicity.
+Similar effort and design steps have been taken for FluffleFS in which we
+identify five individual operations. Moreover, in the subsequent section these
+steps are extended such that the support concurrent operation. Firstly, the
+five primary operations of FluffleFS include:
 
+\begin{enumerate}
+    \item Looking up a name within a directory, \textit{lookup}
+    \item Creating a new inode, \textit{create}
+    \item Resizing a file, \textit{ftruncate}
+    \item Reading a file, \textit{read}
+    \item Writting a file, \textit{write}
+    \item Synchronizing filesystem with drive, \textit{fsync}
+\end{enumerate}
+
+Among these are several sub-operations that are repeatedly performed by the
+previous operations. These include \begin{enumerate*} \item Verifying an inode
+exists \item Verifying data blocks exist \end{enumerate*}. Firstly, the
+inode verification works by:
+
+\begin{enumerate}
+    \item Checking the inode is non zero as this is reserved while 1 returns
+    hardcoded data about the filesystem root directory. 
+    \item Looking up the inode in \textit{inode\_lba\_map}. Upon failure the
+    inode does not exist.
+    \item Lookup the inode in \textit{inode\_entries\_map}, it might be that a
+    recent update has changed information about the inode but it has not been
+    flushed to the drive. If the entry exists its data is returned immediately.
+    \item If the inode was not in \textit{inode\_entries\_map} than by induction
+    the inode lba in the \textit{inode\_lba\_map} will be non-zero and the inode
+    block is retrieved from the drive.
+    \item The inode entry is found in the retrieved inode block along with its
+    name, should it not, a critical error will be raised as the filesystem has
+    then become inconsistent.
+\end{enumerate}
+
+To reduce the cost of the verify inode function it also retrieves the most up
+to information about the inode. This includes its type, name, size and parent.
+A special \textit{inode\_stat} support function converts the result from this
+inode information to a format native to FUSE.
+
+Next the verifcation of a data block is similar but slightly less involved:
+
+\begin{enumerate}
+    \item First \textit{data\_blocks\_map} is accessed to see if there are
+    unflushed blocks for the given inode.
+    \item If so the map is traversed to see if it contains the specific block
+    number as only recently updated unflushed blocks are in the map. If it is
+    there the data block is returned from the \textit{data\_blocks\_map}
+    directly.
+    \item Otherwise the data blocks on the drive are traversed until the
+    block for the request block number is found. Any failure to access any block
+    will result in an immediate critical error as it indicates the filesystem
+    is inconsistent. It is the callers responsibility to verify the file is
+    sufficiently sized such that the specified data block numbers should
+    actually exist.
+\end{enumerate}
+
+In addition to verifying the existence of the data block this procedure, similar
+to the inode verification procedure, also returns the appropriate data along
+side it. From now on forward these two procedures for inode and data block
+verification will be referred to as \textit{get\_inode} and
+\textit{get\_data\_block} resepectively. In addition, \textit{inode\_stat}
+implies the calling of \textit{get\_inode}.
+
+We now turn to the first of seven main procedures of Flufflefs, \textit{lookup}:
+\begin{enumerate}
+    \item First \textit{inode\_stat} is performed on the parent inode supplied
+    as argument to \textit{lookup}. In addition \textit{lookup} specifies a name
+    argument as well. Should this fail an \textit{ENOENT}\footnotemark[13] error
+    will be returned.
+    \item Next \textit{path\_inode\_map} is traversed to see if the inode name
+    for the particular parent exists.
+    \item Should it not the \textit{inode\_lba\_map} is iterated to find to
+    all inodes with the specified parent.
+    \item For each of these inodes the inode entry is read from its inode block
+    on the drive to see if those inodes bare the specified name.
+    \item If the name could not be found using either method \textit{ENOENT}
+    is returned.
+    \item Should it exist then \textit{inode\_stat} is called on the name
+    matching inode and this data is returned.
+\end{enumerate}
+
+\footnotetext[13]{UNIX error codes are used to indicate the types of failure
+in FUSE as they are return statusses to system calls, A complete overview can
+be found through man either online \cite{errno} or by executing 
+\textit{man errno}.}
+
+The calling of \textit{lookup} is managed by FUSE automatically when directories
+are traversed or before files are \textit{opened}. This \textit{open} procedure
+is not described in detail as it is effectively \textit{inode\_stat} in
+combination with creating an entry in \textit{open\_inode\_vect}.
+
+Next is the creation of inodes:
+
+\begin{enumerate}
+    \item First the name is checked to be below the maximum permissable length.
+    This is dominated by the sector size as the inode entry and name pair must
+    fit unto a single inode block. If the name is to long the error
+    \textit{ENAMETOOLONG} is returned.
+    \item Next the existence of the parent inode is verified using 
+    \textit{inode\_stat} as well as ensuring that it is a directory.
+    If not \textit{ENOENT} or \textit{ENOTDIR} is returned respectively.
+    \item Each directory can only contain one inode of a particular name, this
+    is checked by performing \textit{looukp}. If it already exists
+    \textit{EEXIST} is returned.
+    \item Now the inode creation starts by incrementing the \textit{inode\_ptr}
+    and assigning the previous value to the new inode.
+    \item The relevant information such as type and parent are inserted into
+    \textit{inode\_entries\_map}.
+    \item Next the new inode information is added to \textit{inode\_lba\_map}
+    and finally to \textit{path\_inode\_map}.
+    \item Finally, in the case of a file a file handle is created and 
+    added to \textit{open\_inode\_vect} as \textit{create} should immediately
+    \textit{open} a file.
+\end{enumerate}
+
+Once a file is created it can potentially be resized using the
+\textit{ftruncate} procedure:
+
+\begin{enumerate}
+    \item The existence of the inode is verified using \textit{get\_inode} if
+    it does not exist \textit{ENOENT} is returned.
+    \item Next the inode is verified to be a file and otherwise \textit{EISDIR}
+    is returned.
+    \item The next steps are based on if the size of the file is increasing or
+    decreasing.
+    \item For decreasing, the data blocks are removed to match the size and the
+    sectors previously occupied by this data and metadata are marked reclaimed.
+    \item For increasing, the non-existing data blocks are created.
+    \item Finally, the size of the inode is updated and the changes are added
+    to textit{inode\_entries\_map}.
+\end{enumerate}
+
+The next two operations are arguably the most important procedures of any
+filsystem being \textit{read} and \textit{write} operations. Firstly,
+\textit{read} works by:
+
+\begin{enumerate}
+    \item Verifying the inode exists with \textit{get\_inode} and checking the
+    offset is not beyond the file size.
+    \item Next the size argument is adjusted to prevent reading beyond the file
+    size. If the remaining size is zero the procedure returns immediately with
+    zero bytes of data.
+    \item Next the initial data block number and data block index are determined
+    from the read offset. This block is fetched using \textit{get\_data\_block}
+    \item Each of the sectors specified by the data block is read into a buffer
+    if at any point the data block index reaches its maximum the next data
+    block is fetched. Any request with an error be it for data or data
+    blocks will make the procedure return \textit{EIO}.
+    \item If all data was read into a buffer succesfully this buffer is
+    returned. The data returned from this buffer is adjusted by the offset
+    modulo the sector size to adjust for unalignment.
+\end{enumerate}
+
+The \textit{write} operation is fairly similar but has slightly different
+nuances and conditions:
+
+\begin{enumerate}
+    \item
+\end{enumerate}
+
+These procedures can be classified between \textit{externally} and
+\textit{internally} facing. Here externally facing create the appropriate
+response that FUSE expects for each request. Contrarily, internally facing
+procedres simply return what error they deem should be returned if any but don't
+call the FUSE runtime directly. This layered system is needed as a FUSE response
+can only be returned once per system call. The result is that an externally
+facing procedure can call any internally facing procedures but never another
+extern one. The differentation between these types of procedures allows to
+significantly reduce duplicate code where that would otherwise not have been
+possible.
+
+% No unlink and rename functionality, unmarking / reclaiming of blocks not
+% performed.
 
 \subsubsection{Concurrency}
 

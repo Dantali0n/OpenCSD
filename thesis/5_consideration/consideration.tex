@@ -24,6 +24,11 @@
 
 % Files can not be removed.
 
+% Path inode map is always complete, no actual caching
+
+% lookup can only return for data in path inode map, won't traverse inode lba
+% map.
+
 \section{Design for Manufacter}
 
 % The current prototype is only suitable for simulation. Several changes are
