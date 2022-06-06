@@ -10,7 +10,7 @@ for type in write read
         echo "bandwidth" > fio-rand-${type}-${bs}.csv
         for _ in {1..30}
         do
-            ./fuse-entry -- -d -o max_read=2147483647 test > /dev/null 2>&1 &
+            ./fuse-entry-spdk -- -d -o max_read=2147483647 test > /dev/null 2>&1 &
             pid=$!
             sleep 3
             results=$(cd test; fio --name=global --rw=rand${type} --size=1048576k --bs=${bs} --name=fiotest --output-format=json+)
