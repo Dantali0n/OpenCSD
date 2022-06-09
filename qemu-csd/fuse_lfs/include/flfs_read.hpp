@@ -39,7 +39,8 @@ namespace qemucsd::fuse_lfs {
 
     class FuseLFSRead {
     public:
-        virtual void read_precheck();
+        virtual int read_precheck(fuse_req_t req, struct inode_entry entry,
+            size_t &size, off_t &offset);
 
         virtual void read_regular(fuse_req_t req, struct stat *stbuf,
             size_t size, off_t off, struct fuse_file_info *fi) = 0;

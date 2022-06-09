@@ -27,6 +27,36 @@
 namespace qemucsd::fuse_lfs {
 
     /**
+     * Perform request checks for read_regular and read_csd. This method
+     * handles FUSE replies on the fuse_req_t object.
+     * @threadsafety: Ensure the inode is locked before these checks are
+     *                executed.
+     * @return FLFS_RET_NONE upon success, FLFS_RET_ERR upon failure
+     */
+    int FuseLFSRead::read_precheck(fuse_req_t req, struct inode_entry entry,
+        size_t &size, off_t &offset)
+    {
+        // Do not read beyond file size
+        if(entry.size < offset) {
+            fuse_reply_buf(req, nullptr, 0);
+            return FLFS_RET_ERR;
+        }
+
+        // Do not return data from buffers past end of file (EOF)
+        if(entry.size < offset + size) {
+            size = entry.size - offset;
+        }
+
+        // Don't actually perform 0 sized reads
+        if(size == 0) {
+            fuse_reply_buf(req, nullptr, 0);
+            return FLFS_RET_ERR;
+        }
+
+        return FLFS_RET_NONE;
+    }
+
+    /**
      *
      * @return
      */
@@ -35,15 +65,14 @@ namespace qemucsd::fuse_lfs {
     {
         measurements::measure_guard msr_guard(msr_reg[MSRI_REG_READ]);
 
-        // Inode is of size 0
-        if(stbuf->st_size == 0) {
-            reply_buf_limited(req, nullptr, 0, offset, size);
-            return;
-        }
-
         // Actual read starts here
         inode_entry_t entry;
         get_inode(stbuf->st_ino, &entry);
+
+        // Precheck handles pre read checks and manages FUSE reply, only
+        // continue if there are no errors.
+        if(read_precheck(req, entry.first, size, offset) != FLFS_RET_NONE)
+            return;
 
         // Variables corresponding to initial data_block, sector aligned
         uint64_t db_block_num;

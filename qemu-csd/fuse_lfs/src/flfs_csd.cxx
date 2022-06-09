@@ -183,8 +183,8 @@ namespace qemucsd::fuse_lfs {
         }
 
         /** Read the read kernel contents from the drive */
-        if(read_snapshot(context, kernel_snap.inode_data.first.size, 0, kernel_data,
-                         &kernel_snap) != FLFS_RET_NONE)
+        if(read_snapshot(context, kernel_snap.inode_data.first.size, 0,
+            kernel_data, &kernel_snap) != FLFS_RET_NONE)
         {
             fuse_reply_err(req, EIO);
             return;
@@ -194,6 +194,14 @@ namespace qemucsd::fuse_lfs {
         struct snapshot file_snap;
         if(get_snapshot(context, &file_snap, SNAP_FILE) != FLFS_RET_NONE) {
             fuse_reply_err(req, EIO);
+            return;
+        }
+
+        /** Check that size and offset match file snapshot dimensions,
+         * return early if out of range (return FLFS_RET_ERR) */
+        if(read_precheck(req, file_snap.inode_data.first, size, off) !=
+            FLFS_RET_NONE)
+        {
             return;
         }
 
