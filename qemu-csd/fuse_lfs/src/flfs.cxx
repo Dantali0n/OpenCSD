@@ -1801,7 +1801,6 @@ namespace qemucsd::fuse_lfs {
 
         for(auto &entry : *data_blocks) {
             delete entry.second;
-            delete entry.second;
         }
 
         if(remove_dirtyblock() != FLFS_RET_NONE) {
@@ -2161,26 +2160,6 @@ namespace qemucsd::fuse_lfs {
             return;
         }
 
-        // TODO(Dantali0n): Move these checks to separate function
-        //                  to be used in both read_regular and read_csd instead
-        // Try to prevent reads accessing non-existing data blocks, this is
-        // an incomplete solution! Does not prevent reading holes!
-        if(e.attr.st_size < offset) {
-            fuse_reply_buf(req, nullptr, 0);
-            return;
-        }
-
-        // Do not return data from buffers past end of file (EOF)
-        if(e.attr.st_size < offset + size) {
-            size = e.attr.st_size - offset;
-        }
-
-        // Don't actually perform 0 sized reads
-        if(size == 0) {
-            fuse_reply_buf(req, nullptr, 0);
-            return;
-        }
-
         #ifdef QEMUCSD_DEBUG
         // Verify inode is regular file
         if(!(e.attr.st_mode & S_IFREG)) {
@@ -2204,13 +2183,14 @@ namespace qemucsd::fuse_lfs {
             return;
         }
 
-        // Check if inode exists and lock
+        // Lock the inode
         if(lock_inode(ino) != FLFS_RET_NONE) {
             fuse_reply_err(req, ENOENT);
             return;
         }
 
         read_regular(req, &e.attr, size, offset, fi);
+
         unlock_inode(ino);
     }
 
