@@ -61,7 +61,7 @@ print(xattr.getxattr("test/test", "user.process.csd_read_stream"))
 # Split the file reading into steps equal to the maximum stride for a single I/O
 # request.
 steps = int(fsize / read_stride)
-if steps % read_stride != 0:
+if fsize % read_stride != 0:
     steps += 1
 
 # Create totality bins for entropy calculation
