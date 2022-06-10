@@ -5,8 +5,8 @@
 
 for size in 64k 256k 1024k 4096k 16384k 65536k 262144k 1048576k
 do
-    echo "size ${size}"
-     echo "bandwidth" > passthrough-read-${size}.csv
+    echo "passthrough sequential --size=${size} ..."
+    echo "bandwidth" > passthrough-read-${size}.csv
     for _ in {1..30}
     do
         ./fuse-entry -- -d -o max_read=2147483647 test > /dev/null 2>&1 &
