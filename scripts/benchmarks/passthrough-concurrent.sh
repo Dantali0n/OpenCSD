@@ -14,7 +14,7 @@ bs=524288
 EOF
 
 for concurrent in 1 2 3 4; do
-    for size in 1024k 4096k 16384k 65536k 262144k; do # 1048576k; do
+    for size in 1024k 4096k 16384k 65536k 262144k 1048576k; do
         echo "passthrough concurrent 1-${concurrent} --size=${size} ..."
         echo "bandwidth" > passthrough-read-concurrent-${concurrent}-${size}.csv
         for _ in {1..30}; do
