@@ -10,10 +10,8 @@ for type in write read
         echo "bandwidth" > fio-rand-${type}-${fs}-${bs}.csv
         for _ in {1..30}
         do
-            mount /dev/nvme0n1 /mnt
             results=$(cd /mnt; fio --name=global --rw=rand${type} --size=1048576k --bs=${bs} --name=fiotest${bs} --output-format=json+)
             echo "$results" | jq ".jobs[].${type}.bw_bytes" >> fio-rand-${type}-${fs}-${bs}.csv
-            umount /mnt
         done
     done
 done
