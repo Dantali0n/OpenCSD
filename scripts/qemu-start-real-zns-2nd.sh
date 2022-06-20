@@ -1,4 +1,3 @@
-cat qemu-start-real-zns-2nd.sh
 #!/bin/bash
 
 #echo "0000:61:00.0" | sudo tee /sys/bus/pci/drivers/nvme/unbind
