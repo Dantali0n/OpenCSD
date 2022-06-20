@@ -30,7 +30,8 @@ import pandas as pd
 import numpy as np
 
 # x = [("64k", "256k", "1024k", "4096k", "16384k", "65536k", "262144k", "1048576k")]
-x = [("1024k", "4096k", "16384k", "65536k", "262144k", "1048576k")]
+# x = [("1024k", "4096k", "16384k", "65536k", "262144k", "1048576k")]
+x = [("0", "1024", "4096", "16384", "65536", "262144", "1048576")]
 
 def adj_lightness(color, amount=0.5):
     import matplotlib.colors as mc
@@ -49,8 +50,12 @@ bandwidth_passthrough = []
 base_std_passthrough = []
 
 for f in x[0]:
+    if f == "0":
+        bandwidth_flufflefs.append(0)
+        base_std_flufflefs.append(([0],[0]))
+        continue
     try:
-        data = pd.read_csv("../measurements/fio/fio-seq-read-fluffle-{0}.csv".format(f))
+        data = pd.read_csv("../measurements/fio/fio-seq-read-fluffle-1-{0}k.csv".format(f))
         bandwidth = sum(data['bandwidth'].values) / 1048576 / len(data['bandwidth'])# MiB/S
         bandwidth_flufflefs.append(bandwidth)
         base_std = ([],[])
@@ -62,11 +67,15 @@ for f in x[0]:
         )
         base_std_flufflefs.append(base_std)
     except:
-        print("File ../measurements/fio/fio-seq-read-fluffle-{0}.csv does not exist".format(f))
+        print("File ../measurements/fio/fio-seq-read-fluffle-1-{0}k.csv does not exist".format(f))
 
 for f in x[0]:
+    if f == "0":
+        bandwidth_passthrough.append(0)
+        base_std_passthrough.append(([0],[0]))
+        continue
     try:
-        data = pd.read_csv("../measurements/passthrough-read-{0}.csv".format(f))
+        data = pd.read_csv("../measurements/passthrough/passthrough-read-{0}k.csv".format(f))
         bandwidth = sum(data['bandwidth'].values) / 1048576 / len(data['bandwidth']) # MiB/S
         bandwidth_passthrough.append(bandwidth)
         base_std = ([],[])
@@ -78,7 +87,7 @@ for f in x[0]:
         )
         base_std_passthrough.append(base_std)
     except:
-        print("File ../measurements/passthrough-read-{0}.csv does not exist".format(f))
+        print("File ../measurements/passthrough/passthrough-read-{0}k.csv does not exist".format(f))
 
 from matplotlib import rcParams
 rcParams['font.family'] = 'Times New Roman'
@@ -94,24 +103,25 @@ plt.rc('legend', fontsize=fontsize) #fontsize of the legend
 
 colors = cm.rainbow(np.linspace(0, 1, 2))
 
-plt.grid(which='both', zorder=1, axis='y')
-plt.xlabel('File Size')
+plt.xscale('log', base=4, nonpositive='mask')
+xvalues = [int(value) for value in x[0]]
+plt.xticks([int(value) for value in x[0]], labels=x[0])
+
+plt.grid(which='both', zorder=1, axis='both')
+plt.xlabel('File Size in KibiBytes')
 plt.ylabel('Throughput (MiB/S)')
 plt.title('Sequential Read Performance regular vs kernel passthrough')
 
-plt.plot(x[0], bandwidth_flufflefs, color=colors[0], label='regular')
-plt.plot(x[0], bandwidth_passthrough, color=colors[1], label='passthrough')
+plt.plot(xvalues, bandwidth_flufflefs, color=colors[0], label='regular')
+plt.plot(xvalues, bandwidth_passthrough, color=colors[1], label='passthrough')
 
 for (i,y) in enumerate(bandwidth_flufflefs):
-    plt.errorbar(x[0][i], bandwidth_flufflefs[i], yerr=base_std_flufflefs[i], color=colors[0], capsize=10, alpha=0.90)
-    plt.errorbar(x[0][i], bandwidth_passthrough[i], yerr=base_std_passthrough[i], color=colors[1], capsize=10, alpha=0.90)
+    plt.errorbar(xvalues[i], bandwidth_flufflefs[i], yerr=base_std_flufflefs[i], color=colors[0], capsize=10, alpha=0.90)
+    plt.errorbar(xvalues[i], bandwidth_passthrough[i], yerr=base_std_passthrough[i], color=colors[1], capsize=10, alpha=0.90)
 
 # plt.axhline(y=1, color='#000', alpha=0.5, label='Identical performance')
 # plt.xticks(index + ((0.05 / num_bars) * (num_bars / 2)), x[0])
 plt.legend()
-
-# ax.set_yscale('log')
-# ax.set_ylim(ymin=0, ymax=16)
 
 plt.tight_layout()
 plt.show()
