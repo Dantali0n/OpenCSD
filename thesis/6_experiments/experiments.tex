@@ -27,7 +27,23 @@ and port these to be used by FluffleFS. For each of these applications we reason
 about the expected and achieved data movement reduction among other performance
 metrics.
 
+For each of the experiments measurements are taken 30 times to account for
+variance between measurements. For almost all measurements the mean will
+be used alongside minimum and maximum errors bars.
+
 \subsection{Microbenchmarks}
+
+Most of these microbenchmarks serve to compare performance against more
+established ZNS supporting filesystems. For these microbenchmarks the popular
+F2FS\cite{Lee2015F2FSAN} filesystem is used. Exceptions to these include
+evaluating the offloading and concurrent performance of FluffleFS against its
+regular performance.
+
+E
+Each of these benchmarks is executed on a freshly formatted filesystem each
+time due to the inability of FluffleFS to reach \textit{Steady State}. while
+F2FS is able to reach steady state a comparison between filesystems in such
+substantially different states would be unfair.
 
 \begin{enumerate}
     \item Sequential reads \& writes f2fs vs FluffleFS
@@ -95,7 +111,9 @@ metrics.
 % software compiler flags
 
 % Use alacritty to prevent performance influence of writing to stdout / stderr
-%
+
+
+\subsection{Pitfalls}
 
 % ---------------------------------------------------------------------------
 % ----------------------- end of thesis sub-document ------------------------

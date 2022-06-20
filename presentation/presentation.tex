@@ -183,6 +183,13 @@ platform}
 % Python for external file
 \newcommand\cexternal[2][]{{\cstyle\lstinputlisting[#1]{#2}}}
 
+\newcommand\FourQuad[4]{%
+    \begin{minipage}[b][.35\textheight][t]{.47\textwidth}#1\end{minipage}\hfill%
+    \begin{minipage}[b][.35\textheight][t]{.47\textwidth}#2\end{minipage}\\[0.5em]
+    \begin{minipage}[b][.35\textheight][t]{.47\textwidth}#3\end{minipage}\hfill
+    \begin{minipage}[b][.35\textheight][t]{.47\textwidth}#4\end{minipage}%
+}
+
 \begin{document}
 
 % This presentation is about OpenCSD and FluffleFS a open-source, open-data
@@ -205,13 +212,6 @@ platform}
 		\centering
 		\includegraphics[width=0.9\textwidth]{resources/images/data-problem.png}
 	\end{figure}
-	% \begin{itemize}
-	% 	\item Bring compute closer to storage
-	% 	\item Many benefits and challenges % Energy efficient, reduce host load, scalability
-	% 	\item A long time in the making [1] % it has taken over a decade without any widespread adoption
-	% \end{itemize}
-	% \textit{\tiny $^{1}$Past, Present and Future of Computational Storage: A
-	% Survey, Corne Lukken \& Animesh Trivedi - https://arxiv.org/abs/2112.09691}
 	\endgroup
 \end{frame}
 
@@ -232,11 +232,6 @@ platform}
 		\centering
 		\includegraphics[width=0.7\textwidth]{resources/images/bottleneck.png}
 	\end{figure}
-	% \begin{itemize}
-	% 	\item Von Neumann architecture
-	% 	\item Memory bottlenecks
-	% 	\item Energy efficiency
-	% \end{itemize}
 	\endgroup
 \end{frame}
 
@@ -259,22 +254,14 @@ platform}
 		\centering
 		\includegraphics[width=0.7\textwidth]{resources/images/csd.png}
 	\end{figure}
-	% \begin{itemize}
-	% 	\item Von Neumann architecture
-	% 	\item Memory bottlenecks
-	% 	\item Energy efficiency
-	% \end{itemize}
 	\endgroup
 \end{frame}
 
 % page 4
 % But such a heregoenous distributed system comes with many challenges and
-% complexities. Of which it be impossible to cover them all today. Instead we
-% focus on a prime example which is concurrent write modifcations to the same
-% file. How can we ensure that in multi-user tenant systems concurrent writes
-% partly on computational storage and partly executed by the host will not
-% override each others data. In the next slides some of the technologies used
-% to overcome this challenge are demonstrated.
+% complexities. For filesystems providing both offloaded and regular user access
+%, further called _hybrid_ filesystem these challenges resolve primary around
+% consistency.
 \begin{frame}{Challenges}
 	\begingroup
 	\small
@@ -282,20 +269,22 @@ platform}
 		\centering
 		\includegraphics[width=0.7\textwidth]{resources/images/challenges.png}
 	\end{figure}
-	% \begin{itemize}
-	% 	\item Von Neumann architecture
-	% 	\item Memory bottlenecks
-	% 	\item Energy efficiency
-	% \end{itemize}
 	\endgroup
 \end{frame}
 
 % page 5
+% Resolving such a fundamental challenge to Computational Storage filesystem
+% integration is the primary contribution of this work. We highlight the three
+% most important sub research questions towards this contribution. Each of these
+% will be thoroughly demonstrated. However, it is only a small subset of all
+% nine total research questions. The first two questions aim at demonstration
+% the required design steps while the last provides evidence for its practical
+% use.
 \begin{frame}{Research Questions}
 	\begingroup
 	\small
-		How to create a multi-user tenant (hybrid) LFS with Computational Storage
-    	offloading support?
+		How to create a multi-user tenant (hybrid) Log-Structured Filesystem
+		(LFS) with Computational Storage offloading support?
 	\begin{itemize}
 		\item How to register CSx compute kernels using existing operating 
 			  system APIs?
@@ -308,18 +297,72 @@ platform}
 \end{frame}
 
 % page 6
+%
+%
+%
+%
+%
+%
 \begin{frame}{Design}
 	\begingroup
 	\small
-	\begin{itemize}
-		\item Framework
-		\item Filesystem
-		\item Offloading
-	\end{itemize}
+	
+	\FourQuad%
+		{\centering Modules \& Interfaces
+		\begin{figure}
+			\centering
+			\includegraphics[width=1.0\textwidth]{resources/images/modules-interfaces.png}
+		\end{figure}
+		}
+		{\centering Log-Structured Filesystem (LFS)
+
+		}
+		{\centering Zoned Namespaces (ZNS)
+		\begin{figure}
+			\centering
+			\includegraphics[width=0.7\textwidth]{resources/images/zns-simple.png}
+		\end{figure}
+		}
+		{\centering Extended Attributes (xattr)
+		}
 	\endgroup
 \end{frame}
 
-% page 5
+% page 7
+% \begin{frame}{Design: Interfaces \& Modules}
+% 	\begingroup
+% 	\small
+
+% 	\endgroup
+% \end{frame}
+
+% page 8
+\begin{frame}{Design: ZNS + LFS}
+	\begingroup
+	\small
+	\begin{figure}[h]
+		\centering
+		\begin{subfigure}{0.5\textwidth}
+			  \centering
+			  \includegraphics[width=0.9\linewidth]{resources/images/zns-vs-conventional-expanded.png}
+		\end{subfigure}%
+		\begin{subfigure}{0.5\textwidth}
+			  \centering
+			  \includegraphics[width=0.9\linewidth]{resources/images/lfs.png}
+		\end{subfigure}
+	\end{figure}
+	\endgroup
+\end{frame}
+
+% page 9
+% \begin{frame}{Implementation:xattr}
+% 	\begingroup
+% 	\small
+	
+% 	\endgroup
+% \end{frame}
+
+% page 10
 % First is zoned namespaces. A ratified extensions to the NVMe specification
 % the most prominent protocol used with Flash storage today. While the
 % commercial availability of ZNS devices is still poor its benefits have already
@@ -330,19 +373,19 @@ platform}
 % pointer separated across individual zones. This results in each zone being
 % written sequentially. Should the host desire to erase data it must do so one
 % entire zone at a time.
-\begin{frame}{Zoned NameSpaces (ZNS)}
-	\begingroup
-	\small
-	\begin{figure}
-		\centering
-		\includegraphics[width=1\textwidth]{resources/images/zns-vs-conventional-layout.pdf}
-	\end{figure}
-	\textit{\tiny $^{2}$NVM Express Zoned Namespace Command Set Specification 1.1b - 
-	https://nvmexpress.org/developers/nvme-command-set-specifications/}
-	\endgroup
-\end{frame}
+% \begin{frame}{Zoned NameSpaces (ZNS)}
+% 	\begingroup
+% 	\small
+% 	\begin{figure}
+% 		\centering
+% 		\includegraphics[width=1\textwidth]{resources/images/zns-vs-conventional-layout.pdf}
+% 	\end{figure}
+% 	\textit{\tiny $^{2}$NVM Express Zoned Namespace Command Set Specification 1.1b - 
+% 	https://nvmexpress.org/developers/nvme-command-set-specifications/}
+% 	\endgroup
+% \end{frame}
 
-% page 6
+% page 11
 % We combine ZNS with a Log-structured File System,
 % A filesystem design from the late 90's repopularized partly due to flash
 % storage.
@@ -354,31 +397,31 @@ platform}
 % requests to happen concurrently even if the I/O goes to the same file.
 % However, it does mean that the execution of the kernel can potentially operate
 % on partially stale data.
-\begin{frame}{Log-structured File System (LFS)}
-	\begingroup
-	\small
-	\begin{figure}
-		\centering
-		\includegraphics[width=0.7\textwidth]{resources/images/lfs.png}
-	\end{figure}
-	% \begin{itemize}
-	% 	\item Append only writes
-	% 	\item Journaling, snapshotting and revovery
-	% 	\item Perfect match for ZNS
-	% \end{itemize}
-	% Append only writes
-	% Simple support for journaling, snapshotting and revovery
-	% Our design based on F2FS to prevent write-amplification
-	% \begin{figure}
-	% 	\centering
-	% 	\includegraphics[width=0.7\textwidth]{resources/images/f2fs-nat.pdf}
-	% \end{figure}
-	\textit{\tiny $^{3}$The design and implementation of a Log-structured File System \\}
-	\textit{\tiny $^{4}$F2FS: A New File System for Flash Storage}
-	\endgroup
-\end{frame}
+% \begin{frame}{Log-structured File System (LFS)}
+% 	\begingroup
+% 	\small
+% 	\begin{figure}
+% 		\centering
+% 		\includegraphics[width=0.7\textwidth]{resources/images/lfs.png}
+% 	\end{figure}
+% 	% \begin{itemize}
+% 	% 	\item Append only writes
+% 	% 	\item Journaling, snapshotting and revovery
+% 	% 	\item Perfect match for ZNS
+% 	% \end{itemize}
+% 	% Append only writes
+% 	% Simple support for journaling, snapshotting and revovery
+% 	% Our design based on F2FS to prevent write-amplification
+% 	% \begin{figure}
+% 	% 	\centering
+% 	% 	\includegraphics[width=0.7\textwidth]{resources/images/f2fs-nat.pdf}
+% 	% \end{figure}
+% 	\textit{\tiny $^{3}$The design and implementation of a Log-structured File System \\}
+% 	\textit{\tiny $^{4}$F2FS: A New File System for Flash Storage}
+% 	\endgroup
+% \end{frame}
 
-% page 5
+% page 12
 % \begin{frame}{extended Berkely Packet Filter (eBPF)}
 % 	\begingroup
 % 	\small
@@ -391,7 +434,7 @@ platform}
 % 	\endgroup
 % \end{frame}
 
-% page 7
+% page 13
 % With these technologies it is clear how we can support multi-user tenent
 % file system access in a computational storage device setting. We now
 % demonstrate the exact mechanism of registering and offloading programs as used
@@ -419,7 +462,7 @@ platform}
 % 	\endgroup
 % \end{frame}
 
-% page 8
+% page 14
 % Now I imagine this particular diagram can seem daunting but lets go through
 % it step by step. First are the bold arrows with underlined word, each word
 % represents a specific system call that is implemented by POSIX complaint
@@ -455,7 +498,7 @@ platform}
 	\endgroup
 \end{frame}
 
-% page 9
+% page 15
 % Knowing how offloading is achieved we can now turn to a practical example.
 % Background compression algorithms often check if a file is fit for compression
 % prior to compressing it. This is done by computing the shannon entropy across
@@ -479,7 +522,7 @@ platform}
 	\endgroup
 \end{frame}
 
-% page 8
+% page 16
 % \begin{frame}{Evaluation Application}
 % 	\begingroup
 % 	% \small An emulated programmable computational flash storage device
@@ -490,7 +533,7 @@ platform}
 % 	\endgroup
 % \end{frame}
 
-% page 8
+% page 17
 % \begin{frame}{In short}
 % 	\begingroup
 % 	\small OpenCSD \& FluffleFS demonstrate a filesystem design that allows for
@@ -498,7 +541,7 @@ platform}
 % 	\endgroup
 % \end{frame}
 
-% page 10
+% page 18
 % \begin{frame}{Future Work}
 % 	\begingroup
 % 	\small
@@ -514,7 +557,7 @@ platform}
 % 	\endgroup
 % \end{frame}
 
-% page 11
+% page 19
 % All software and data to this project is open source, this includes scripts to
 % perform measurements, raw measurement data, scripts to generate graphs and
 % even source files to this very presentation. We heavily encourage anyone to
@@ -535,6 +578,55 @@ platform}
 		\item Past, Present and Future of Computational Storage: A Survey
 			- https://arxiv.org/abs/2112.09691
 	\end{itemize}
+	\endgroup
+\end{frame}
+
+% Bonus eBPF 
+% 
+\begin{frame}{Architecture Independent Kernels}
+	\begingroup
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.8\textwidth]{resources/images/ubpf-medium.png}
+	\end{figure}
+	\endgroup
+\end{frame}
+
+% Bonus questions 
+% 
+% \begin{frame}{Remaining Research Questions}
+% 	\begingroup
+% 	\begin{itemize}
+% 		\item Design Requirements
+% 		\begin{enumerate}
+% 			\item What existing technologies are best suited for a hybrid LFS?
+% 			\item What techniques can be used to minimize the complexity required to
+% 				  use a hybrid LFS?
+% 			\item How to differentiate individual users, files and I/O operations in
+% 				  relation to their CSx compute kernel?
+% 			\item How to design a compute kernel API that can be reused across
+% 				  devices?
+% 			\item How to ensure user submitted CSx compute kernels are safe?
+% 		\end{enumerate}
+% 		\item Experimental Evaluation
+% 		\begin{enumerate}
+% 			\item Can a multi-user tenant hybrid LFS achieve unstagnated performance
+% 				  for concurrent regular and offloaded file access?
+% 			\item Can a multi-user tenant hybrid LFS reduce the data movement
+% 				  between device and host?
+% 		\end{enumerate}
+% 	\end{itemize}
+% 	\endgroup
+% \end{frame}
+
+% Scale of the problem
+% 
+\begin{frame}{Storage Bottleneck}
+	\begingroup
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.9\textwidth]{resources/images/storage-bottleneck.png}
+	\end{figure}
 	\endgroup
 \end{frame}
 
