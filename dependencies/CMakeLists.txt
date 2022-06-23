@@ -484,6 +484,12 @@ add_custom_command(OUTPUT qemu-install PRE_BUILD
 add_custom_command(OUTPUT qemu-configure PRE_BUILD
     COMMAND ../configure --enable-debug --disable-zstd --target-list=x86_64-softmmu --prefix=${PRJ_ROOT}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/qemu/build
+    DEPENDS qemu-patch
+)
+
+add_custom_command(OUTPUT qemu-patch PRE_BUILD
+    COMMAND bash -c 'git apply --check --reverse ../qemu-patches/ebpf-replace-deprecated-bpf_program__set_socket_filter.diff && git apply ../qemu-patches/ebpf-replace-deprecated-bpf_program__set_socket_filter.diff' || exit 0
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/qemu
     DEPENDS qemu-build-dir
 )
 
