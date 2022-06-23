@@ -314,8 +314,11 @@ platform}
 			\includegraphics[width=1.0\textwidth]{resources/images/modules-interfaces.png}
 		\end{figure}
 		}
-		{\centering Log-Structured Filesystem (LFS)
-
+		{\centering Log-Structured Filesystem (LFS)$^1$
+		\begin{figure}
+			\centering
+			\includegraphics[width=0.9\textwidth]{resources/images/lfs-example.png}
+		\end{figure}
 		}
 		{\centering Zoned Namespaces (ZNS)
 		\begin{figure}
@@ -324,7 +327,24 @@ platform}
 		\end{figure}
 		}
 		{\centering Extended Attributes (xattr)
+		\begin{figure}
+			\centering
+			\includegraphics[width=0.7\textwidth]{resources/images/xattr-inode.png}
+		\end{figure}
 		}
+		\\
+		\textit{\tiny $^{1}$The design and implementation of a Log-structured File System \\}
+	\endgroup
+\end{frame}
+
+% Bonus eBPF 
+% 
+\begin{frame}{Design: Architecture Independent Kernels}
+	\begingroup
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.8\textwidth]{resources/images/ubpf-medium-design.png}
+	\end{figure}
 	\endgroup
 \end{frame}
 
@@ -342,25 +362,55 @@ platform}
 	\small
 	\begin{figure}[h]
 		\centering
-		\begin{subfigure}{0.5\textwidth}
-			  \centering
-			  \includegraphics[width=0.9\linewidth]{resources/images/zns-vs-conventional-expanded.png}
-		\end{subfigure}%
-		\begin{subfigure}{0.5\textwidth}
-			  \centering
-			  \includegraphics[width=0.9\linewidth]{resources/images/lfs.png}
-		\end{subfigure}
+		% \begin{subfigure}{0.5\textwidth}
+			%   \centering
+			  \includegraphics[width=1.0\linewidth]{resources/images/zns-lfs.png}
+		% \end{subfigure}%
+		% \begin{subfigure}{0.5\textwidth}
+		% 	  \centering
+		% 	  \includegraphics[width=0.9\linewidth]{resources/images/lfs.png}
+		% \end{subfigure}
 	\end{figure}
+	\textit{\tiny $^{2}$NVM Express Zoned Namespace Command Set Specification 1.1b - https://nvmexpress.org/developers/nvme-command-set-specifications/}
 	\endgroup
 \end{frame}
 
 % page 9
-% \begin{frame}{Implementation:xattr}
-% 	\begingroup
-% 	\small
-	
-% 	\endgroup
-% \end{frame}
+\begin{frame}{Implementation: Drive Layout}
+	\begingroup
+	\small
+	\begin{figure}[h]
+		\centering
+		% \begin{subfigure}{0.5\textwidth}
+			%   \centering
+			  \includegraphics[width=1.0\linewidth]{resources/images/fluffle-layout-complete.png}
+		% \end{subfigure}%
+		% \begin{subfigure}{0.5\textwidth}
+		% 	  \centering
+		% 	  \includegraphics[width=0.9\linewidth]{resources/images/lfs.png}
+		% \end{subfigure}
+	\end{figure}
+	\textit{\tiny $^{3}$F2FS: A New File System for Flash Storage}
+	\endgroup
+\end{frame}
+
+% page 10
+\begin{frame}{Implementation: Datastructures}
+	\begingroup
+	\small
+	\begin{figure}[h]
+		\centering
+		% \begin{subfigure}{0.5\textwidth}
+			%   \centering
+			  \includegraphics[width=1.0\linewidth]{resources/images/fluffle-inode-sync.pdf}
+		% \end{subfigure}%
+		% \begin{subfigure}{0.5\textwidth}
+		% 	  \centering
+		% 	  \includegraphics[width=0.9\linewidth]{resources/images/lfs.png}
+		% \end{subfigure}
+	\end{figure}
+	\endgroup
+\end{frame}
 
 % page 10
 % First is zoned namespaces. A ratified extensions to the NVMe specification
@@ -581,13 +631,35 @@ platform}
 	\endgroup
 \end{frame}
 
-% Bonus eBPF 
+% Scale of the problem
 % 
-\begin{frame}{Architecture Independent Kernels}
+\begin{frame}{Storage Bottleneck}
 	\begingroup
 	\begin{figure}
 		\centering
-		\includegraphics[width=0.8\textwidth]{resources/images/ubpf-medium.png}
+		\includegraphics[width=0.9\textwidth]{resources/images/storage-bottleneck.png}
+	\end{figure}
+	\endgroup
+\end{frame}
+
+% Bonus eBPF complex view
+% 
+\begin{frame}{eBPF with uBPF}
+	\begingroup
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.7\textwidth]{resources/images/ubpf-abi.pdf}
+	\end{figure}
+	\endgroup
+\end{frame}
+
+% Bonus filesystem agnostic 
+% 
+\begin{frame}{Filesystem Agnostic Kernels}
+	\begingroup
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.8\textwidth]{resources/images/csx-fs-agnostic.png}
 	\end{figure}
 	\endgroup
 \end{frame}
@@ -619,15 +691,6 @@ platform}
 % 	\endgroup
 % \end{frame}
 
-% Scale of the problem
-% 
-\begin{frame}{Storage Bottleneck}
-	\begingroup
-	\begin{figure}
-		\centering
-		\includegraphics[width=0.9\textwidth]{resources/images/storage-bottleneck.png}
-	\end{figure}
-	\endgroup
-\end{frame}
+
 
 \end{document}
