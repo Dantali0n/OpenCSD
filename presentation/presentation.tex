@@ -261,7 +261,13 @@ platform}
 % But such a heregoenous distributed system comes with many challenges and
 % complexities. For filesystems providing both offloaded and regular user access
 %, further called _hybrid_ filesystem these challenges resolve primary around
-% consistency.
+% consistency. Preventing that parts of files being read are already overwritten
+% or multiple writes are going to the same parts of a file.
+
+% Other related work trying to address this, INSIDER - one time translation
+% BlockNDP, designed for filesystem support but not implemented
+% Metal FS, supports regular and offloaded access but overwrites UNIX pipes
+% behavior.
 \begin{frame}{Challenges}
 	\begingroup
 	\small
@@ -273,36 +279,25 @@ platform}
 \end{frame}
 
 % page 5
-% Resolving such a fundamental challenge to Computational Storage filesystem
-% integration is the primary contribution of this work. We highlight the three
-% most important sub research questions towards this contribution. Each of these
-% will be thoroughly demonstrated. However, it is only a small subset of all
-% nine total research questions. The first two questions aim at demonstration
-% the required design steps while the last provides evidence for its practical
-% use.
+% 
 \begin{frame}{Research Questions}
 	\begingroup
 	\small
-		How to create a multi-user tenant (hybrid) Log-Structured Filesystem
-		(LFS) with Computational Storage offloading support?
+		How to create a filesystem providing consitent regular access concurrent
+		with Computational Storage offloading (\textit{hybrid}) support?
 	\begin{itemize}
 		\item How to register CSx compute kernels using existing operating 
 			  system APIs?
   		\item How to differentiate individual users, files and I/O operations in
 			  relation to their CSx compute kernel?
-		\item Can a multi-user tenant hybrid LFS reduce the host load for
+		\item Can a \textit{hybrid} filesystem reduce the host load for
               asynchronous applications?
 	\end{itemize}
 	\endgroup
 \end{frame}
 
 % page 6
-%
-%
-%
-%
-%
-%
+% 
 \begin{frame}{Design}
 	\begingroup
 	\small
@@ -337,7 +332,7 @@ platform}
 	\endgroup
 \end{frame}
 
-% Bonus eBPF 
+% page 7
 % 
 \begin{frame}{Design: Architecture Independent Kernels}
 	\begingroup
@@ -348,7 +343,7 @@ platform}
 	\endgroup
 \end{frame}
 
-% page 7
+% page 8
 % \begin{frame}{Design: Interfaces \& Modules}
 % 	\begingroup
 % 	\small
@@ -356,7 +351,7 @@ platform}
 % 	\endgroup
 % \end{frame}
 
-% page 8
+% page 9
 \begin{frame}{Design: ZNS + LFS}
 	\begingroup
 	\small
@@ -375,7 +370,21 @@ platform}
 	\endgroup
 \end{frame}
 
-% page 9
+% page 10
+\begin{frame}{Orientation}
+	\begingroup
+	\small Next slides, implementation...
+	\begin{itemize}
+		\item Filesystem drive layout
+		\item Filesystem datastructures
+		\item How offloading is achieved using existing OS APIs
+		\item How to differentiate individual users and registered kernels on files
+		\item Evaluation...
+	\end{itemize}
+	\endgroup
+\end{frame}
+
+% page 11
 \begin{frame}{Implementation: Drive Layout}
 	\begingroup
 	\small
@@ -394,7 +403,7 @@ platform}
 	\endgroup
 \end{frame}
 
-% page 10
+% page 12
 \begin{frame}{Implementation: Datastructures}
 	\begingroup
 	\small
@@ -512,7 +521,7 @@ platform}
 % 	\endgroup
 % \end{frame}
 
-% page 14
+% page 13
 % Now I imagine this particular diagram can seem daunting but lets go through
 % it step by step. First are the bold arrows with underlined word, each word
 % represents a specific system call that is implemented by POSIX complaint
@@ -532,7 +541,7 @@ platform}
 % achieve CSD offloading without any changes to existing operating systems APIs.
 % No changes, to existing operating systems are necessary to achieve this
 % process in this way.
-\begin{frame}{FluffleFS}
+\begin{frame}{Implementation: Offloading}
 	\begingroup
 	\small % FUSE LFS with concurrent regular and CSD access even to the same file.
 	\begin{figure}
@@ -548,7 +557,61 @@ platform}
 	\endgroup
 \end{frame}
 
+% page 14
+\begin{frame}{Implementation: Offloading}
+	\begingroup
+	\small % FUSE LFS with concurrent regular and CSD access even to the same file.
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.9\textwidth]{resources/images/offloading-management.png}
+	\end{figure}
+	% How does FluffleFS combine these technologies
+	% \begin{itemize}
+	% 	\item Why ZNS, LFS \& eBPF?
+	% 	\item CSD kernels operate on snapshots % concurrent regular and offloaded access even on the same file
+	% 	\item PID + inode pairs for xattr state % in memory only
+	% \end{itemize}
+	\endgroup
+\end{frame}
+
 % page 15
+\begin{frame}{Evaluation: Setup}
+	\begingroup
+	\tiny iodepth 1, single file throughput, min / max error bars.
+	
+	\endgroup
+\end{frame}
+
+% page 16
+\begin{frame}{Evaluation: Sequential Performance}
+	\begingroup
+	\begin{figure}
+		\begin{subfigure}{0.5\textwidth}
+			\centering
+			\includegraphics[width=1.0\linewidth]{resources/images/results-sequential.pdf}
+		\end{subfigure}%
+		\begin{subfigure}{0.5\textwidth}
+			\centering
+			\includegraphics[width=1.0\linewidth]{resources/images/results-sequential-write.pdf}
+		\end{subfigure}
+	\end{figure}
+	\tiny iodepth 1, single file throughput, min / max error bars.
+	\endgroup
+\end{frame}
+
+% page 17
+\begin{frame}{Evaluation: Kernel Passthrough}
+	\begingroup
+	% \small An emulated programmable computational flash storage device
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.65\textwidth]{resources/images/results-passthrough.pdf}
+	\end{figure}
+	\tiny What is the performance overhead of offloading for max throughput?
+	\endgroup
+\end{frame}
+
+% page 18
 % Knowing how offloading is achieved we can now turn to a practical example.
 % Background compression algorithms often check if a file is fit for compression
 % prior to compressing it. This is done by computing the shannon entropy across
@@ -562,13 +625,24 @@ platform}
 % application the host load is signifcantly reduced. Since such a compression
 % task runs in the background it would be acceptable if the total execution time
 % would be longer, however, this is not the case in our results.
-\begin{frame}{Evaluation Background Compression}
+\begin{frame}{Evaluation: Background Compression}
 	\begingroup
 	% \small An emulated programmable computational flash storage device
 	\begin{figure}
-		\centering
-		\includegraphics[width=0.8\textwidth]{resources/images/results.pdf}
+		\begin{subfigure}{0.5\textwidth}
+			\centering
+			\includegraphics[width=1.0\linewidth]{resources/images/results-shannon-lower.pdf}
+		\end{subfigure}%
+		\begin{subfigure}{0.5\textwidth}
+			\centering
+			\includegraphics[width=1.0\linewidth]{resources/images/results-shannon-upper.pdf}
+		\end{subfigure}
 	\end{figure}
+	\tiny Split for small and big files, different time scales (y axis)
+	% \begin{figure}
+	% 	\centering
+	% 	\includegraphics[width=0.8\textwidth]{resources/images/results.pdf}
+	% \end{figure}
 	\endgroup
 \end{frame}
 
@@ -608,6 +682,45 @@ platform}
 % \end{frame}
 
 % page 19
+\begin{frame}{Limitations}
+	\begingroup
+	\small
+	\begin{itemize}
+		\item State of the filesystem
+		\item Kernel request stride
+		\item Filesystem agnostic kernels
+	\end{itemize}
+	\endgroup
+\end{frame}
+
+% page 20
+\begin{frame}{Filesystem Agnostic Kernels}
+	\begingroup
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.8\textwidth]{resources/images/csx-fs-agnostic.png}
+	\end{figure}
+	\endgroup
+\end{frame}
+
+% page 21
+\begin{frame}{Conclusion}
+	\begingroup
+	\small
+	\begin{itemize}
+		\item Demonstrated \textit{hybrid} filesystem design and implementation
+		\item Demonstrated benefits of concurrent background offloading
+		\item Many further research venues
+		\begin{itemize}
+			\item Steady state filesystem
+			\item Queue depth beyond  1
+			\item Scale offloading performance to embedded platforms
+		\end{itemize}
+	\end{itemize}
+	\endgroup
+\end{frame}
+
+% page 22
 % All software and data to this project is open source, this includes scripts to
 % perform measurements, raw measurement data, scripts to generate graphs and
 % even source files to this very presentation. We heavily encourage anyone to
@@ -623,6 +736,7 @@ platform}
 	\begin{itemize}
 		\item OpenCSD: Log-Structured Filesystem enabled Computational
 		Storage Device platform - https://tinyurl.com/opencsd-thesis
+		\item ICTOPEN: 
 		\item ZCSD: a Computational Storage Device over Zoned Namespaces (ZNS)
 			SSDs - https://arxiv.org/abs/2112.00142
 		\item Past, Present and Future of Computational Storage: A Survey
@@ -631,7 +745,18 @@ platform}
 	\endgroup
 \end{frame}
 
-% Scale of the problem
+% Bonus 1: Related Work
+% 
+\begin{frame}{Related Work}
+	\begingroup
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.9\textwidth]{resources/images/related-work.png}
+	\end{figure}
+	\endgroup
+\end{frame}
+
+% Bonus 2: Scale of the problem
 % 
 \begin{frame}{Storage Bottleneck}
 	\begingroup
@@ -642,7 +767,7 @@ platform}
 	\endgroup
 \end{frame}
 
-% Bonus eBPF complex view
+% Bonus 3: eBPF complex view
 % 
 \begin{frame}{eBPF with uBPF}
 	\begingroup
@@ -653,44 +778,29 @@ platform}
 	\endgroup
 \end{frame}
 
-% Bonus filesystem agnostic 
+% Bonus 4: questions 
 % 
-\begin{frame}{Filesystem Agnostic Kernels}
+\begin{frame}{Remaining Research Questions}
 	\begingroup
-	\begin{figure}
-		\centering
-		\includegraphics[width=0.8\textwidth]{resources/images/csx-fs-agnostic.png}
-	\end{figure}
+	\small
+	Design Requirements
+	\begin{itemize}
+		\item What existing technologies are best suited for a hybrid LFS?
+		\item What techniques can be used to minimize the complexity required to
+			  use a hybrid LFS?
+		\item How to design a compute kernel API that can be reused across
+			  devices?
+		\item How to ensure user submitted CSx compute kernels are safe?
+	\end{itemize}
+	Experimental Evaluation
+	\begin{itemize}
+		\item Can a multi-user tenant hybrid LFS achieve unstagnated performance
+			for concurrent regular and offloaded file access?
+		\item Can a multi-user tenant hybrid LFS reduce the data movement
+			between device and host?
+	\end{itemize}
 	\endgroup
 \end{frame}
-
-% Bonus questions 
-% 
-% \begin{frame}{Remaining Research Questions}
-% 	\begingroup
-% 	\begin{itemize}
-% 		\item Design Requirements
-% 		\begin{enumerate}
-% 			\item What existing technologies are best suited for a hybrid LFS?
-% 			\item What techniques can be used to minimize the complexity required to
-% 				  use a hybrid LFS?
-% 			\item How to differentiate individual users, files and I/O operations in
-% 				  relation to their CSx compute kernel?
-% 			\item How to design a compute kernel API that can be reused across
-% 				  devices?
-% 			\item How to ensure user submitted CSx compute kernels are safe?
-% 		\end{enumerate}
-% 		\item Experimental Evaluation
-% 		\begin{enumerate}
-% 			\item Can a multi-user tenant hybrid LFS achieve unstagnated performance
-% 				  for concurrent regular and offloaded file access?
-% 			\item Can a multi-user tenant hybrid LFS reduce the data movement
-% 				  between device and host?
-% 		\end{enumerate}
-% 	\end{itemize}
-% 	\endgroup
-% \end{frame}
-
 
 
 \end{document}
