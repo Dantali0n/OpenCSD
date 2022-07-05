@@ -48,7 +48,7 @@ base_std = ([],[])
 
 for f in x[0]:
     try:
-        data = pd.read_csv("../measurements/shannon/ictopen-{0}-32.csv".format(f))
+        data = pd.read_csv("../measurements/ictopen/ictopen-{0}-32.csv".format(f))
         init_reset_result = sum(data['wait'].values) #  / 1e6
         fill_zone_result = sum(data['user'].values)  # / 1e6
         execute_result = sum(data['sys'].values)  # / 1e6
@@ -63,7 +63,7 @@ for f in x[0]:
             abs(max(((x+y+z)) - result for x,y,z in zip(data['wait'].values, data['user'].values, data['sys'].values)))
         )
     except:
-        print("File ../measurements/shannon/ictopen-{0}-32.csv does not exist".format(f))
+        print("File ../measurements/ictopen/ictopen-{0}-32.csv does not exist".format(f))
 
 import pdb; pdb.set_trace()
 from matplotlib import rcParams

@@ -36,7 +36,7 @@ ymag = []
 
 for f in x[0]:
     try:
-        data = pd.read_csv("../measurements/shannon/ictopen-offloaded-{0}.csv".format(f))
+        data = pd.read_csv("../measurements/ictopen/ictopen-offloaded-{0}.csv".format(f))
     except:
         print("File ictopen-regular-{0}.csv does not exist".format(f))
     import pdb; pdb.set_trace()
@@ -50,7 +50,7 @@ zmag = []
 
 for f in x[0]:
     try:
-        data = pd.read_csv("../measurements/shannon/ictopen-regular-{0}.csv".format(f))
+        data = pd.read_csv("../measurements/ictopen/ictopen-regular-{0}.csv".format(f))
     except:
         print("File ictopen-regular-{0}.csv does not exist".format(f))
     zwin.append(sum(data['wait'].values / len(data['wait'])))

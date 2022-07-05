@@ -111,7 +111,7 @@ plt.xticks([int(value) for value in x[0]], labels=x[0])
 plt.grid(which='both', zorder=1, axis='both')
 plt.xlabel('File Size in KibiBytes')
 plt.ylabel('Throughput (MiB/S)')
-plt.title('Sequential Read Performance F2FS vs FluffleFS')
+plt.title(f"Sequential {operation} Performance F2FS vs FluffleFS")
 
 plt.plot(xvalues, bandwidth_f2fs, color=colors[0], label='F2FS')
 plt.plot(xvalues, bandwidth_flufflefs, color=colors[1], label='FluffleFS')
