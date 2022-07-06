@@ -193,13 +193,12 @@ platform}
 \begin{document}
 
 % This presentation is about OpenCSD and FluffleFS a open-source, open-data
-% simulation platform with multi-user tenant filesystem for Compational Storage
+% simulation platform with concurrenct access filesystem for Compational Storage
 % Devices. While this work solves several open research questions we will only
-% be able to highlight one today. Particularly, compatability with user
-% compiled code, safety and synchronization are not covered. First we
-% demonstrate why we need Computational storage in the first place.
+% be able to highlight several today. First we demonstrate why we need
+% Computational storage in the first place.
 
-% page 1
+% page 2
 % We life in a data-driven society, a world exploding data. So much data that
 % we are expected to store 200 Zettabytes of data in total by 2050.
 % Such high data capacity and throughput requirements pose signficant challenges
@@ -215,7 +214,7 @@ platform}
 	\endgroup
 \end{frame}
 
-% page 2
+% page 3
 % Perhaps the most prominent bottleneck in computer systems today is the one
 % caused by the Von Neumann architecture. This architecture imposes restrictions
 % on the location of data a CPU is able to operate on. Being it must either be
@@ -235,7 +234,7 @@ platform}
 	\endgroup
 \end{frame}
 
-% page 3
+% page 4
 % With computational storage, flash storage devices are fitted with their own
 % computational elements and memory. Often a combination of a regular processor
 % combined with a field-programmable gate array, a subject we are unfortunately
@@ -244,7 +243,7 @@ platform}
 % or at the users descretion to the device for execution. All data from the
 % storage device is thus moved internally an only the result of the execution is
 % returned to the host for further processing. While the result still has to be
-% moved to system memor, the computation often is reductive in nature, reducing
+% moved to system memory, the computation often is reductive in nature, reducing
 % the amount of bandwidth occupied on the perihperal interfaces and memory
 % controller.
 \begin{frame}{Computational Storage Devices (CSx)s}
@@ -257,17 +256,12 @@ platform}
 	\endgroup
 \end{frame}
 
-% page 4
+% page 5
 % But such a heregoenous distributed system comes with many challenges and
 % complexities. For filesystems providing both offloaded and regular user access
-%, further called _hybrid_ filesystem these challenges resolve primary around
+%, further called _hybrid_ filesystems, these challenges resolve primary around
 % consistency. Preventing that parts of files being read are already overwritten
 % or multiple writes are going to the same parts of a file.
-
-% Other related work trying to address this, INSIDER - one time translation
-% BlockNDP, designed for filesystem support but not implemented
-% Metal FS, supports regular and offloaded access but overwrites UNIX pipes
-% behavior.
 \begin{frame}{Challenges}
 	\begingroup
 	\small
@@ -278,8 +272,18 @@ platform}
 	\endgroup
 \end{frame}
 
-% page 5
-% 
+% page 6
+% Solving such consistency problems and achieving concurrent regular and
+% offloaded filesystem access is the core contribution of this work. This
+% work is distributed among 9 research questions of which we will highlight
+% 3 today. First How to register CSx compute kernels using existing operating 
+% system APIs? As the barrier to entree to use CSD systems can be a great
+% hinderange to adoption. Secondly, How to differentiate individual users,
+% files and I/O operations in relation to their CSx compute kernel? As the
+% CSD and regular behavior needs to be well isolated between multiple users for
+% real multi-user tenant applications. Lastly, Can a \textit{hybrid} filesystem
+% reduce the host load for asynchronous applications? To demonstrate pracitical
+% applications for our work.
 \begin{frame}{Research Questions}
 	\begingroup
 	\small
@@ -296,8 +300,14 @@ platform}
 	\endgroup
 \end{frame}
 
-% page 6
-% 
+% page 7
+% To create such a filesystem our work relies on 5 fundamental design deicision
+% and technologies. First is a software design using modules and interfaces this
+% allows for rapid prototyping and loose coupling. Second is the use of a
+% filesystem design from the 1990's a log-structured filesystem using append
+% only writes. Third is the use of a new NVMe technology called Zoned Namespaces
+% and fourth is the use of a filesystem feature supported by almost every
+% filesystem even though not officially part of POSIX caled extended attributes.
 \begin{frame}{Design}
 	\begingroup
 	\small
@@ -332,8 +342,13 @@ platform}
 	\endgroup
 \end{frame}
 
-% page 7
-% 
+% page 8
+% The last design decision revolves around the use of eBPF. Most commonly known
+% as a Linux kernel feature eBPF is actually just an instruction set architecture.
+% One that can easily be implemented in a virtual machine and that allows vendor
+% specific code to be hidden behind call instructions. Effectively allowing for
+% vendor agnostic implementations of APIs without forcing vendors to release binaries
+% or source code.
 \begin{frame}{Design: Architecture Independent Kernels}
 	\begingroup
 	\begin{figure}
@@ -343,34 +358,40 @@ platform}
 	\endgroup
 \end{frame}
 
-% page 8
-% \begin{frame}{Design: Interfaces \& Modules}
-% 	\begingroup
-% 	\small
-
-% 	\endgroup
-% \end{frame}
-
 % page 9
+% But why are ZNS and LFS such essential technologies for our design. Firstly
+% ZNS removes the need for a logical to physical block address translation layer
+% found in convential SSDs. This is because with ZNS the host is responsible for
+% garbage collection and flash management as well as there being no in place
+% updates. With ZNS the flash device is presented as is instead of mimmicking
+% a conventional block device. A ZNS device consists of zones each of which
+% maintains a write pointer up until ZSLBA the remaining blocks of a zone beyond
+% ZSLBA is unwriteable. When we combine ZNS with LFS, a type of append only
+% filesystem we can easily create in memory representations of files called
+% snapshots that are gauranteed to be immutable during the execution of kernels
+% on the CSD. Even more so concurrent reads and writes from the host can go on
+% without delay as they will not modify the snapshot send to the device. These
+% snapshots are lightweight as they only contain pointers to actual data and no
+% data itself. These to technologies are key to the feasibality of hybrid
+% filesystems.
 \begin{frame}{Design: ZNS + LFS}
 	\begingroup
 	\small
 	\begin{figure}[h]
 		\centering
-		% \begin{subfigure}{0.5\textwidth}
-			%   \centering
-			  \includegraphics[width=1.0\linewidth]{resources/images/zns-lfs.png}
-		% \end{subfigure}%
-		% \begin{subfigure}{0.5\textwidth}
-		% 	  \centering
-		% 	  \includegraphics[width=0.9\linewidth]{resources/images/lfs.png}
-		% \end{subfigure}
+		\includegraphics[width=1.0\linewidth]{resources/images/zns-lfs.png}
 	\end{figure}
 	\textit{\tiny $^{2}$NVM Express Zoned Namespace Command Set Specification 1.1b - https://nvmexpress.org/developers/nvme-command-set-specifications/}
 	\endgroup
 \end{frame}
 
 % page 10
+% In the next couple of slides some of the implementation details based on these
+% design decisions are shown. These include the data layout on the drive and
+% some in memory datastructures. More importantly is demonstrating how
+% offloading is achieved using existing OS Apis and finnaly how to differentiate
+% registered kernels between multiple users. Afterwards we will continue with
+% the evaluation.
 \begin{frame}{Orientation}
 	\begingroup
 	\small Next slides, implementation...
@@ -385,25 +406,32 @@ platform}
 \end{frame}
 
 % page 11
+% The data layout is based on F2FS a filesystem designed for flash storage.
+% Like F2FS our filesystem FluffleFS separated data in different zones one
+% called random zone and the other log zone. Unlike F2FS our random zone does
+% not require random writes and instead just functions like an additional log
+% zone but for metadata. While there is no time to go into details this specifc
+% region with metadata signficantly reduces write amplification otherwise
+% encountered in LFS designs.
 \begin{frame}{Implementation: Drive Layout}
 	\begingroup
 	\small
 	\begin{figure}[h]
 		\centering
-		% \begin{subfigure}{0.5\textwidth}
-			%   \centering
-			  \includegraphics[width=1.0\linewidth]{resources/images/fluffle-layout-complete.png}
-		% \end{subfigure}%
-		% \begin{subfigure}{0.5\textwidth}
-		% 	  \centering
-		% 	  \includegraphics[width=0.9\linewidth]{resources/images/lfs.png}
-		% \end{subfigure}
+		\includegraphics[width=1.0\linewidth]{resources/images/fluffle-layout-complete.png}
 	\end{figure}
 	\textit{\tiny $^{3}$F2FS: A New File System for Flash Storage}
 	\endgroup
 \end{frame}
 
 % page 12
+% In total FluffleFS consists of rougly a dozen datastructures used to maintain
+% information about filesystem state as well as temporarily cache data that
+% needs to be flushed to the drive. In the inode entries map we see such caching
+% behavior. The lba being non zero in the inode lba map indicates the data must
+% be flushed to the drive. We can also see that an inode block contains multiple
+% inode entries each pointing to their own data block. Except if the inode is
+% a directory or of 0 size.
 \begin{frame}{Implementation: Datastructures}
 	\begingroup
 	\small
@@ -420,106 +448,6 @@ platform}
 	\end{figure}
 	\endgroup
 \end{frame}
-
-% page 10
-% First is zoned namespaces. A ratified extensions to the NVMe specification
-% the most prominent protocol used with Flash storage today. While the
-% commercial availability of ZNS devices is still poor its benefits have already
-% been prominently demonstrated in scientific literature. With zoned namespaces
-% the host can no longer issue random writes as we have become used to from the
-% traditional block interface. This means writes can no longer overwrite
-% previously written data instead all writes are appended to the current write
-% pointer separated across individual zones. This results in each zone being
-% written sequentially. Should the host desire to erase data it must do so one
-% entire zone at a time.
-% \begin{frame}{Zoned NameSpaces (ZNS)}
-% 	\begingroup
-% 	\small
-% 	\begin{figure}
-% 		\centering
-% 		\includegraphics[width=1\textwidth]{resources/images/zns-vs-conventional-layout.pdf}
-% 	\end{figure}
-% 	\textit{\tiny $^{2}$NVM Express Zoned Namespace Command Set Specification 1.1b - 
-% 	https://nvmexpress.org/developers/nvme-command-set-specifications/}
-% 	\endgroup
-% \end{frame}
-
-% page 11
-% We combine ZNS with a Log-structured File System,
-% A filesystem design from the late 90's repopularized partly due to flash
-% storage.
-% LFS is Append-only, all writes go to the current tail of the log, even if the
-% actual write overwrites parts of an already existing file. This allows to
-% create in-memory representations of a file called snapshots that can be
-% guaranteed to be immutable during the execution of a computational storage
-% device program, often called kernels. Moreover this allows regular I/O 
-% requests to happen concurrently even if the I/O goes to the same file.
-% However, it does mean that the execution of the kernel can potentially operate
-% on partially stale data.
-% \begin{frame}{Log-structured File System (LFS)}
-% 	\begingroup
-% 	\small
-% 	\begin{figure}
-% 		\centering
-% 		\includegraphics[width=0.7\textwidth]{resources/images/lfs.png}
-% 	\end{figure}
-% 	% \begin{itemize}
-% 	% 	\item Append only writes
-% 	% 	\item Journaling, snapshotting and revovery
-% 	% 	\item Perfect match for ZNS
-% 	% \end{itemize}
-% 	% Append only writes
-% 	% Simple support for journaling, snapshotting and revovery
-% 	% Our design based on F2FS to prevent write-amplification
-% 	% \begin{figure}
-% 	% 	\centering
-% 	% 	\includegraphics[width=0.7\textwidth]{resources/images/f2fs-nat.pdf}
-% 	% \end{figure}
-% 	\textit{\tiny $^{3}$The design and implementation of a Log-structured File System \\}
-% 	\textit{\tiny $^{4}$F2FS: A New File System for Flash Storage}
-% 	\endgroup
-% \end{frame}
-
-% page 12
-% \begin{frame}{extended Berkely Packet Filter (eBPF)}
-% 	\begingroup
-% 	\small
-% 	% used in the Linux kernel but effectively its an ISA like x86 but easy
-% 	% to implement in virtual machines
-% 	\begin{figure}
-% 		\centering
-% 		\includegraphics[width=1\textwidth]{resources/images/ubpf-simple.png}
-% 	 \end{figure}
-% 	\endgroup
-% \end{frame}
-
-% page 13
-% With these technologies it is clear how we can support multi-user tenent
-% file system access in a computational storage device setting. We now
-% demonstrate the exact mechanism of registering and offloading programs as used
-% in FluffleFS. First is the compilation process of the kernel by the end user.
-% This is done through two header files one for CSD operations itself such as
-% reading from the storage device and returning data to the host. The other
-% specific to the FluffleFS filesystem. It should be noted that the CSD header
-% is already written in a manor that allows for vendor agnostic implementation.
-% Meaning that this header prevents users from having to recompile their kernels
-% for different CSD vendors. Designing an file system agnostic interface
-% remains an open research question, however.
-% \begin{frame}{FluffleFS}
-% 	\begingroup
-% 	\small % FUSE LFS with concurrent regular and CSD access even to the same file.
-% 	\begin{figure}
-% 		\centering
-% 		\includegraphics[width=0.7\textwidth]{resources/images/compile.png}
-% 	\end{figure}
-% 	% How does FluffleFS combine these technologies
-% 	% \begin{itemize}
-% 	% 	\item Why ZNS, LFS \& eBPF?
-% 	% 	\item CSD kernels operate on snapshots % concurrent regular and offloaded access even on the same file
-% 	% 	\item PID + inode pairs for xattr state % in memory only
-% 	% \end{itemize}
-% 	\endgroup
-% \end{frame}
 
 % page 13
 % Now I imagine this particular diagram can seem daunting but lets go through
@@ -558,19 +486,16 @@ platform}
 \end{frame}
 
 % page 14
+% With this offloading one might wonder how can we associate all these incoming
+% requests and perform the correct regular or offloaded behavior. For this we
+% focus on arguments that are supplied
 \begin{frame}{Implementation: Offloading}
 	\begingroup
-	\small % FUSE LFS with concurrent regular and CSD access even to the same file.
+	\small 
 	\begin{figure}
 		\centering
 		\includegraphics[width=0.9\textwidth]{resources/images/offloading-management.png}
 	\end{figure}
-	% How does FluffleFS combine these technologies
-	% \begin{itemize}
-	% 	\item Why ZNS, LFS \& eBPF?
-	% 	\item CSD kernels operate on snapshots % concurrent regular and offloaded access even on the same file
-	% 	\item PID + inode pairs for xattr state % in memory only
-	% \end{itemize}
 	\endgroup
 \end{frame}
 
@@ -746,7 +671,10 @@ platform}
 \end{frame}
 
 % Bonus 1: Related Work
-% 
+% % Other related work trying to address this, INSIDER - one time translation
+% BlockNDP, designed for filesystem support but not implemented
+% Metal FS, supports regular and offloaded access but overwrites UNIX pipes
+% behavior but not concurrently.
 \begin{frame}{Related Work}
 	\begingroup
 	\begin{figure}
