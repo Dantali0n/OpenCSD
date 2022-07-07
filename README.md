@@ -4,7 +4,7 @@
 [![source code license MIT](https://shields.io/github/license/Dantali0n/qemu-csd)](https://gitlab.dantalion.nl/vu/qemu-csd/-/blob/master/LICENSE)
 [![follow me on twitter](https://img.shields.io/twitter/follow/D4ntali0n?style=social)](https://twitter.com/D4ntali0n)
 
-# Publications
+## Publications
 
 * [ICT.OPEN](https://www.ictopen.nl/home/), 7 April 2022 - [OpenCSD: Unified Architecture for eBPF-powered Computational Storage Devices (CSD) with Filesystem Support](https://gitlab.dantalion.nl/vu/qemu-csd/-/jobs/4591/artifacts/raw/build/ictopen2022.pdf?inline=false)
 * arXiv, 13 December 2021 - [Past, Present and Future of Computational Storage: A Survey](https://arxiv.org/abs/2112.09691)
