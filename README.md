@@ -25,7 +25,15 @@ SPDK.
 
 ![](thesis/resources/images/loader-pfs-arch-v3.png)
 
-# ZCSD
+# FluffleFS
+
+FluffleFS is the filesystem built on using the OpenCSD framework. Designed
+based on a LFS with the flash optimized F2FS filesystem as inspiration.
+FluffleFS is unique in that it is written in user space code thanks to the
+FUSE library while still offering simulated CSD offloading support with
+concurrent regular user access to the same file!
+
+## ZCSD
 
 ZCSD is a full stack prototype to execute eBPF programs as if they are
 running on a ZNS CSD SSDs. The entire prototype can be run from userspace by
