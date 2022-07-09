@@ -11,7 +11,7 @@ RUN pacman -Syy && \
     sudo pacman -Sy --noconfirm cmake clang gcc llvm yasm ninja \
     cunit pixman python-pip git libaio numactl lib32-glibc gcovr valgrind \
     doxygen texlive-bin texlive-science texlive-publishers texlive-latexextra \
-    texlive-humanities
+    texlive-pictures texlive-humanities
 
 # Install meson and pyelftools through pip
 RUN pip3 install meson==0.59 pyelftools
