@@ -5,6 +5,7 @@
 \usepackage{listings}
 \usepackage{subcaption}
 \usepackage{wasysym}
+\usepackage{qrcode}
 \usepackage[export]{adjustbox}[2011/08/13]
 \usetheme{cern}
 
@@ -203,7 +204,15 @@ platform}
 % we are expected to store 200 Zettabytes of data in total by 2050.
 % Such high data capacity and throughput requirements pose signficant challenges
 % to existing and future technolgies.
-\frame{\titlepage}
+\frame{\titlepage
+\hfill
+\quad
+\qrcode[height=1in]{https://nextcloud.dantalion.nl/index.php/s/yt8m9jbL9TS9RNj}
+\vfill
+\tiny 
+\hfill
+Scan me to download slides
+}
 \begin{frame}{Data-driven society}
 	\begingroup
 	\small
@@ -502,8 +511,14 @@ platform}
 % page 15
 \begin{frame}{Evaluation: Setup}
 	\begingroup
-	\tiny iodepth 1, single file throughput, min / max error bars.
-	
+	\small
+	\begin{itemize}
+		\item System: Intel Xeon Silver 4210 2.20GHz, hyperthreading disabled
+		\item VM: QEMU with KVM, 8 core, 32GB ram
+		\item Experiments: iodepth 1, single file, 30 iterations per result
+		\item Graphs: log4 for line graphs, results are mean of the 30 iterations
+		no outlier removal, min / max error bars, file sizes In KibiBytes
+	\end{itemize}
 	\endgroup
 \end{frame}
 
@@ -520,7 +535,6 @@ platform}
 			\includegraphics[width=1.0\linewidth]{resources/images/results-sequential-write.pdf}
 		\end{subfigure}
 	\end{figure}
-	\tiny iodepth 1, single file throughput, min / max error bars.
 	\endgroup
 \end{frame}
 
@@ -640,6 +654,7 @@ platform}
 			\item Steady state filesystem
 			\item Queue depth beyond  1
 			\item Scale offloading performance to embedded platforms
+			\item Commercial interest and potential Android implementation
 		\end{itemize}
 	\end{itemize}
 	\endgroup
@@ -657,13 +672,15 @@ platform}
 % their works as well. Thanks you for listening.
 \begin{frame}{Further Reading}
 	\begingroup
-	\small Try it today! \underline{\url{https://github.com/Dantali0n/qemu-csd}}
+	\small Try it today! \underline{\url{https://github.com/Dantali0n/OpenCSD}}
 	\begin{itemize}
 		\item OpenCSD: Log-Structured Filesystem enabled Computational
 		Storage Device platform - https://tinyurl.com/opencsd-thesis
-		\item ICTOPEN: 
+		\item OpenCSD: Unified Architecture for eBPF-powered
+			  Computational Storage Devices (CSD) with Filesystem Support -
+			  ICTOPEN 7$^{th}$ of April 2022
 		\item ZCSD: a Computational Storage Device over Zoned Namespaces (ZNS)
-			SSDs - https://arxiv.org/abs/2112.00142
+			  SSDs - https://arxiv.org/abs/2112.00142
 		\item Past, Present and Future of Computational Storage: A Survey
 			- https://arxiv.org/abs/2112.09691
 	\end{itemize}
