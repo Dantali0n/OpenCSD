@@ -3,16 +3,6 @@
 
 \chapter{Implementation} % top level followed by section, subsection
 
-
-% ----------------------- paths to graphics ------------------------
-
-% change according to folder and file names
-\ifpdf
-    \graphicspath{{7/figures/PNG/}{7/figures/PDF/}{7/figures/}}
-\else
-    \graphicspath{{7/figures/EPS/}{7/figures/}}
-\fi
-
 \section{OpenCSD}
 
 In this section we describe the tools and techniques used with the OpenCSD
@@ -664,47 +654,148 @@ filsystem being \textit{read} and \textit{write} operations. Firstly,
 \end{enumerate}
 
 The \textit{write} operation is fairly similar but has slightly different
-nuances and conditions:
+nuances and conditions. The final operation is \textit{fsync} and while its
+operation has been implemented it is not actually used in the current state
+of FluffleFS. The \textit{fsync} operation essentialy consists of flushing
+or synchronizing datastructures to the drive in an order that has good
+consistency guarantees.
 
 \begin{enumerate}
-    \item
+    \item First, all data blocks that \textit{are new or have pending changes}
+          (unsynced) are flushed to the drive. These contain metadata about
+          which blocks are stored at what LBA.
+    \item Next, all unsynced inodes flushed to the drive. Each inode contains the
+          LBA of its first data block.
+    \item Lastly, all NAT and SIT blocks are updated to reflect these changes.
 \end{enumerate}
 
-These procedures can be classified between \textit{externally} and
-\textit{internally} facing. Here externally facing create the appropriate
-response that FUSE expects for each request. Contrarily, internally facing
-procedres simply return what error they deem should be returned if any but don't
-call the FUSE runtime directly. This layered system is needed as a FUSE response
-can only be returned once per system call. The result is that an externally
-facing procedure can call any internally facing procedures but never another
-extern one. The differentation between these types of procedures allows to
-significantly reduce duplicate code where that would otherwise not have been
-possible.
+Should the drive be out of free space during any of these operations either the
+garbage collection for the log zone or the rewritting of the random zone will
+be performed and the operation will be repeated.
+
+All these operations together form the majority of the FluffleFS filesystem.
+This shows a practical implementaton of our design that adheres to the
+requirements set out for concurrent regular and offloaded filesystem access on
+CSxs. The degree of concurrency and how this is achieved is described in the
+next section.
+
+% These procedures can be classified between \textit{externally} and
+% \textit{internally} facing. Here externally facing create the appropriate
+% response that FUSE expects for each request. Contrarily, internally facing
+% procedres simply return what error they deem should be returned if any but don't
+% call the FUSE runtime directly. This layered system is needed as a FUSE response
+% can only be returned once per system call. The result is that an externally
+% facing procedure can call any internally facing procedures but never another
+% extern one. The differentation between these types of procedures allows to
+% significantly reduce duplicate code where that would otherwise not have been
+% possible.
 
 % No unlink and rename functionality, unmarking / reclaiming of blocks not
 % performed.
 
-\subsubsection{Concurrency}
+\subsection{Concurrency}
+
+The use of snapshots allows for concurrent regular and offloaded access to the
+same file. This is achieved by ensuring the data pointed to in the snapshot
+is immutable during the execution of kernels. We guarantee this immutability by
+not using in-place updates. Instead all write go to the tail of a log. Until now
+no other work has been able to provide this much concurrency for CSxs with
+filesystem integration. However the entire framework still needs to use several
+locking mechanisms across various parts to ensure correct operation.
+
+\subsubsection{Fine-grained Locking}
+
+These include a global multi-reader single-writer (MRSW) lock for filesystem
+operations, a mutex per inode, a mutex for SPDK requests, a mutex for the uBPF
+vm and a MRSW lock for each of the FluffleFS datastructures.
+
+The use of MRSW locks allows some operations to happen concurrently (multi read)
+while allowing sequential operations for another (single write). By using this
+type of lock for filesystem operations it is possible to allow most to happen
+concurrently. Only intricate filesystem operations such as flushing or garbage
+collection have to be performed sequentially.
+
+Due to the concurrency for most filesystem operations indivudual datastructures
+also have their own MRSW locks. These prevent typical problems with non
+thread-safe when performing operations such as insertion or deletion in
+parallel. Furthermore, by using a MRSW lock read operations on these
+datastructures can still happen concurrently potentially improving performance.
+
+Far simpler are the mutexes for uBPF and SPDK as these simply block any call
+until the previous one has completed. This simple approach has several
+limitations that can be resolved in future work. These limitations are addressed
+in the \textit{considerations} section.
+
+Lastly, there is a mutex per inode that gets locked just before the current
+information about the inode is retrieved. However, these locks are only used for
+regular access. This can be done without risk as the snapshot is made when the
+extended attribute gets set and these snapshots already store all required
+information about the inode.
+
+Clearly OpenCSD \& FluffleFS are able to have many of their operations be executed
+concurrently using fine-grained locking. Implementing concurrency is important
+given the prevalance of many-core systems and the asynchronous nature of I/O
+operations. We argue that is unlikely to achieve comparable performance to other
+flash optimized filesystems without it.
+
+\subsubsection{Performance Instrumentation}
+
+Such a performance comparison requires measurement and instrumentation. Here
+there is often a steep trade-off between the performance impact and the amount
+telemtry that can be recorded. OpenCSD uses a boundless lockless
+queue \cite{Michael1996SimpleFA} that has low overhead for concurrent insertion
+thereby optimizing to reduce the instrumentation impact.
+
+The instrumentation in the OpenCSD framework provides the median, minimum and
+maximum execution time of individual functions. While not used during the
+performance evaluation itself this instrumentation provides valueable insights
+especially during development.
 
 \subsection{Offloading}
 
+By far the most important part of a CSx is the system to offload execution on
+the device. However, the degree of user programmability strongly various in
+computational storage \cite{lukken2021past}. It is in this offloading 
+
+% Introduction
+
+\begin{figure}
+    \centering
+	\includegraphics[width=1\textwidth]{resources/images/offloading.png}
+	\caption{Core offloading mechanism through extended attributes (xattr)}
+    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
+    \label{figure:offloading}
+\end{figure}
+
 % Filesystem extended attributes, PID + INODE
+
+\begin{figure}
+    \centering
+	\includegraphics[width=1\textwidth]{resources/images/offloading-management.png}
+	\caption{Isolating registered kernels across various system calls}
+    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
+    \label{figure:offloadingmanagement}
+\end{figure}
+
+% Setting up uBPF VM and registering hooks for call instructions
+% explain trapping into vendor controlled code without having to have access
+% to firmware / source in any shape or form.
 
 \section{Iterations}
 
 This section is covered separetely to prevent clutter in the overall design and
-implementation sections. This process consisted of four destinct iterations.
+implementation sections. Our process consisted of four destinct iterations.
 Two relating primarily to the framework, one to the filesystem and one to
 offloading. This section describes each iteration briefly before going in more
 detail. Firstly regarding framework iterations we see the distinct decision
 to switch from a multi process architecture using mmap for shared memory maps to
 a monolithic application. The second iteration lead to switching away from the
 design of an accelerator API, much like Vulkan \cite{vulkan} or OpenCL, to an
-artificial extension of the NVMe namespace. The third iteration changed the use
-rtld\_next \cite{rtldnext} to using a practical filesystem with FUSE. Lastly, as
-computational storage API our work switched from using
+artificial extension to the NVMe namespace. The third iteration changed the use
+of rtld\_next \cite{rtldnext} to creating an actual filesystem with FUSE.
+Lastly, as computational storage API our work switched from using
 \textit{Portable Operating System Interface} (POSIX) fadvise \cite{fadvise} to
-extended attributes.
+extended attributes (xattr).
 
 For each of these four iterations the advantages of the change as well as the
 major issues with the previous solution are described. Each iteration is
@@ -738,11 +829,15 @@ implementations this decision needs to be reevaluated.
 
 \subsection{NVMe Namespace Command Set}
 
+
+
 \subsection{FUSE Filesystem}
 
 % LD\_PRELOAD / RLTD\_NEXT
 
 \subsection{Extended Attributes}
+
+% POSIX fadvise, does not reach filesystem
 
 % ---------------------------------------------------------------------------
 % ----------------------- end of thesis sub-document ------------------------

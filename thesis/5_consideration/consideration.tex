@@ -3,15 +3,10 @@
 
 \chapter{Consideration} % top level followed by section, subsection
 
+% Explain the considerations and state of affair in general overview and
+% introduce the different sections of this chapter.
 
-% ----------------------- paths to graphics ------------------------
-
-% change according to folder and file names
-\ifpdf
-    \graphicspath{{7/figures/PNG/}{7/figures/PDF/}{7/figures/}}
-\else
-    \graphicspath{{7/figures/EPS/}{7/figures/}}
-\fi
+\section{Filesystem Limitations}
 
 % In memory data structures to represent files are not regularly flushed to the
 % drive.
@@ -49,6 +44,8 @@
     \label{figure:practicalarchitecture}
 \end{figure}
 
+\section{Filesystem Agnostic Kernels}
+
 % Use statfs to determine the type of filesystem, ICDs are related to a specific
 % filesystem type. The CSx eBPF ABI should contain atleast one system call to
 % retrieve the vendor filesystem context data for the current request (already
@@ -71,6 +68,14 @@
     \label{figure:csxfsruntime}
 \end{figure}
 
+\section{Kernel Safety}
+
+% How to ensure user submitted CSx compute kernels are safe?
+
+% Potential mechanisms:
+% - static verification
+% - CSD instrumentation / metadata (report read / write operations and locations)
+% - access verifier (runtime verification)
 
 % ---------------------------------------------------------------------------
 % ----------------------- end of thesis sub-document ------------------------
