@@ -755,7 +755,50 @@ especially during development.
 
 By far the most important part of a CSx is the system to offload execution on
 the device. However, the degree of user programmability strongly various in
-computational storage \cite{lukken2021past}. It is in this offloading 
+computational storage \cite{lukken2021past}. It is in this offloading that we
+find the most predominant contribution of our work.
+
+As set out in our design this offloading process requires three fundamental
+features. Firstly, the use of extended attributes alongside the calling process
+its PID. Secondly, the use of an universal ISA with call support to trap
+into vendor code. Lastly, safety such as memory access validation and static
+verification should be possible. The next section describes how each of these
+features is implemented. Afterwards, the entire offloading process is described
+as a whole.
+
+\subsubsection{Extended Attributes}
+
+Firstly is registering which file operations should be offloaded through
+extended attributes. As per design these associations are managed on a per
+process level. Trivially one would simply get the PID for each incoming I/O
+operation and determine the appropriate action. However, this is not
+possible due to the absense of the PID from the call information for special
+operations such as \textit{release} and \textit{close} in FUSE. 
+
+Instead our implemenation maintains two datastructures one 
+\textit{open\_inode\_vect}, explained previously, and a \textit{snapshots\_map}.
+Here the entries in the \textit{snapshots\_map} can be correlated to the open
+files in \textit{open\_inode\_vect} through PID inode pairs. In addition the
+\textit{open\_inode\_vect} contains a unique \textit{file handle} (fh) that is
+monotonically incremented for each call to \textit{open}. It is through this
+\textit{fh} that any current snashots for the process calling \textit{close}
+can be correctly cleaned up. This overall process is shown graphically in
+figure \ref{figure:offloadingmanagement}.
+
+\begin{figure}
+    \centering
+	\includegraphics[width=1\textwidth]{resources/images/offloading-management.png}
+	\caption{Identifying registered kernels across various system calls}
+    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
+    \label{figure:offloadingmanagement}
+\end{figure}
+
+Beyond this PID inode pair the \textit{snapshots\_map} maintains four snapshots
+for each possible type of offloading operation and the snapshot for the target
+file. In turn each of these snapshots is just the inode and data block
+information reusing the already existing datastructures to represent these.
+The four types of offloading are \begin{enumerate*} \item read stream
+\item write stream \item read event \item write event \end{enumerate*}.
 
 % Introduction
 
@@ -769,13 +812,9 @@ computational storage \cite{lukken2021past}. It is in this offloading
 
 % Filesystem extended attributes, PID + INODE
 
-\begin{figure}
-    \centering
-	\includegraphics[width=1\textwidth]{resources/images/offloading-management.png}
-	\caption{Isolating registered kernels across various system calls}
-    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
-    \label{figure:offloadingmanagement}
-\end{figure}
+
+
+\subsubsection{uBPF}
 
 % Setting up uBPF VM and registering hooks for call instructions
 % explain trapping into vendor controlled code without having to have access
