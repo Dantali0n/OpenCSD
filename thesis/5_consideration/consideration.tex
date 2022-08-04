@@ -44,6 +44,27 @@
     \label{figure:practicalarchitecture}
 \end{figure}
 
+\section{Effective Event Kernels}
+
+% Introduction + problem statement
+
+% Prevent double move / copy and additional roundtrip latency for event based
+% kernels by submitting multiple kernels, several by the filesystem and one by
+% the user. (last kernel can be eliminated if other safety / verification systems
+% present)
+
+% 1. The first kernel performs the actual I/O operation the event kernel is
+% going to run on. The return value of this kernel is the metadata about the
+% written or read blocks.
+
+% 2. The second kernel is the user submitted kernel, it performs any desired
+% operation based on what was read or written.
+
+% 3. The last kernel is also submitted by the filesystem it checks and
+% consolidates the actions performed by the user submitted kernel. This step is
+% necessary since the user submitted kernel could potentially modify the file
+% size.
+
 \section{Filesystem Agnostic Kernels}
 
 % Use statfs to determine the type of filesystem, ICDs are related to a specific

@@ -118,12 +118,28 @@ features.}
 
 Firstly, the compute kernels are registered through filesystem extended
 attributes, commonly managed with the \textit{xattr} command on NIX operating
-systems. Secondly, the calling \textit{Process IDentifier} (PID) must be
-maintained in memory alongside the file and kernel upon such an extended
-attributes call. In addition, storing this state in a non-persistent manner is
-essential to the design. Lastly, the offloading behavior must be isolated to the
-process setting the extended attribute. In other terms, regular accesses must
-be unaffected by processes setting these extended attributes.
+systems\footnotemark[10]. Such extended attributes allow to store key value
+pairs on individual files. Furthermore each of these pairs is categorized such
+that specific permissions or behavior can be enforced. Ideally a category for
+temporal pairs would exist specifically but specfic keys can be reserved in the
+meantime. The values of these key value pairs should uniquely identify the
+kernel used for offloading. Here the key identifies the type of offloading
+operation while the value identifies the kernel file. We propose to create the
+snapshot of kernel files as soon as such an extended attribute is set, however,
+other options are possible. Lastly, our design poses no requirements on the
+strings used for keys or the types of offloading operations to support.
+
+\footnotetext[10]{While not officially part of POSIX, \textit{xattr} is
+supported by almost all operating systems including Windows, FreeBSD, MacOS and
+Linux.}
+
+Our second design requirement specificies that the calling
+\textit{Process IDentifier} (PID) must be maintained in memory alongside the
+file and kernel upon such an extended attributes call. In addition, storing this
+state in a non-persistent manner is essential to the design. Lastly, the
+offloading behavior must be isolated to the process setting the extended
+attribute. In other terms, regular accesses must be unaffected by processes
+setting these extended attributes.
 
 The device design requires that one universal ISA is used for offloading
 execution. This eliminates users having to rewrite or recompile their compute

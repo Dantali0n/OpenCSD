@@ -30,11 +30,11 @@ use of QEMU for ZNS SSDs is entirely optional. Finally, CMake \cite{cmake} is
 used to orchestrate the installation of dependencies as well as the compilation
 of binary targets. Due to limitations it is advised to rerun CMake after each
 make command, as this  prevents unnecessary recompilation of external
-dependencies \footnotemark[10]. The combination of this isolated dependencies
+dependencies \footnotemark[11]. The combination of this isolated dependencies
 environment managed through CMake with the ability to use QEMU for ZNS SSDs
 emulation is ideal to minimize the complexity as exposed to users of OpenCSD.
 
-\footnotetext[10]{Due to limitations in the evaluation of file presence
+\footnotetext[11]{Due to limitations in the evaluation of file presence
 conditions which are not reevaluated when executing the generated makefile.}
 
 As said OpenCSD is comprised of modules using a component architecture.
@@ -125,12 +125,12 @@ FluffleFS which is described in the next section in detail.
 Out of all modules only nvme\_zns has been given an abstract interface so the
 underlying technologies can be easily replaced. However, we argue the design
 requirements are still met as there are virtually no replacements for
-technologies used in other modules such as uBPF and FUSE\footnotemark[11].
+technologies used in other modules such as uBPF and FUSE\footnotemark[12].
 In addition, we feel it would have beneign benefits to create abstract
 interfaces of the C++ STL. Our solution allows for replacing technologies with
 readily available alternatives without creating unnecessary interfaces.
 
-\footnotetext[11]{While alternative technolgies to implement filesystems exist
+\footnotetext[12]{While alternative technolgies to implement filesystems exist
 none of them are in userspace. As a result we argue there is no alternative to
 FUSE.}
 
@@ -220,7 +220,7 @@ partitions.
 Secondly, the dirtyblock keeps track of filesystem opening and shutdown. The 
 block is written upon opening the filesystem and removed once closed completely.
 Other datastructures in combination with the dirtyblock allow to identify andmod
-checkpoint maintains the wraparound-pointers\footnotemark[12] for both the random
+checkpoint maintains the wraparound-pointers\footnotemark[13] for both the random
 and log zone. Moreover, after the first sector of zone $(n+1) \bmod{2}$ is
 written then zone $n \bmod{2}$ is reset. The filesystem can always recover by
 reading zone $n$ linearly first and stopping as soon as the first hole is
@@ -231,7 +231,7 @@ feature allows to identify that sectors are unwritten. To adapt the checkpoints
 for use with regular block devices a checksum of the random and log pointers can
 be used to prevent against garbage reads.
 
-\footnotetext[12]{FluffleFS manages separate write-pointers from those
+\footnotetext[13]{FluffleFS manages separate write-pointers from those
 maintained by ZNS devices internally as well as wraparound pointers.}
 
 This concludes the data layout as stored in the fixed zone of FluffleFS, the
@@ -567,7 +567,7 @@ We now turn to the first of seven main procedures of Flufflefs, \textit{lookup}:
 \begin{enumerate}
     \item First \textit{inode\_stat} is performed on the parent inode supplied
     as argument to \textit{lookup}. In addition \textit{lookup} specifies a name
-    argument as well. Should this fail an \textit{ENOENT}\footnotemark[13] error
+    argument as well. Should this fail an \textit{ENOENT}\footnotemark[14] error
     will be returned.
     \item Next \textit{path\_inode\_map} is traversed to see if the inode name
     for the particular parent exists.
@@ -581,7 +581,7 @@ We now turn to the first of seven main procedures of Flufflefs, \textit{lookup}:
     matching inode and this data is returned.
 \end{enumerate}
 
-\footnotetext[13]{UNIX error codes are used to indicate the types of failure
+\footnotetext[14]{UNIX error codes are used to indicate the types of failure
 in FUSE as they are return statusses to system calls, A complete overview can
 be found through man either online \cite{errno} or by executing 
 \textit{man errno}.}
@@ -800,7 +800,94 @@ information reusing the already existing datastructures to represent these.
 The four types of offloading are \begin{enumerate*} \item read stream
 \item write stream \item read event \item write event \end{enumerate*}.
 
-% Introduction
+For each of these types of offloading a key is chosen that identifies which
+offloading procedure to perform. These are
+\textit{user.process.csd\_read\_stream},
+\textit{user.process.csd\_write\_stream} \textit{user.process.csd\_read\_event}
+and \textit{user.process.csd\_write\_event} resepectively. Of these
+\textit{user.process.csd\_read\_stream} and
+\textit{user.process.csd\_write\_event} have arguably the most practical 
+applications.
+
+\subsubsection{Types of Offloading}
+
+The behavior of these offloading types is different between read and write as
+well as stream and event. Read offloads are given an empty buffer to store and
+return data to the host through. Contrarily, Write offloads are given a buffer
+that contains the user provided data. The size of these buffers depends on the
+type of offloading as with stream offloads it matches the size of the I/O
+request. For instance, if a \textit{read} system call is performed at offset
+512000 with size 4096 then the buffer will be 4096 bytes in size as well.
+
+For \textit{event} offloads user or system configuration might be required to
+determine apppropriate buffer sizes. We will first explain the behavior of event
+and stream offloads.
+
+with \textit{stream} offloads the I/O operation is performed by the user
+submitted kernel with data such as the location of data blocks, the size and
+offset of the request. How much of the data from this I/O is returned to the
+host or actually written is determined by the user submitted kernel. For write
+requests the return data of the kernel can be used to determine the final size
+of the file if it deviates from the I/O request. For \textit{stream} the most
+trivial kernels are \textit{passthrough} that have exactly the same behavior as
+if the filesystem where performing the request.
+
+\textit{Event} offloads are more complicated. These first let the regular I/O
+request complete and run on the data that was read or written. The result is
+that they return or write additional data. For writes this can introduce
+substantial complexity that can largely be mitigated by only allowing appending
+writes to the end of the file. The most trivial implementation of this will
+simply refuse to launch the event kernel if the reguarl I/O request is not
+performed up until or beyond \textit{End Of File}(EOF). Given that the regular
+I/O request must first complete \textit{event} offloads suffer from additional
+data movement and latency while waiting for this request roundtrip over busses
+such as PCIe. We will address this issue with a potential solution in our
+consideration section.
+
+While the difference between these types of offloading is subtle both have
+substantially different practical applications. In addition, certain behavior
+would be hard to implement effectively without these different types. Clearly,
+the different types of offloading create a flexible user-programmable system
+overall.
+
+\subsubsection{uBPF}
+
+As mentioned previously uBPF \cite{ubpf} is used to perform the execution of
+user-programmable aspects of our system. By using uBPF we are able to define
+specific operation behavior and have the user submitted programs trap into these
+operations while providing arguments. eBPF has this capability by supporting
+special \textit{call} instructions. Through uBPF this call instruction can be
+hooked to an operation defined outside of the uBPF VM. The types of calls
+supported in our uBPF environemnt are defined firstly by a generic header
+(\textit{OpenCSD}) and secondly by a filesystem specfic header
+(\textit{FluffleFS}).
+
+For practical implementations the uBPF VM would reside in vendor firmware on the
+CSx device. This firmware would also contain the instructions for each of the
+operations defined in the generic and filesystem specific header. Vendors will
+not have to provide any binary or firmware for end users to use this system.
+This allows for vendor agnostic kernels without complications around intellectual
+property. However, such filesystem specific operations are cumbersome for
+vendors to implement given the large amount of modern filesystems. We will
+address this issue in the consideration section by proposing a mechanism for
+\textit{filesystem agnostic kernels}.
+
+In total the generic header contains zero datastructures and eight operations.
+Of these operations three are related to performing tasks while five are related
+to retrieving information about the state of the VM and drive.
+
+The filesystem header is more complicated with two enums, five datastructures
+and three operations. Across uBPF, the CSx and the host the endianness of such
+datastructures needs to be explicitly taken care off. The operations for this
+filesystem header are for LBA conversion and extracting data block information.
+
+Together these operations allow to exchange necessary data between the host and
+CSx as well as perform tasks that the filesystem would otherwise perform in an
+offloaded setting. While minimal we show in the result section that this
+set of operations is capable of performing practical applications all be it in
+a simulated setting.
+
+\subsubsection{Operation}
 
 \begin{figure}
     \centering
@@ -809,16 +896,6 @@ The four types of offloading are \begin{enumerate*} \item read stream
     % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
     \label{figure:offloading}
 \end{figure}
-
-% Filesystem extended attributes, PID + INODE
-
-
-
-\subsubsection{uBPF}
-
-% Setting up uBPF VM and registering hooks for call instructions
-% explain trapping into vendor controlled code without having to have access
-% to firmware / source in any shape or form.
 
 \section{Iterations}
 
