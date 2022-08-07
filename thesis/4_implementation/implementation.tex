@@ -853,41 +853,132 @@ overall.
 \subsubsection{uBPF}
 
 As mentioned previously uBPF \cite{ubpf} is used to perform the execution of
-user-programmable aspects of our system. By using uBPF we are able to define
-specific operation behavior and have the user submitted programs trap into these
-operations while providing arguments. eBPF has this capability by supporting
-special \textit{call} instructions. Through uBPF this call instruction can be
-hooked to an operation defined outside of the uBPF VM. The types of calls
-supported in our uBPF environemnt are defined firstly by a generic header
-(\textit{OpenCSD}) and secondly by a filesystem specfic header
-(\textit{FluffleFS}).
+user-programmable aspects of our system. This section describes additional
+detail about how uBPF works as well as what types of operations we have
+implemented through uBPF. Finally, the setup and teardown of the uBPF VM is
+described in the next operation section.
 
-For practical implementations the uBPF VM would reside in vendor firmware on the
-CSx device. This firmware would also contain the instructions for each of the
-operations defined in the generic and filesystem specific header. Vendors will
-not have to provide any binary or firmware for end users to use this system.
-This allows for vendor agnostic kernels without complications around intellectual
-property. However, such filesystem specific operations are cumbersome for
-vendors to implement given the large amount of modern filesystems. We will
-address this issue in the consideration section by proposing a mechanism for
+Firstly, some additional details about uBPF with some brief reminders. By using
+uBPF we are able to define specific operation behavior and have the user
+submitted programs trap into these operations optionally with arguments. The
+underlying ISA, eBPF, has this capability by supporting special
+\textit{syscall} instructions. This call instruction can be hooked to an
+operation defined outside of the uBPF VM. The types of operations supported in
+our uBPF environemnt are defined firstly by a generic header (\textit{OpenCSD})
+and secondly by a filesystem specfic header (\textit{FluffleFS}). Again, tying
+operations defined in headers to trapped instructions without exposing the
+underlying binary code or firmware is known as an
+\textit{Application Binary Interface} (ABI). Like previously, as graphical
+representation of uBPF is shown in figure \ref{figure:ubpf-abi2}.
+
+\begin{figure}
+    \centering
+	\includegraphics[width=0.8\textwidth]{resources/images/ubpf-abi.pdf}
+	\caption{Achieving vendor agnostic \textit{Application Binary Interfaces}
+        (ABI) through uBPF.}
+    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
+    \label{figure:ubpf-abi2}
+\end{figure}
+
+Because of this decoupling, practical implementations of a CSx will have uBPF VM
+reside in vendor firmware on the device. This firmware would also contain the
+instructions for each of the operations defined in the generic and filesystem
+specific header. Vendors will not have to provide any binary or firmware for end
+users to use this system. However, a firmware updating mechanism might be
+required for long time support. This decoupling allows for vendor agnostic
+kernels without complications around intellectual property. However, such
+filesystem specific operations are cumbersome for vendors to implement given the
+large amount of modern filesystems. We will address this issue in the
+consideration section by proposing a mechanism for
 \textit{filesystem agnostic kernels}.
 
-In total the generic header contains zero datastructures and eight operations.
-Of these operations three are related to performing tasks while five are related
-to retrieving information about the state of the VM and drive.
+Across our two headers, the generic header contains zero datastructures and
+eight operations. Of these operations three are related to performing tasks
+while five are related to retrieving information about the state of the VM and
+drive.
 
-The filesystem header is more complicated with two enums, five datastructures
-and three operations. Across uBPF, the CSx and the host the endianness of such
-datastructures needs to be explicitly taken care off. The operations for this
-filesystem header are for LBA conversion and extracting data block information.
+Furthermore, the filesystem header is more complicated with two enums, five
+datastructures and three operations. Across uBPF, the CSx and the host the
+endianness of such datastructures needs to be explicitly taken care off. Lastly,
+the operations for this filesystem header are for LBA conversion and extracting
+data block information. Due to the use of a X86 host architecture and eBPF no
+explicit datastructure conversion is implemented in OpenCSD as these both have
+the same endianness.
 
-Together these operations allow to exchange necessary data between the host and
-CSx as well as perform tasks that the filesystem would otherwise perform in an
-offloaded setting. While minimal we show in the result section that this
-set of operations is capable of performing practical applications all be it in
-a simulated setting.
+Together these operations and datastructures allow to exchange necessary data
+between the host and CSx as well as offload tasks that the host would
+otherwise perform. While minimal we show in the result section that this set of
+operations is capable of performing practical applications all be it in a
+simulated setting.
 
 \subsubsection{Operation}
+
+With implementation details described we can finally show how the entire
+offloading operation is performed. This section not only describes what steps
+end users need to take to perform an offloaded I/O operation but also what
+internal behavior is triggered for each step within OpenCSD and FluffleFS.
+
+The process is shown using distinct steps taken by an end-user. However, the
+compilation of source code into eBPF bytecode (kernel) is omitted. This process
+is shown in figure \ref{figure:offloading} here each of the bold blue numbered
+arrows indicates a distinct ste by the user.
+
+Given that our prototype achieves offloading entirely reusing existing APIs each
+step is a system call that traps into the kernel.
+
+Firstly, the \textit{stat} call allows to retrieve information about a file or
+directory. Most important, this information contains the inode number as managed
+by the filesystem. Such an inode number is a unique identifier within a given
+filesystem. As shown this \textit{stat} call is executed on the compiled eBPF
+bytecode stored in a file on the FluffleFS filesystem, this file is called
+kernel.o in our figure. This \textit{stat} call is essentialy stateless and does
+not create any notable internal behavior within OpenCSD and FluffleFS.
+
+Next, the user opens the file for reading or writting using the \textit{open}
+call. The file on which this \textit{open} is performed is the file that will be
+offloaded called \textit{target file} in this example. When \textit{open} is
+called FluffleFS will create an internally managed file handle that uniquely
+associates the file handle to the PID of the calling process. It should be noted
+that these file handle numbers while monotonically increasing are entirely
+distinct from file descriptors as used by unix processes. Furthermore, they are
+purely for filesystem inernal state management.
+
+Third, the \textit{setxattr} call is used to set the extended attribute on the
+target file with as key "user.process.csd\_read\_stream" and as value the inode
+number from the kernel.o file. As soon as this is called FluffleFS creates a
+snapshot of the kernel.o file and the target file. In addition, the target file
+snapshot is stored in a specific slot for read stream operations. This allows
+the snapshots for other operations to occur at different moments in time with
+potentially different file contents.
+
+Lastly, is the actual \textit{read} or \textit{write} call. Nix based operating
+systems contain many calls to perform this behaviour but our example focusses
+on the ones using an offset and size. Upon this call FluffleFS will detect that
+the particular inode and PID pair are configured for offloading. It will access
+the relevant metadata from the snapshots datastructure and retrieve the
+location of data blocks corresponding to the size and offset of the request.
+This data is passed to the \textit{NVME\_CSD} module of OpenCSD as it is
+responsible for managing offloading state with uBPF. This module creates a new
+instance of uBPF as well as some memory space after obtaining a lock. Next the
+state and metadata extracted from snapshots is placed at the beginning of this
+reserved memory sppace. After which the bytecode of the kernel is read utilizing
+the metadata from the snapshot. Finally, the uBPF VM can be started using this
+bytecode at which point it starts executing. Upon the creation of the uBPF VM
+each of the operations defined in the header are hooked up to implementations.
+Since each specific operation is associated to a specific call number this
+system is similar to key value pairs. Everytime the user provided eBPF kernel
+executes such an operation the execution is trapped and the implementation of
+the operation starts executing. Upon return execution is returned to the kernel.
+The execution of the kernel is fully terminated once it returns from main. To
+return data from the kernel back to the host a special operation is used. The
+implementation of this operation essentially performs a copy of a memory segment
+from the reserved memory space into a host controlled area. This mechanisms of
+copying and moving data will be different in the case of practical
+implemenations where data has to be moved over busses such as PCIe. Once the
+kernel has finished and the data has been moved the uBPF VM is cleaned up. Due
+to the use of anonymous callbacks only one instance of a uBPF VM can be active
+within a single process at a time. This is why a lock is used within
+\textit{NVME\_CSD}.
 
 \begin{figure}
     \centering
@@ -900,18 +991,19 @@ a simulated setting.
 \section{Iterations}
 
 This section is covered separetely to prevent clutter in the overall design and
-implementation sections. Our process consisted of four destinct iterations.
-Two relating primarily to the framework, one to the filesystem and one to
-offloading. This section describes each iteration briefly before going in more
-detail. Firstly regarding framework iterations we see the distinct decision
-to switch from a multi process architecture using mmap for shared memory maps to
-a monolithic application. The second iteration lead to switching away from the
-design of an accelerator API, much like Vulkan \cite{vulkan} or OpenCL, to an
-artificial extension to the NVMe namespace. The third iteration changed the use
-of rtld\_next \cite{rtldnext} to creating an actual filesystem with FUSE.
-Lastly, as computational storage API our work switched from using
-\textit{Portable Operating System Interface} (POSIX) fadvise \cite{fadvise} to
-extended attributes (xattr).
+implementation sections. Here the distinct iterative changes made throughout the
+research project are described on an individual basis. Our process consisted of
+four destinct iterations. Two relating primarily to the framework, one to the
+filesystem and one to offloading. This section describes each iteration briefly
+before going in more detail. Firstly regarding framework iterations we see the
+distinct decision to switch from a multi process architecture using mmap for
+shared memory maps to a monolithic application. The second iteration lead to
+switching away from the design of an accelerator API, much like Vulkan
+\cite{vulkan} or OpenCL, to an artificial extension to the NVMe namespace.
+The third iteration changed the use of rtld\_next \cite{rtldnext} to creating
+an actual filesystem with FUSE. Lastly, as computational storage API our work
+switched from using \textit{Portable Operating System Interface} (POSIX)
+fadvise \cite{fadvise} to extended attributes (xattr).
 
 For each of these four iterations the advantages of the change as well as the
 major issues with the previous solution are described. Each iteration is
