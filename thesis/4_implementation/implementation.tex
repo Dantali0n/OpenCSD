@@ -92,8 +92,8 @@ modules of OpenCSD.
     \item bpf\_programs - Collection of eBPF programs linked at runtime for
     previous ZCSD \cite{lukken2021zcsd} prototype.
     \item FluffleFs - FUSE LFS supporting in-memory snapshots to achieve
-    multi-user tenancy with concurrent regular and offloaded filesystem access.
-    Utilizes, nvme\_zns and nvme\_csd to achieve functionality.
+    concurrent regular and offloaded filesystem access. Utilizes, nvme\_zns and
+    nvme\_csd to achieve functionality.
 \end{itemize}
 
 Out of these components nvme\_csd, bpf\_helpers and FluffleFS are the most
@@ -674,10 +674,14 @@ garbage collection for the log zone or the rewritting of the random zone will
 be performed and the operation will be repeated.
 
 All these operations together form the majority of the FluffleFS filesystem.
-This shows a practical implementaton of our design that adheres to the
-requirements set out for concurrent regular and offloaded filesystem access on
-CSxs. The degree of concurrency and how this is achieved is described in the
-next section.
+This shows a practical implementaton\footnotemark[15] of our design that adheres
+to the requirements set out for concurrent regular and offloaded filesystem
+access on CSxs. The degree of concurrency and how this is achieved is described
+in the next section.
+
+\footnotetext[15]{A practical implementation refers to an actual physical device
+utilizing actual busses such as PCIe and NVMe containing the necessary
+firmware to perform our simulated functionality in practice.}
 
 % These procedures can be classified between \textit{externally} and
 % \textit{internally} facing. Here externally facing create the appropriate
@@ -880,16 +884,26 @@ representation of uBPF is shown in figure \ref{figure:ubpf-abi2}.
     \label{figure:ubpf-abi2}
 \end{figure}
 
-Because of this decoupling, practical implementations of a CSx will have uBPF VM
-reside in vendor firmware on the device. This firmware would also contain the
-instructions for each of the operations defined in the generic and filesystem
-specific header. Vendors will not have to provide any binary or firmware for end
-users to use this system. However, a firmware updating mechanism might be
-required for long time support. This decoupling allows for vendor agnostic
-kernels without complications around intellectual property. However, such
-filesystem specific operations are cumbersome for vendors to implement given the
-large amount of modern filesystems. We will address this issue in the
-consideration section by proposing a mechanism for
+As can be observed from this figure, the execution of user submitted kernels
+have two potential execution path ways. The first is performed by an interpreter
+while the second utilizes \textit{Just-In Time} (JiT) compilation. In previous
+evaluations it has been shown that JiT compilation is significantly faster
+compared to interpretation \cite{lukken2021zcsd}. However, JiT is only supported
+on X86 based architectures and also disables the memory access verifier. This
+access verifier is otherwise able to terminate the user submitted kernel
+upon accessing memory outside its allocated memory segment.
+
+Both execution path ways utilize the same mechanism for (decoupled) hooking 
+of vendor operations. Because of this decoupling, practical implementations of a
+CSx will have uBPF VM reside in vendor firmware on the device. This firmware
+would also contain the instructions for each of the operations defined in the
+generic and filesystem specific header. Vendors will not have to provide any
+binary or firmware for end users to use this system. However, a firmware
+updating mechanism might be required for long time support. This decoupling
+allows for vendor agnostic kernels without complications around intellectual
+property. However, such filesystem specific operations are cumbersome for
+vendors to implement given the large amount of modern filesystems. We will
+address this issue in the consideration section by proposing a mechanism for
 \textit{filesystem agnostic kernels}.
 
 Across our two headers, the generic header contains zero datastructures and
@@ -922,6 +936,14 @@ The process is shown using distinct steps taken by an end-user. However, the
 compilation of source code into eBPF bytecode (kernel) is omitted. This process
 is shown in figure \ref{figure:offloading} here each of the bold blue numbered
 arrows indicates a distinct ste by the user.
+
+\begin{figure}
+    \centering
+	\includegraphics[width=1\textwidth]{resources/images/offloading.png}
+	\caption{Core offloading mechanism through extended attributes (xattr)}
+    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
+    \label{figure:offloading}
+\end{figure}
 
 Given that our prototype achieves offloading entirely reusing existing APIs each
 step is a system call that traps into the kernel.
@@ -980,13 +1002,14 @@ to the use of anonymous callbacks only one instance of a uBPF VM can be active
 within a single process at a time. This is why a lock is used within
 \textit{NVME\_CSD}.
 
-\begin{figure}
-    \centering
-	\includegraphics[width=1\textwidth]{resources/images/offloading.png}
-	\caption{Core offloading mechanism through extended attributes (xattr)}
-    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
-    \label{figure:offloading}
-\end{figure}
+The steps shown to achieve offloading can effectively be performed in
+minimal code using readily available programming languages such as Python or C.
+Additionally, using a shell such as BASH is possible but care is needed to
+ensure the PID remains the same across operations otherwise FluffleFS will
+destroy the state.
+
+We are confident these set of operations are of minimal complexity while reusing
+existing APIs having minimized the barrier to entree to motivate adoption.
 
 \section{Iterations}
 
@@ -1025,23 +1048,87 @@ principle \textit{everything is a file}, that allows two or more processes to
 share a region of memory. While regular shared memory is limited to a single
 process, however, this memory could be shared across additional threads.
 
-this single process shared memory solution is one of the most common found in
+This single process shared memory solution is one of the most common found in
 software today. The concepts of such a program are very well understood as
 well as the development using imperative languages being straightforward.
 
 While shared memory maps are typically found in device drivers, such as those
 for graphics cards, their use consistutes severe additional development effort.
 In conjuction with our design being a simulation there is no scientific value in
-using shared memory maps for our design. However, for production ready
-implementations this decision needs to be reevaluated.
+using shared memory maps for our design. However, for practical implemenations 
+this decision needs to be reevaluated.
 
 \subsection{NVMe Namespace Command Set}
 
+Typically kernel drivers utilizing shared memory maps and \textit{ioctl} In
+accelarator applications have their own dedicated API. This is similar to
+popular GPU APIs like OpenCL or Vulkan. Initially our work set out to design
+a similar API for computational storage applications. However, their are several
+downsides that make the use of such an API more impractical.
 
+Firstly, is the decoupling from existing APIs such as the NVMe protocol. This
+would result in a CSx needing to maintain state of multiple protocols
+potentially over the same bus (PCIe). This will result in additional complexity
+and potentially higher resource utilization on the CSx.
+
+Secondly, is the additional development effort posed to vendors for having to
+implement an entirely new protocol. Historical, new protocols have had trouble
+gaining adoption creating a significant barrier to entree.
+
+Lastly, is that the NVMe protocol has implemented a native system to extend the
+protocol with additional functionality. In addition, extensions to the NVMe
+protocol can be proposed and adopted to into the standard. This is a known
+procedure that has succesfully been used to introduce ZNS \cite{nvme-zns} for
+example.
+
+Our design moved from the development of an accelarator API to an artificial
+extension to the NVMe commands set, just like ZNS. In total our design proposes
+four new commands of which two are to launch a kernel on the CSx. The first
+run command is without metadata and the second with. This metadata, like
+mentioned previously, is placed at the top of the reserved memory segment. In
+addition, one command is used to retrieve the return data from a terminated
+kernel while they other retrieves read / write statistics. In a practical
+implemenation a so called completion command will signal when a kernel has
+terminated. However, given our monolithic design in our simulation the function
+simply returns synchronously.
+
+Given the downsides of an accelarator API in a simulated setting especially
+with the decision to use a shared memory monolith the change to use an
+artifical NVMe command set extension is entirely justified.
 
 \subsection{FUSE Filesystem}
 
-% LD\_PRELOAD / RLTD\_NEXT
+Filesystems and their behavior are often perceived as esoteric. Some specific
+details can only be apperent after years of experience. In an attempt to avoid
+most complexity around implementing an entire filesystem initially
+\textit{LD\_PRELOAD} and \textit{RTLD\_NEXT} where used to change the behavior
+of system calls entirely. By utilizing these mechanisms the behavior of calls
+such as \textit{read} and \textit{open} can essentially be swapped out. This
+would prevent these operations from trapping into the kernel running our own
+code instead. However, in combination with a shared memory monolith several
+complications arise that make this impractical.
+
+Firstly, only a single process could use our framework at any given time as the
+state of it is essentially bound to the process on which \textit{LD\_PRELOAD}
+has been used. This would complicate automated testing, debugging and
+experimental evaluation. In addtion, such a limitation means that any action
+performed by one process will be invisible to others. However, such a limitation
+would never arise as attempting to claim the NVMe device in a second process
+will prevent it from spawning alltogether.
+
+Secondly, overriding the behavior of I/O system calls will interfere with the
+regular operation of many tools such BASH or Python that otherwise simplify
+experimental evaluation and testing.
+
+Lastly, the use of \textit{LD\_PRELOAD} and \textit{RTLD\_NEXT} is arguably
+less intuitive then interacting with a regularly mounted filesystem creaing
+additional complexity and increasing the barrier to entree.
+
+Together it was clear that there are many downsides to this solution so instead
+a FUSE filesystem was implemented. Using FUSE has benefits such as many
+pre-existing open-source filesystems that can used as reference. In addition,
+our design constraint to do as much in user space as possible can still be
+upheld.
 
 \subsection{Extended Attributes}
 

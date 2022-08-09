@@ -4,16 +4,6 @@
 \chapter{Experiments} % top level followed by section, subsection
 
 
-% ----------------------- paths to graphics ------------------------
-
-% change according to folder and file names
-\ifpdf
-    \graphicspath{{7/figures/PNG/}{7/figures/PDF/}{7/figures/}}
-\else
-    \graphicspath{{7/figures/EPS/}{7/figures/}}
-\fi
-
-
 % ----------------------- contents from here ------------------------
 % 
 
@@ -25,95 +15,161 @@ microbenchmarks operating on relatively simple reads and writes.
 Secondly, isolated applications that likely benefit from offloading
 ported to be used by FluffleFS. For each of these applications we reason
 about the expected and achieved data movement reduction among other performance
-metrics.
+metrics. Both microbenchmarks and applications are evaluated using iodepth one
+meaning a maximum of one I/O request is pending before the next one is
+submitted.
 
-For each of the experiments measurements are taken 30 times to account for
-variance between measurements. For almost all measurements the mean will
-be used alongside minimum and maximum errors bars.
+Additionally, each of the experiments is measured 30 times to account for
+variance between measurements. For almost all measurements the mean will be used
+alongside minimum and maximum errors bars.
 
 \subsection{Microbenchmarks}
 
 Most of these microbenchmarks serve to compare performance against more
 established ZNS supporting filesystems. For these microbenchmarks the popular
-F2FS\cite{Lee2015F2FSAN} filesystem is used. Exceptions to these include
+F2FS \cite{Lee2015F2FSAN} filesystem is used. Exceptions to these include
 evaluating the offloading and concurrent performance of FluffleFS against its
 regular performance.
 
-E
 Each of these benchmarks is executed on a freshly formatted filesystem each
 time due to the inability of FluffleFS to reach \textit{Steady State}. while
 F2FS is able to reach steady state a comparison between filesystems in such
 substantially different states would be unfair.
 
+Briefly, the following four microbenchmarks will be evaluated:
+
 \begin{enumerate}
-    \item Sequential reads \& writes f2fs vs FluffleFS
-    (Linegraph transfer rate MB/s - 64k up until 1g filesizes)
-    (Static request size of 512k unless file is smaller)
-    \begin{itemize}
-        \item Demonstrate what performance can be expected from FluffleFS as
-              regular filesystem.
-    \end{itemize}
-    \item Random reads \& writes f2fs vs FluffleFS
-    (Linegraph transfer rate MB/s - 4k, 8k, 16k, 32k, 64k, 128k request sizes)
-    (Static file size of 1g, this is to exhaust caches and their effects)
-    \begin{itemize}
-        \item Demonstrate what performance can be expected from FluffleFS as
-              regular filesystem.
-    \end{itemize}
+    \item Sequential reads \& writes F2FS vs FluffleFS
+    % (Linegraph transfer rate MB/s - 64k up until 1g filesizes)
+    % (Static request size of 512k unless file is smaller)
+    % \begin{itemize}
+    %     \item Demonstrate what performance can be expected from FluffleFS as
+    %           regular filesystem.
+    % \end{itemize}
+    \item Random reads \& writes F2FS vs FluffleFS
+    % (Linegraph transfer rate MB/s - 4k, 8k, 16k, 32k, 64k, 128k request sizes)
+    % (Static file size of 1g, this is to exhaust caches and their effects)
+    % \begin{itemize}
+    %     \item Demonstrate what performance can be expected from FluffleFS as
+    %           regular filesystem.
+    % \end{itemize}
     \item Sequential reads \& writes regular vs passthrough kernel
-    (Linegraph transfer rate MB/s - 64k up until 1g filesizes)
-    (Static request size of 512k unless file is smaller)
-    \begin{itemize}
-        \item Show performance impact of snapshotting and uBPF.
-    \end{itemize}
+    % (Linegraph transfer rate MB/s - 64k up until 1g filesizes)
+    % (Static request size of 512k unless file is smaller)
+    % \begin{itemize}
+    %     \item Show performance impact of snapshotting and uBPF.
+    % \end{itemize}
     \item Sequential reads \& writes concurrently regular \& 1 passthrough 512k
     request size
-    (Linegraph, 1, 2, 4, 8 threads, with best performer previous benchmark)
-    \begin{itemize}
-        \item Demonstrate the passthrough kernel performance is relatively
-              unaffected compared to deminishing performace of regular reads
-              \& writes for multiple threads. (Proof concurrent access to the
-              same file).
-    \end{itemize}
+    % (Linegraph, 1, 2, 4, 8 threads, with best performer previous benchmark)
+    % \begin{itemize}
+    %     \item Demonstrate the passthrough kernel performance is relatively
+    %           unaffected compared to deminishing performace of regular reads
+    %           \& writes for multiple threads. (Proof concurrent access to the
+    %           same file).
+    % \end{itemize}
 \end{enumerate}
+
+These initial two comparisons between F2FS and FluffleFS establish a baseline of
+the performance that can be expected from the current prototype. However, this
+current prototype is not designed to beat the performance of well established
+flash optimized filesystems. Instead such a baseline can be used for additional
+reasoning in other microbenchmarks or application evaluations. Subsequent
+microbenchmarks evaluate the performance overhead of the offloading through
+uBPF without and with concurrent regular writes respectively.
+
+Each of these microbenchmarks is used to generate a linegraph measuring
+throughput in MiB/S\footnotemark[16] as performance metric. For sequential
+benchmarks the evaluaton is performed with varying file size sizes while for
+random benchmarks request size (stride) is varied. Contrarily, sequential
+benchmarks use a fixed request size of 512 KiB while random benchmarks use a
+fixed file size of 1 GiB.
+
+\footnotetext[16]{MebiBytes (MiB) refers to 1048576 bytes where MegaBytes (MB)
+would refer to 1000000 bytes in total. These distinctions are denoted by the
+lowercase i in the acronym. Every denotion with such a lowercase i is a power
+of two where without they refer to clean multiples of ten. This distinction is
+used to prevent ambiquity that was historically problematic in computer science
+literature.}
+
+Combined these microbenchmarks establish the baseline performance of the current
+prototype filesystem as well as demonstrate the performance impact of
+snapshotted offloading. Finally, we establish the performance impact on
+offloading when concurrent writes are going to the same file.
 
 \subsection{Applications}
 
-\begin{enumerate}
-    \item Offload integer average (read stream kernel)
-    \begin{itemize}
-        \item Have one thread write append to a file while the another computes
-              the integer average for this file do so using both regular access
-              and using kernel offloading.
-        \item Demonstrate offloading can reduce amount of data transfered
-              between host and device significantly with no signifcant
-              performance impact.
-    \end{itemize}
-    \item Offloaded shannon entropy (read stream kernel)
-    \begin{itemize}
-        \item Go through all files in a directory and determine entropy of first
-              512k of each file. Return a list of files with entropy < 6.
-        \item Demonstrate that async applications can reduce host load by
-              waiting for offloaded tasks (Total CPU time - kernel CPU time)
-    \end{itemize}
-    \item CSV index generation (write event kernel)
-    \begin{itemize}
-        \item Generate indexes for a query replicated from TPC-DS at 512k
-              intervals.
-        \item Demonstrate that async applications can reduce host load by
-              waiting for offloaded tasks (Total CPU time - kernel CPU time)
-    \end{itemize}
-\end{enumerate}
+The evaluation of applications focusses on proving the practicality of a 
+filesystem supporting CSx. To achieve this our application is designed to show
+that both host CPU load can be decreased as well as the amount of data that
+needs to be moved from the drive to the host. For this a common algorithm to
+compute \textit{shannon entropy} (entropy in information theory) \cite{6773024}
+is ported to be computed by a kernel.
+
+Typically, shannon entropy is used by compression algorithms such as those used
+for transparent compression in filesystems. The algorithm works by computing
+the distribution of outcomes from a set of possible outcomes. Most if not all
+compression algorithms will use one byte, or 256 possibilities as the set of
+possible outcomes. If the change for each outcome is equal to all other
+outcomes the result will be one\footnotemark[17]. Meaning, no compression can be
+achieved. Contrarily, should all outcomes be the same outcome the result will
+be zero. Typically, compression algorithms only compute shannon entropy for a
+portion of the file and utilize a cut-off value to decide to compress the file
+or not. It should be noted that the actual theory behind shannon entropy is more
+involved and much more broadly applicable. Instead, this description is
+purposely written to demonstrate how it can be used to determine
+\textit{compressability}.
+
+\footnotetext[17]{Our specific implementation will return eight in this case
+instead of one as the output is scaled according to the number of bits used to
+generate the set of possible outcomes.}
+
+This task can easily be performed in the background potentially storing the file
+first in uncompressed state and compressing it later. Such background
+applications have loose timing constraints making them excellent use cases for
+computational storage. Reasoning is that compute capability on a CSx will
+typically be significantly less compared to the host processor. Applications
+need to take the response time end users expect as well as the amount of
+computation required into account.
+
+
+
+% \begin{enumerate}
+    % \item Offload integer average (read stream kernel)
+    % \begin{itemize}
+    %     \item Have one thread write append to a file while the another computes
+    %           the integer average for this file do so using both regular access
+    %           and using kernel offloading.
+    %     \item Demonstrate offloading can reduce amount of data transfered
+    %           between host and device significantly with no signifcant
+    %           performance impact.
+    % \end{itemize}
+    % \item Offloaded shannon entropy (read stream kernel)
+    % \begin{itemize}
+        % \item Go through all files in a directory and determine entropy of first
+        %       512k of each file. Return a list of files with entropy < 6.
+        % \item Demonstrate that async applications can reduce host load by
+        %       waiting for offloaded tasks (Total CPU time - kernel CPU time)
+    % \end{itemize}
+    % \item CSV index generation (write event kernel)
+    % \begin{itemize}
+    %     \item Generate indexes for a query replicated from TPC-DS at 512k
+    %           intervals.
+    %     \item Demonstrate that async applications can reduce host load by
+    %           waiting for offloaded tasks (Total CPU time - kernel CPU time)
+    % \end{itemize}
+% \end{enumerate}
 
 \section{Experimental Setup}
 
-% Machine host, configuration, kernel version, modules and versions,
-% software compiler flags
+This section briefly describes the physical machine used during evaluation.
+In addition, the parameters used with the popular virtual machine called QEMU
+\cite{qemu} are detailed. Lastly, an overview of software dependencies and their
+respective version as well as compiler flags is given.
 
-% Use alacritty to prevent performance influence of writing to stdout / stderr
+% \subsection{Pitfalls}
 
-
-\subsection{Pitfalls}
+% ???
 
 % ---------------------------------------------------------------------------
 % ----------------------- end of thesis sub-document ------------------------

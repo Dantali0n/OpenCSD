@@ -24,6 +24,14 @@
 % lookup can only return for data in path inode map, won't traverse inode lba
 % map.
 
+\section{Concurrency}
+
+% Global lock on some filesystem operations
+
+% Scheduling for uBPF VM instances, locking around uBPF, identifying the correct
+% vm to associate to the system call (unique hash placed in a map, any incorrect
+% hash terminates the kernel immediately)
+
 \section{Design for Manufacter}
 
 % The current prototype is only suitable for simulation. Several changes are

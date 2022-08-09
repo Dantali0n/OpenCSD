@@ -103,21 +103,20 @@ concurrent with \textit{Computational Storage} offloading.
 
 In this work we address each of these challenges directly and propose a
 complete \textit{Computational Storage} solution that offers a filesystem
-capable of concurrent multi-user tenancy with both regular and compute
-offloading access (hybrid). We introduce each of the solutions briefly before
-describing their complete case. Firstly, circumvent the complexity of
-complete vertical integration by creating a simulation platform on top of
-QEMU \cite{qemu}. Secondly, eliminate potential incompatibilities across
-vendors by using \textit{Extended Berkely Packet Filer} (eBPF) \cite{what-ebpf}
-as compute kernel language. Third, bridge the semantic gap by using \textit{
-Zoned Namespaces} (ZNS) \cite{zns} SSDs which moves the FTL to the host
-operating system (host-managed). Lastly, allow for concurrent multi-user
-tenancy in a \textit{Hybrid Filesystem} context by developing a specialized
+capable of concurrent regular and compututionally offloaded access (hybrid).
+We introduce each of the solutions briefly before describing their complete
+case. Firstly, circumvent the complexity of complete vertical integration by
+creating a simulation platform on top of QEMU \cite{qemu}. Secondly, eliminate
+potential incompatibilities across vendors by using \textit{Extended Berkely
+Packet Filer} (eBPF) \cite{what-ebpf} as compute kernel language. Third, bridge
+the semantic gap by using \textit{Zoned Namespaces} (ZNS) \cite{zns} SSDs which
+moves the FTL to the host operating system (host-managed). Lastly, allow for
+concurrent \textit{Hybrid Filesystem} access by developing a specialized
 \textit{Log-Structured Filesystem} (LFS) \cite{Rosenblum1992TheDA} with an
 in-memory snapshot consistency model \cite{Viotti2016ConsistencyIN}. We present
 this complete solution as \textit{OpenCSD} an open-source Apache 2 licensed CSx
-simulation framework with accompanying filesystem called
-FluffleFS \cite{qemu-csd}.
+simulation framework with accompanying filesystem called FluffleFS
+\cite{qemu-csd}.
 
 Clearly computational storage is a promising avenue to the data movement
 bottleneck. However, there remain clear challenges that currently prevent it
@@ -288,8 +287,8 @@ called \textit{hybrid filesystems}. We formulate that into the following
 research question. Namely,
 
 \begin{displayquote}
-    How to create a multi-user tenant (hybrid) LFS with Computational Storage
-    offloading support?
+    How to create a \textit{hybrid} LFS with concurrent regular and 
+    Computational Storage offloading support?
 \end{displayquote}
 
 \subsection{Sub Questions}
@@ -315,11 +314,11 @@ research question. Namely,
     \end{enumerate}
     \item Experimental Evaluation
     \begin{enumerate}
-        \item Can a multi-user tenant hybrid LFS achieve unstagnated performance
+        \item Can a concurrent hybrid LFS achieve unstagnated performance
               for concurrent regular and offloaded file access?
-        \item Can a multi-user tenant hybrid LFS reduce the data movement
+        \item Can a concurrent hybrid LFS reduce the data movement
               between device and host?
-        \item Can a multi-user tenant hybrid LFS reduce the host load for
+        \item Can a concurrent hybrid LFS reduce the host load for
               asynchronous applications?
     \end{enumerate}
 \end{itemize}
@@ -338,7 +337,7 @@ being the development and evaluation of a research software prototype, an
 iterative design approach similar to that of Agile is best suited. Meanwhile the
 evaluation method uses a more straightforward approach consisting of several
 performance evaluations. Each of these evaluations provides evidence supporting
-claims made about the multi-user tenant hybrid LFS.
+claims made about the concurrent hybrid LFS.
 
 Given the large of possible iterative design approaches we describe ours
 more elaborately in the next section.
