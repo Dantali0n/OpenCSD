@@ -888,10 +888,10 @@ As can be observed from this figure, the execution of user submitted kernels
 have two potential execution path ways. The first is performed by an interpreter
 while the second utilizes \textit{Just-In Time} (JiT) compilation. In previous
 evaluations it has been shown that JiT compilation is significantly faster
-compared to interpretation \cite{lukken2021zcsd}. However, JiT is only supported
-on X86 based architectures and also disables the memory access verifier. This
-access verifier is otherwise able to terminate the user submitted kernel
-upon accessing memory outside its allocated memory segment.
+compared to interpretation in uBPF \cite{lukken2021zcsd}. However, JiT is only
+supported on X86 based architectures and also disables the memory access
+verifier. This access verifier is otherwise able to terminate the user submitted
+kernel upon accessing memory outside its allocated memory segment.
 
 Both execution path ways utilize the same mechanism for (decoupled) hooking 
 of vendor operations. Because of this decoupling, practical implementations of a
@@ -1132,7 +1132,24 @@ upheld.
 
 \subsection{Extended Attributes}
 
-% POSIX fadvise, does not reach filesystem
+The final iteration revolved around extended attributes as already thoroughly
+discussed. Initially, our design set out to use the POSIX system call
+\textit{fadvise}. This call hints the kernel about future file access
+patterns. These include hints that the contents of a file are no longer
+needed or that a region of a file will be randomly accessed. Unfortanetely
+however, these calls never arrive at the filesystem level so the filesystem is
+unable to detect these and take action. Instead, the kernel decides how to
+handle these conditions based on CPU and memory pressure. Typically, this
+can be observed as \textit{lookup}, \textit{read} or \textit{release} calls
+inside the filesystem. The results of which are subsequent used for inode and
+data caches. Note that in FluffleFS inode and data caches are explicitly
+disabled in FUSE to prevent interference between regular and offloaded access.
+
+Together these four iterations are a demonstration of the iterative design
+approach. This approach allows our prototype to use the best possible set
+of technologies that form a cohesive system together. Similarly, this approach
+allows to reach a solution that takes all design constraints firmly into
+account.
 
 % ---------------------------------------------------------------------------
 % ----------------------- end of thesis sub-document ------------------------
