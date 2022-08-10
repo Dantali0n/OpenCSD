@@ -161,7 +161,7 @@ memory-valgrind:
     - cd build || exit
     - cmake -DENABLE_PLAYGROUND=off -DENABLE_DOCUMENTATION=off -DENABLE_TESTS=on ..
     - make tests
-    - 'for test in $(ls tests/test*); do valgrind --leak-check=full "$test"; done'
+    - 'for test in $(ls tests/test*); do DEBUGINFOD_URLS="https://debuginfod.archlinux.org" G_SLICE=always-malloc valgrind --leak-check=full "$test"; done'
 memory-sanitizer:
   stage: memory
   tags:
