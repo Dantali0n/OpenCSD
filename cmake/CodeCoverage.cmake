@@ -192,7 +192,7 @@ FUNCTION(SETUP_TARGET_FOR_COVERAGE_LCOV _targetname _testrunner _outputname)
     SET(coverage_base "${CMAKE_BINARY_DIR}/${_outputname}.base.info")
     SET(coverage_info "${CMAKE_BINARY_DIR}/${_outputname}.test.info")
     SET(coverage_total "${CMAKE_BINARY_DIR}/${_outputname}.total.info")
-    SET(coverage_cleaned "${coverage_info}clean.info")
+    SET(coverage_cleaned "${CMAKE_BINARY_DIR}/${_outputname}.total.info")
 
     ADD_CUSTOM_TARGET(${_targetname}
 

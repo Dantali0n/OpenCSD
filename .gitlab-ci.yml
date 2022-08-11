@@ -135,6 +135,7 @@ coverage:
   stage: coverage
   tags:
     - linux
+  coverage: '/.*lines\.*:.*([0-9][0-9]\.[0-9]\%)/'
   script:
     - cd $CI_PROJECT_DIR || exit
     - mkdir -p build
