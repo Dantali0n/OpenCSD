@@ -132,8 +132,6 @@ typically be significantly less compared to the host processor. Applications
 need to take the response time end users expect as well as the amount of
 computation required into account.
 
-
-
 % \begin{enumerate}
     % \item Offload integer average (read stream kernel)
     % \begin{itemize}
@@ -167,9 +165,111 @@ In addition, the parameters used with the popular virtual machine called QEMU
 \cite{qemu} are detailed. Lastly, an overview of software dependencies and their
 respective version as well as compiler flags is given.
 
-% \subsection{Pitfalls}
+Firstly, the system uses a Intel Xeon Silver 4210 processor running at 2.20GHz.
+However, due to hardware vulnerabilities in these series of Intel processors
+hyperthreading has been explicitly disabled. From the total pool of physical
+memory 32GiB has been allocated to the QEMU virtual machine. Other QEMU
+allocations include PCIe passthrough for a ZNS SSD, model number
+WZS4C8T4TDSP303, courtesy of Western Digital. This ZNS device has a total
+capacity of 4TB (Not 4TiB) of which about 4GB can be configured as conventional
+block storage. This conventional block storage is beneficial in combination with
+F2FS that requires it when used with a ZNS device.
 
-% ???
+Other QEMU configuration parameters include the use of
+\textit{Kernel-based Virtual Machine} (KVM) \cite{kvm} and eight out of the
+total CPU cores on the Xeon 4210. For completeness the entire set of parameters
+is shown in figure \ref{figure:qemuparameters}.
+
+\begin{figure}
+    \centering
+	\bashexternal{resources/bash/qemu-parameters.sh}
+	\caption{Complete set of parameters as passed to QEMU during experiments}
+    \label{figure:qemuparameters}
+\end{figure}
+
+Apart from QEMU the prototype has many other software dependencies such as SPDK.
+However, QEMU and SPDK are dependencies through different mechanisms. These
+dependencies can be divided into two categories being support and operation
+dependencies respectively. Support dependencies are used to perform compilation
+or provide the environemnt for the prototype to run in. Distinctly, they are not
+linked to any binaries of the prototype at compile time. Contrarily, operation
+dependencies are linked at compile time. An overview of all support dependencies
+is shown in table \ref{table:supportdependencies}.
+
+\begin{table}
+    \caption{Overview of support dependencies and their respective versions}
+    \centering
+    \begin{adjustbox}{width=1\textwidth}
+        \begin{threeparttable}[]
+            \begin{tabular}{lllll}
+                \toprule
+                \textbf{Name} & \textbf{Role} & \textbf{Version} & \textbf{Purpose} \\
+                \midrule
+                Linux & Environment & 5.15 - 5.18 & Underlying OS \\
+                QEMU & Environment & 6.1.0 & Virtualization \\
+                Clang & Compilation & 10 - 14 & Compiling eBPF bytecode \\
+                GCC & Compilation & 12 & Compiling framework \& filesystem \\
+                CMake & Compilation & 3.18 - 3.23 & Orchestrate compile targets and linking \\
+                Meson & Compilation & 0.59 & Operation dependency build tool \\
+                pyelftools & Compilation & 0.28 & Operation dependency build tool \\
+                ninja & Compilation & 1.11 & Operation dependency build tool \\
+                cunit & Testing & 2.1.3 & Unit testing \\
+                ctest & Testing & 2.1.3 & Unit testing \\
+                lcov & Testing & 1.16 & Code coverage reports \\
+                gcov & Testing & 5.2 & Code coverage reports \\
+                valgrind & Testing & 3.19.0 & Leak testing \\
+                BASH & Automation & 5.1.16 & Experimental analysis \& result extraction \\
+                Python & Automation \& Graphing & 3.9 - 3.10 & Experimental analysis \& result graphs \\
+                Virtualenv & Environment & 20.11 & Python dependency isolation \\
+                \bottomrule
+            \end{tabular}
+        \end{threeparttable}
+        \label{table:supportdependencies}
+    \end{adjustbox}
+\end{table}
+
+
+A similar table for operation dependencies is shown in table
+\ref{table:operationdepdencies}.
+
+\begin{table}
+    \caption{Overview of operation dependencies and their respective versions}
+    \centering
+    \begin{adjustbox}{width=1\textwidth}
+        \begin{threeparttable}[]
+            \begin{tabular}{lllll}
+                \toprule
+                \textbf{Name} & \textbf{Role} & \textbf{Version} & \textbf{Purpose} \\
+                \midrule
+                backward & Debugging & 1.6 & Stack traces \\
+                Boost & Parsing \& Testing & 1.74.0 & Argument parsing \& unit tests \\
+                libfuse & Core component & 3.10.5 & Userspace filesystem interface \\
+                SPDK & Core component & 22.01 & Userspace NVMe driver \\
+                DPDK & Core component & spdk-22.11 & SPDK backend \\
+                ISA-L & Core component & spdk-v2.30.0 & SPDK dependency \\
+                uBPF & Core component & Commit \href{https://github.com/iovisor/ubpf/commit/9eb26b4bfdec6cafbf629a056155363f12cec972}{9eb26b4} & eBPF VM \\
+                xenium & Instrumentation & Commit \href{https://github.com/mpoeter/xenium/commit/f1d28d0980cf2128c3f6b77d321aad5ca469dbce}{f1d28d0} & Performance measurements \\
+                \bottomrule
+            \end{tabular}
+            % \begin{tablenotes}[para,flushleft]
+            %     \centering Overview of CSx works and the previously elaborated
+            %     characteristics.
+            % \end{tablenotes}
+        \end{threeparttable}
+        \label{table:operationdepdencies}
+    \end{adjustbox}
+\end{table}
+
+This thorough description of experimental setup is aimed to simplify
+repeatability of our work. In addition, it is important to re-emphasize that the
+entire work is open-source and readily available online \cite{qemu-csd}. This
+includes scripts to perform the evaluations, raw measurements from these
+evaluations, the python code used to generate graphs and even all LaTeX source
+code to documents such as this thesis. In the field of computer science
+repeatability and verifiability are often overlooked. We hope this works sets a
+precident for the degree of openness that should be expected in our field.
+
+% \subsection{Pitfalls}
 
 % ---------------------------------------------------------------------------
 % ----------------------- end of thesis sub-document ------------------------

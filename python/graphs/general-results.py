@@ -29,10 +29,19 @@ import matplotlib.cm as cm
 import pandas as pd
 import numpy as np
 
-operation = "read"
+operation = "write"  # "read"
+
+mode = "rand"  # "seq"
 
 # x = [("64k", "256k", "1024k", "4096k", "16384k", "65536k", "262144k", "1048576k")]
+
+# Sizes for seq mode
 x = [("64", "256", "1024", "4096", "16384", "65536", "262144", "1048576")]
+k = "k"
+# Sizes for rand mode
+if mode == "rand":
+    k = ""
+    x = [("64", "256", "1024", "4096", "16384", "65536", "524288")]
 
 def adj_lightness(color, amount=0.5):
     import matplotlib.colors as mc
@@ -56,7 +65,7 @@ for f in x[0]:
         base_std_f2fs.append(([0],[0]))
         continue
     try:
-        data = pd.read_csv(f"../measurements/fio/fio-seq-{operation}-f2fs-1-{f}k.csv")
+        data = pd.read_csv(f"../measurements/fio/fio-{mode}-{operation}-f2fs-1-{f}{k}.csv")
         bandwidth = sum(data['bandwidth'].values) / 1048576 / len(data['bandwidth'])# MiB/S
         bandwidth_f2fs.append(bandwidth)
         base_std = ([],[])
@@ -68,7 +77,7 @@ for f in x[0]:
         )
         base_std_f2fs.append(base_std)
     except:
-        print(f"File ../measurements/fio/fio-seq-{operation}-f2fs-1-{f}k.csv does not exist")
+        print(f"File ../measurements/fio/fio-{mode}-{operation}-f2fs-1-{f}{k}.csv does not exist")
 
 for f in x[0]:
     if f == "0":
@@ -76,7 +85,7 @@ for f in x[0]:
         base_std_flufflefs.append(([0],[0]))
         continue
     try:
-        data = pd.read_csv(f"../measurements/fio/fio-seq-{operation}-fluffle-1-{f}k.csv")
+        data = pd.read_csv(f"../measurements/fio/fio-{mode}-{operation}-fluffle-1-{f}{k}.csv")
         bandwidth = sum(data['bandwidth'].values) / 1048576 / len(data['bandwidth']) # MiB/S
         bandwidth_flufflefs.append(bandwidth)
         base_std = ([],[])
@@ -88,7 +97,7 @@ for f in x[0]:
         )
         base_std_flufflefs.append(base_std)
     except:
-        print(f"File ../measurements/fio/fio-seq-{operation}-fluffle-1-{f}k.csv does not exist")
+        print(f"File ../measurements/fio/fio-{mode}-{operation}-fluffle-1-{f}{k}.csv does not exist")
 
 from matplotlib import rcParams
 rcParams['font.family'] = 'Times New Roman'
@@ -111,7 +120,12 @@ plt.xticks([int(value) for value in x[0]], labels=x[0])
 plt.grid(which='both', zorder=1, axis='both')
 plt.xlabel('File Size in KibiBytes')
 plt.ylabel('Throughput (MiB/S)')
-plt.title(f"Sequential {operation} Performance F2FS vs FluffleFS")
+
+modestring = "Sequential"
+if mode == "rand":
+    modestring = "Random"
+
+plt.title(f"{modestring} {operation} Performance F2FS vs FluffleFS")
 
 plt.plot(xvalues, bandwidth_f2fs, color=colors[0], label='F2FS')
 plt.plot(xvalues, bandwidth_flufflefs, color=colors[1], label='FluffleFS')

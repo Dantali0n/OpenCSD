@@ -1,13 +1,74 @@
-% this file is called up by thesis.tex
-% content in this file will be fed into the main document
+\chapter{Results}
 
-\chapter{Results} % top level followed by section, subsection
+This section describes the results from the previously defined experiments.
+Similar to the experiments section these results are separated into two
+categories being microbenchmarks and applications.
+
+For each result we explain the information being presented as well as further
+findings. In addition, probably causes are discussed as well as
+potential future experiments to investigate these claims.
 
 \section{Microbenchmarks}
 
+Several of the results for microbenchmarks are grouped together such as
+sequential read and write results. Furtermore, all microbenchmark results use
+linegraphs scaled with $log4$ on the horizontal axis. Using this scaling the
+distance between different file and request sizes is proportional to their
+difference in size. 
 
+\begin{figure}
+    \centering
+	\includegraphics[width=1\textwidth]{resources/images/results-sequential.pdf}
+	\caption{Results Sequential}
+    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
+    \label{figure:moduledependencies}
+\end{figure}
+
+\begin{figure}
+    \centering
+	\includegraphics[width=1\textwidth]{resources/images/results-sequential-write.pdf}
+	\caption{Results Sequential Write}
+    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
+    \label{figure:moduledependencies}
+\end{figure}
+
+\begin{figure}
+    \centering
+	\includegraphics[width=1\textwidth]{resources/images/results-random-write.pdf}
+	\caption{Results Sequential Write}
+    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
+    \label{figure:moduledependencies}
+\end{figure}
+
+\begin{figure}
+    \centering
+	\includegraphics[width=1\textwidth]{resources/images/results-passthrough.pdf}
+	\caption{Results Sequential Passthrough}
+    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
+    \label{figure:moduledependencies}
+\end{figure}
+
+
+% Poor performance partially caused by FUSE, http://libfuse.github.io/doxygen/fast17-vangoor.pdf
+% Especially 
 
 \section{Shannon Entropy}
+
+\begin{figure}
+    \centering
+	\includegraphics[width=1\textwidth]{resources/images/results-shannon-lower.pdf}
+	\caption{Results Sequential Write}
+    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
+    \label{figure:moduledependencies}
+\end{figure}
+
+\begin{figure}
+    \centering
+	\includegraphics[width=1\textwidth]{resources/images/results-shannon-upper.pdf}
+	\caption{Results Sequential Passthrough}
+    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
+    \label{figure:moduledependencies}
+\end{figure}
 
 % ---------------------------------------------------------------------------
 % ----------------------- end of thesis sub-document ------------------------

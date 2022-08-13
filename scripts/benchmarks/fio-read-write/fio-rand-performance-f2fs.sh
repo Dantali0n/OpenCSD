@@ -9,10 +9,13 @@ for type in write read; do
             echo "bandwidth,iops" > fio-rand-${type}-${fs}-${depth}-${bs}.csv
             for _ in {1..30}
             do
+                mount /dev/nvme0n1 /mnt || exit 1
                 results=$(cd /mnt; fio --name=global --rw=rand${type} --size=1048576k --iodepth=${depth} --bs=${bs} --name=fiotest${bs} --output-format=json+)
                 bandwidth=$(echo "$results" | jq ".jobs[].${type}.bw_bytes")
                 iops=$(echo "$results" | jq ".jobs[].${type}.iops")
                 echo ${bandwidth},${iops} >> fio-rand-${type}-${fs}-${depth}-${bs}.csv
+                umount /mnt || exit 1
+                mkfs.f2fs -f -m -c /dev/nvme0n2 /dev/nvme0n1 || exit 1
             done
         done
     done

@@ -140,7 +140,7 @@ build directory.
 | Dependency                                                       | System   | Version                                                                                                         |
 |------------------------------------------------------------------|----------|-----------------------------------------------------------------------------------------------------------------|
 | [backward](https://github.com/bombela/backward-cpp)              | ZCSD     | 1.6                                                                                                             |
-| [booost](https://www.boost.org/)                                 | ZCSD     | 1.74.0                                                                                                          |
+| [boost](https://www.boost.org/)                                  | ZCSD     | 1.74.0                                                                                                          |
 | [bpftool](https://github.com/Netronome/bpf-tool)                 | ZCSD     | 5.14                                                                                                            |
 | [bpf_load](https://github.com/Netronome/bpf-tool)                | ZCSD     | [5.10](https://elixir.bootlin.com/linux/v5.10.77/source/samples/bpf/bpf_load.h)                                 |
 | [dpdk](https://www.dpdk.org/)                                    | ZCSD     | spdk-21.11                                                                                                      |
