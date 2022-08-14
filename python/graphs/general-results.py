@@ -29,7 +29,7 @@ import matplotlib.cm as cm
 import pandas as pd
 import numpy as np
 
-operation = "write"  # "read"
+operation = "read"  # "write"
 
 mode = "rand"  # "seq"
 
@@ -118,7 +118,13 @@ xvalues = [int(value) for value in x[0]]
 plt.xticks([int(value) for value in x[0]], labels=x[0])
 
 plt.grid(which='both', zorder=1, axis='both')
-plt.xlabel('File Size in KibiBytes')
+
+
+if mode == "seq":
+    plt.xlabel('File Size in KibiBytes')
+else:
+    plt.xlabel('Request Size in Bytes')
+
 plt.ylabel('Throughput (MiB/S)')
 
 modestring = "Sequential"

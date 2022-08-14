@@ -270,7 +270,13 @@ The last consideration proposes mechanisms to ensure the execution of user
 submitted code occurs safely. In the context of a filesystem this includes
 preventing modifications to other files or regions of files. Additionally, it
 requires preventing that an user submitted kernels reads regions of files it
-should not have access to.
+should not have access to. Commonly the so called \textit{security triad} is
+used to categories the different aspects of security. These
+include confidentiality, integrity and availability. Confidentiality ensures
+that no one is able to access data they should not be able to while integrity
+ensures any data that is read is not modified by an attacker. Lastly,
+availability needs to ensure the system remains operational even in the face of
+an attack.
 
 A potential first line of defence is the same system used by the Linux kernel
 namely, static verification. Through static verification the Linux kernel
@@ -284,26 +290,45 @@ intentionally run an infinite loop, never terminating and consuming system
 resources. To implement such a static verification system for eBPF existing
 open-source tools such as ebpf-verifer \cite{ebpf-verifier} can be used.
 
-Beyond static analysis the CSx can perform metadata and instrumentation that
+Beyond static analysis the CSx can record metadata and instrumentation that
 reports about the behavior the kernel exhibited. Since each time an operation of
 the ABI is called the uBPF VM traps into vendor code there would be no effective
 mechanism for the user submitted kernel to hide this activity. Potentially, the
 CSx could even immediatelly terminate the user submitted kernel without
-executing the requested operation entirely. Granted the more flexible user
-submitted kernels become the harder it becomes to identify malicious behavior.
-Luckily the currently proposed stream and event kernels both would limit
-malicious behavior to a single file. This is due to the append only nature of
-ZNS devices as well as the absence of the \textit{reset} command from our ABI.
+executing the requested operation entirely. For example, the regions of a file
+is supposed to read need to be provided with metadata upon kernel submission.
+By formalizing the structure of this metadata the vendor will be able to analyze
+it as well. Consequently should any ABI call be made to \textit{read} or
+\textit{write} to a sector not defined in this metadata the kernel can be
+immediately terminated. Granted the more flexible user submitted kernels become
+the harder it becomes to identify malicious behavior. Luckily the currently
+proposed stream and event kernels both would limit malicious behavior to a
+single file. This is due to the append only nature of ZNS devices as well as the
+absence of the \textit{reset} command from our ABI.
 
 Lastly, the current implementation of uBPF can be extended such that the access
-verifier can 
+verifier can work even for JiT code. This can either be achieved by
+instrumenting instructions during the jitting itself or through hardware
+mechanisms in the embedded compute device. Several embedded devices already have
+similar technologies such as ARM TrustZone \cite{Pinto2019DemystifyingAT}.
 
-% How to ensure user submitted CSx compute kernels are safe?
+It is unfortunate that none of the envisioned safety mechanisms could be
+implemented in the current prototype. However, the restrictive nature of the
+current stream and event kernels still make execution relatively safe. For a
+user to submit a kernel to operate on a target file it must have access to this
+file as determined by the filesystem \textit{Access Level Control} (ACL).
+Should the user not have access the kernel will not be submitted. As described,
+both kernels are only able to modify the file they operate on resulting in users
+only being able to modify files they have access to.
 
-% Potential mechanisms:
-% - static verification
-% - CSD instrumentation / metadata (report read / write operations and locations)
-% - access verifier (runtime verification)
+Several important safety considerations are not captured by our prototype
+however. it is still able to defend the integrity of data. Confidentiality and
+availability can not be guaranteed in the current form. As examples, an user
+submitted kernel can read arbitrary sectors on the drive as well as submit
+kernels with infinite loops. Throughout this section sufficient mechanisms are
+defined to ensure confidentiality and availability can be guaranteed as well.
+By guaranteeing all three aspects of the security triad we can provide safe
+user submitted kernels.
 
 % ---------------------------------------------------------------------------
 % ----------------------- end of thesis sub-document ------------------------
