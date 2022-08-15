@@ -215,7 +215,7 @@ designed for supporting regular filesystem access but it is clear that it is
 still missing in the prototype, for instance\footnotemark[4]. The most complete
 is Metal FS \cite{10.1145/3342195.3387557} which achieves filesystem integrated
 computational offloading through UNIX pipes. However, it does not address
-multi-user tenancy. In addition, it is unclear if their customized Unix pipe
+multi-user tenancy. In addition, it is unclear if their customized UNIX pipe
 behaviour influences regular UNIX pipes should they be used on their filesystem.
 Lastly, is INSIDER \cite{234968} which achieves filesystem integration on
 conventional SSD CSxs. This is done by only supporting passthrough kernels which
@@ -226,8 +226,8 @@ with one for regular access and offloaded, respectively. Finally, writting
 customized kernels is possible but requires RTL design knowledge and use of the
 Xilinx Vivado toolchain.
 
-\footnotetext[4]{"Support for accessing a file on a file system could be added,
-for example, by integrating it with a FUSE file system driver or uNFS"
+\footnotetext[4]{"Support for accessing a file on a filesystem could be added,
+for example, by integrating it with a FUSE filesystem driver or uNFS"
 \cite{10.1145/3429357.3430519}}
 
 Several specific developments of individual works are of interest. Firstly,

@@ -29,9 +29,9 @@ import matplotlib.cm as cm
 import pandas as pd
 import numpy as np
 
-operation = "read"  # "write"
+operation = "write"  # "read"
 
-mode = "rand"  # "seq"
+mode = "seq"  # "rand"
 
 # x = [("64k", "256k", "1024k", "4096k", "16384k", "65536k", "262144k", "1048576k")]
 

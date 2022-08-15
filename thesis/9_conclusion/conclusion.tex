@@ -1,22 +1,56 @@
-% this file is called up by thesis.tex
-% content in this file will be fed into the main document
+\chapter{Conclusion}
 
-\chapter{Conclusion} % top level followed by section, subsection
+To conclude, we have demonstrated that many previous prototype for flash based
+CSxs exist and have been developed in the past decade. Until now, none of
+these prototype where able to provide concurrent regular and offloaded
+filesystem access, aptly named \textit{hybrid filesystems}. Our simulation
+framework \textit{OpenCSD} and filesystem \textit{FluffleFS} are able to perform
+offloading entirely using existing APIs, no shared libraries or network
+communication is necessary. In addition, our kernels are vendor agnostic and
+filesystem aware. Finally, our prototype runs entirely in userspace requiring no
+understanding of the Linux kernel or modifications.
 
+To do this our offloading is triggered through filesystem extended attributes
+resulting in complete isolation from regular operating system behavior. These
+filesystem extended attributes are present in all modern operating systems
+including Windows, MacOs, FreeBSD and Linux. Across all previous CSx works only
+a single other work managed to use existing APIs and in doing so they changed
+UNIX pipe behavior \cite{10.1145/3342195.3387557}.
 
-% ----------------------- paths to graphics ------------------------
+Concurrent regular and offloaded access is achieved by utilizing snapshot
+consistency with LFS and ZNS technologies. Furthermore,
+by utilizing eBPF and uBPF these kernels written for offloading can be made
+vendor and filesystem agnostic. While the API for kernel filesystem support
+still needs to be formalized and the proposed CSx runtime is still absent in our
+prototype, the possibility of filesystem awareness in a concurrent regular and
+offloaded setting has been proven. Furthermore we have proven that regular and
+offloaded accesses can be easily differentiated utilized PID inode pairs.
 
-% change according to folder and file names
-\ifpdf
-    \graphicspath{{7/figures/PNG/}{7/figures/PDF/}{7/figures/}}
-\else
-    \graphicspath{{7/figures/EPS/}{7/figures/}}
-\fi
+Throughout this work we have argued why LFS, ZNS, eBPF and extended attributes
+are the current best suited technologies to implement a hybrid filesystem.
 
+We believe that many CSx prototype suffer from a high barrier to entree due to
+complicated setup and technologies. Therefor, our design focussed heavily on
+being easy to use to reduce barrier to entree. Our design has achieved this by
+only utilizing userspace technologies, requiring no knowledge of kernel
+development or any kernel modifications. In addition, our framework
+\textit{OpenCSD} utilizes a component architecture that easily allows for
+replacement of used technologies.
 
-% ----------------------- contents from here ------------------------
-% 
+During the evaluation we showed that offloaded applications can reduce
+data movement between the device and host by 99.9\% as well as drastically
+reduce the host CPU load. However, the overall performance of FluffleFS still
+needs to be improved significantly, only able to perform on par with flash
+optimized filesystems under very select circumstances. Furthermore, our
+limited performance optimizations made us unable to proof that concurrent
+offloaded and regular file access can achieve unstagnated performance.
 
+We encourage everyone to try our prototype today which is readily available
+and open-source published under a permissive license \cite{qemu-csd}. Along our
+source code are datasets of our measurements as well as the scripts to perform
+these measurements and generate accompanying graphs. Even the source files for
+this very thesis are included. We hope this openness inspires others to do the
+same.
 
 % ---------------------------------------------------------------------------
 % ----------------------- end of thesis sub-document ------------------------

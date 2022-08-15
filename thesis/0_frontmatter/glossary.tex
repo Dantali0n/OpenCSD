@@ -11,51 +11,64 @@
 
 % ----------------------- contents from here ------------------------
 
+\newlength{\nomenlabelindent}
+\setlength{\nomenlabelindent}{13em}
+\newenvironment{nomenclature2}{%
+\newcommand\entry[2]{%
+   \hangindent\nomenlabelindent\noindent\makebox[\nomenlabelindent][l]{##1\quad}\ignorespaces##2\par}%
+   \addcontentsline{toc}{chapter}{\protect\numberline{}Glossary}%
+   \section*{Glossary}}{\par\addvspace{12pt}}
 
-\nomenclature{HDD}{hard-disk drive} % 233
-\nomenclature{SSD}{solid state drive} % 234
-\nomenclature{Programmable Storage}{} % 246
-\nomenclature{Computational Storage}{} % 246
-\nomenclature{NVMe}{Non-Volatile Memory Express} % 250
-\nomenclature{FTL}{Flash Translation Layer} % 255
-\nomenclature{CSx}{Computational Storage Device} % 257
-\nomenclature{ISA}{Instruction Set Architecture} % 274
-\nomenclature{eBPF}{Extended Berkely Packet Filter} %293
-\nomenclature{ZNS}{Zoned NameSpaces} % 294
-\nomenclature{Host Managed}{} % 296
-\nomenclature{Hybrid Filesystem}{A hybrid filesystems supports both regular
-    access as well as Computational Storage offloading} % 296
-\nomenclature{LFS}{Log-Structured Filesystem} % 297
-\nomenclature{FPGA}{Field-Programmable Gat Array} % 306
-\nomenclature{PCIe}{Peripheral Component Interconnect Express} % 310
-\nomenclature{OS}{Operating System} % 324
-\nomenclature{VFS}{Virtual File System} % 326
-\nomenclature{FUSE}{Filesystem in USErspace} % 327
-\nomenclature{GPGPU}{General-Purpose computing on Graphics Processing Units} % introduction 149
-\nomenclature{API}{Application Programming Interface} % introduction 150
-\nomenclature{ABI}{Application Binary Interface} % introduction 159
-\nomenclature{NAT}{Node Address Table} % 406
-\nomenclature{OCSSD}{Open-Channel SSD} % relatedwork 29
-\nomenclature{Programming Model}{} % relatedwork 48
-\nomenclature{Degree of Programmability}{} % relatedwork 51
-\nomenclature{RPC}{Remote Procedure Call} % relatedwork 57
-\nomenclature{HTTP}{HyperText Transfer Protocol} % relatedwork 57
-\nomenclature{SQL}{Structured Query Language} % relatedwork 96
-\nomenclature{CSEE}{Computational Storage Execution Environments} % relatedwork 64
-\nomenclature{SIT}{Segment Info Table} % relatedwork 64
-\nomenclature{SSA}{Segment Summary Area} % relatedwork 64
-\nomenclature{RTL}{Register-Transfer Level} % relatedwork 127
-\nomenclature{NVMe-oF}{NVMe over Fabrics} % relatedwork 184
-\nomenclature{MPI}{Message Passing Interface} % relatedwork 145
-\nomenclature{HPC}{High-Performance Computing} % relatedwork 146
-\nomenclature{CS}{Computer Science} % relatedwork 231
-\nomenclature{POSIX}{Portable Operating System Interface} % design 101
-\nomenclature{NIX}{A UNIX based operating system or derivative} % design 110
-\nomenclature{PID}{Process IDentifier} % design 115
-\nomenclature{Kernel}{} % implementation 89
-\nomenclature{EOF}{End Of File} % implementation 841
+\begin{nomenclature2}
+    \entry{HDD}{Hard-Disk Drive} % 233
+    \entry{SSD}{Solid-State Drive} % 234
+    \entry{NVMe}{Non-Volatile Memory express} % 250
+    \entry{FTL}{Flash Translation Layer} % 255
+    \entry{CSx}{Computational Storage Device} % 257
+    \entry{ISA}{Instruction Set Architecture} % 274
+    \entry{eBPF}{extended Berkely Packet Filter} %293
+    \entry{ZNS}{Zoned NameSpaces} % 294
+    \entry{Host Managed}{Storage device that performs no automatic garbage
+        collection or wear leveling exposing facilities to do so to the host} % 296
+    \entry{Hybrid Filesystem}{Filesystem supporting both regular access as well
+        as Computational Storage offloading} % 296
+    \entry{LFS}{Log-Structured Filesystem} % 297
+    \entry{FPGA}{Field-Programmable Gate Array} % 306
+    \entry{PCIe}{Peripheral Component Interconnect express} % 310
+    \entry{OS}{Operating System} % 324
+    \entry{VFS}{Virtual FileSystem} % 326
+    \entry{FUSE}{Filesystem in USErspace} % 327
+    \entry{GPGPU}{General-Purpose computing on Graphics Processing Units} % introduction 149
+    \entry{API}{Application Programming Interface} % introduction 150
+    \entry{ABI}{Application Binary Interface} % introduction 159
+    \entry{NAT}{Node Address Table} % 406
+    \entry{OCSSD}{Open-Channel SSD} % relatedwork 29
+    \entry{Programming Model}{See our previous survey
+        \textit{Past, Present and Future of Computational Storage: A Survey} chapter 8.2 \cite{lukken2021past}} % relatedwork 48
+    \entry{Degree of Programmability}{See our previous survey
+        \textit{Past, Present and Future of Computational Storage: A Survey} chapter 8.2 \cite{lukken2021past}} % relatedwork 51
+    \entry{RPC}{Remote Procedure Call} % relatedwork 57
+    \entry{HTTP}{HyperText Transfer Protocol} % relatedwork 57
+    \entry{SQL}{Structured Query Language} % relatedwork 96
+    \entry{CSEE}{Computational Storage Execution Environment} % relatedwork 64
+    \entry{SIT}{Segment Info Table} % relatedwork 64
+    \entry{SSA}{Segment Summary Area} % relatedwork 64
+    \entry{RTL}{Register-Transfer Level} % relatedwork 127
+    \entry{NVMe-oF}{NVMe over Fabrics} % relatedwork 184
+    \entry{MPI}{Message Passing Interface} % relatedwork 145
+    \entry{HPC}{High-Performance Computing} % relatedwork 146
+    \entry{CS}{Computer Science} % relatedwork 231
+    \entry{POSIX}{Portable Operating System Interface} % design 101
+    \entry{NIX}{A UNIX based operating system or derivative} % design 110
+    \entry{PID}{Process IDentifier} % design 115
+    \entry{Kernel}{Compiled binary or bytecode representation of a computational
+        unit that can be submitted / scheduled for execution on accelarator type
+        devices such as graphics cards or CSxs. Alternatively, resource and
+        device management layer of an operating system.} % implementation 89
+    \entry{EOF}{End Of File} % implementation 841
+\end{nomenclature2}
 
-\printnomenclature
+% \printnomenclature
 
 %\nomenclature{LSY}{ehbfuefebbfbjkjkebfjbfbfw} 
 %\nomenclature{DEPC}{diethyl-pyro-carbonate; used to remove RNA-degrading enzymes (RNAases) from water and laboratory utensils}
