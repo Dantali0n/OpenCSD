@@ -3,19 +3,35 @@
 
 
 %\begin{abstractslong}    %uncommenting this line, gives a different abstract heading
-\begin{abstracts}        %this creates the heading for the abstract page
+\begin{abstracts}
 
-% Introduction, data problem.
+Humanity is expected to generate 200 Zettabytes of data by 2030. Meanwhile the
+prevelant Von Nuemann computer architecture is rapidly causing data movement
+to become a bottleneck.  A promising solution to this problem is found in the
+research of \textit{"Programmable Storage"} and
+\textit{"Computational Storage"}. In this field flash based storage devices such
+as NVMe SSDs are fitted with their own computational elements. By offloading
+user submitted programs called kernels to these devices both data movement
+and host CPU load can be decreased. However, the development of these
+\textit{Computational Storage Devices} (CSXs) has been unable to implement
+concurrent regular and offloaded filesystem access until now.
 
-% Solution, long time in the making. Current state of works regarding filesystems
+Our design uses existing technologies to support vendor agnostic kernel
+offloading with filesystem integration reusing existing operating system
+APIs. Furthermore, this API called \textit{filesystem extended attributes} is
+present on all major operating systems including Windows, macOS, Linux and
+FreeBSD. Our implementations called \textit{OpenCSD} for the simulation
+framework and \textit{FluffleFS} for the filesystem run entirely in userspace
+making them easy to use.
 
-% Our design, what technologies and why those
+Our results show that FluffleFS is able to perform on-par with flash optimized
+filesystems in certain microbenchmarks. In addition, offloading shannon
+entropy computations reduced data movement by 99.90\% as well as host CPU load
+drastically.
 
-% Our implementation
-
-% Results
-
-% Consideration
+Several further optimizations have been discussed to bring the performance much
+closer to flash optimized filesystems across the board as well as how to
+implement a physical implementation of our CSx prototype.
 
 \end{abstracts}
 %\end{abstractlongs}

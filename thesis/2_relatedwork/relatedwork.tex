@@ -3,20 +3,6 @@
 
 \chapter{Related Work} % top level followed by section, subsection
 
-
-% ----------------------- paths to graphics ------------------------
-
-% change according to folder and file names
-\ifpdf
-    \graphicspath{{7/figures/PNG/}{7/figures/PDF/}{7/figures/}}
-\else
-    \graphicspath{{7/figures/EPS/}{7/figures/}}
-\fi
-
-
-% ----------------------- contents from here ------------------------
-% 
-
 \section{Support Technologies}
 
 Several developments across different fields have been essential for the
@@ -28,15 +14,15 @@ These developments are three fold. Firstly, the development of host-managed
 storage interfaces with first \textit{Open-Channel SSD} (OCSSD)
 \cite{Bjrling2017LightNVMTL} and later NVMe ZNS. Secondly, filesystem
 improvements with F2FS \cite{Lee2015F2FSAN} using an optimized layout for flash
-storage devices. Lastly, a heterogenous compute ISA, namely eBPF
+storage devices. Lastly, a heterogeneous compute ISA, namely eBPF
 \cite{ebpf_cs_2021, kourtis2020safe, bpf-uapi}.
 
 OCSSD exposes the flash layout through an end user API \cite{liblightnvm}.
-Effectively, this moved the FTL with wear-leveling and gargabe collection
+Effectively, this moved the FTL with wear-leveling and garbage collection
 functionality to the host. However, the intricate details of this flash layout
 made the API hard to use for users as well as implement for SSD vendors. In
 addition, vendors might fear that exposing all these details could leak trade
-secrets. A more succesful alternative to OCSSD is NVMe ZNS which is now a
+secrets. A more successful alternative to OCSSD is NVMe ZNS which is now a
 ratified extension to the NVMe specification \cite{nvme-zns}. In NVMe ZNS the
 flash layout is exposed in zones. Subsequently, all sectors in a zone must be
 written in a sequentially incremented fashion as well as the entire zone must
@@ -64,7 +50,7 @@ embedded applications. This new filesystem, F2FS \cite{Lee2015F2FSAN}, is
 significantly more advanced than embedded filesystem like JFFS2 \cite{jffs2}.
 With F2FS write-amplification is not only prevented by utilizing the sequential
 write behavior of LFSs, in addition, it is prevented by tracking inode locations
-in a separate NAT as oppossed to chaining inode location data together. This
+in a separate NAT as opposed to chaining inode location data together. This
 flattened layout solves the wandering tree problem where a single location
 updates causes a chain of updates to propagate. Other improvements include
 separate logs for hot and cold data as well as garbage collection using a
@@ -83,7 +69,7 @@ layout is shown in figure \ref{figure:f2fslayout}.
 % Transition sentence?
 
 eBPF is used in the Linux kernel extensively and is still seeing increasing use
-cases. One of these recent new use cases is as heterogenous ISA \cite{bpf-uapi}.
+cases. One of these recent new use cases is as heterogeneous ISA \cite{bpf-uapi}.
 The combination of the ease of virtualization together with the call instruction
 enables to separate an API from its actual implementation. Even more, the
 implementation is so separated from its implementation that it does not have to
@@ -117,7 +103,7 @@ features that hinder adoption and widespread use of CSxs.
 
 % Introduce previous ZCSD table but extended
 
-\subsection{CSx characterstics}
+\subsection{CSx characteristics}
 
 There are four types of characteristics that set CSxs apart. First there is
 the end user \textit{programming model}, the model of programming developers
@@ -149,7 +135,7 @@ as a bitstream and typically programmed into an FPGA at runtime. The distinct
 levels are listed below.
 
 \begin{enumerate}
-    \item Bistream; bitstream programmed directly unto FPGA.
+    \item Bitstream; bitstream programmed directly unto FPGA.
     \item Embedded; single program, single memory space, no OS just 'real mode'.
     \item Accelerators; OpenCL, Vulkan.
     \item Real-Time operating system;
@@ -161,7 +147,7 @@ levels are listed below.
 We see a similarly large range in different \textit{degrees of programmability}
 from no end user programmability at all such as with transparent operations to
 arbitrary code execution. The six distinct levels are shown below. It
-should be noted, howerver, that the first two levels can be regarded as no or a
+should be noted, however, that the first two levels can be regarded as no or a
 lack of end user programmability.
 
 \begin{enumerate}
@@ -185,7 +171,7 @@ what model an end user must use to develop for the CSx respectively.
 Using these characteristics of CSxs allows to make a qualitative comparison of
 different works from the past decade. By arranging all these works in
 publication order as shown in table \ref{table:csxoverview} we can start to
-obeserve developments in the field. We describe three different types of
+observe developments in the field. We describe three different types of
 observations being general observations, observations relating to changes over
 time and finally observations on specific works.
 
@@ -218,13 +204,13 @@ computational offloading through UNIX pipes. However, it does not address
 multi-user tenancy. In addition, it is unclear if their customized UNIX pipe
 behaviour influences regular UNIX pipes should they be used on their filesystem.
 Lastly, is INSIDER \cite{234968} which achieves filesystem integration on
-conventional SSD CSxs. This is done by only supporting passthrough kernels which
-are not aware of the host filesystem. In addition, INSIDER replicates parts of
-the \textit{Portable Operating System Interface} (POSIX) I/O API to improve
-familiarity. However, this still requires many copies of pre-existing API calls
-with one for regular access and offloaded, respectively. Finally, writting
-customized kernels is possible but requires RTL design knowledge and use of the
-Xilinx Vivado toolchain.
+conventional block storage SSDs. This is done by only supporting passthrough
+kernels which are not aware of the host filesystem. In addition, INSIDER
+replicates parts of the \textit{Portable Operating System Interface} (POSIX) I/O
+API to improve familiarity. However, this still requires many copies of
+pre-existing API calls with one for regular access and offloaded, respectively.
+Finally, writing customized kernels is possible but requires RTL design
+knowledge and use of the Xilinx Vivado toolchain.
 
 \footnotetext[4]{"Support for accessing a file on a filesystem could be added,
 for example, by integrating it with a FUSE filesystem driver or uNFS"
@@ -234,14 +220,14 @@ Several specific developments of individual works are of interest. Firstly,
 NGD newport \cite{10.1145/3415580} manages to support different programming
 models by offering SSH access to the CSx. While novel we do not see this model
 work for widespread adoption because of the barrier to entry in programming for
-distributed systems as opposed to heterogenous architectures. This can be
+distributed systems as opposed to heterogeneous architectures. This can be
 partially overcome by offering an API on the host at the expense of the
 flexibility to choose the programming model. Secondly, Catalina
 \cite{8855540} utilizes the \textit{Message Passing Interface} (MPI), an
 industry leading standard library in \textit{High-Performance Computing} (HPC),
 to achieve distributed memory parallelization. However, this suffers from the
 same drawback as NGD newport of HPC being a larger barrier to entree compared to
-the use of accelerators such as GPGPU in heterogenous architectures. Third,
+the use of accelerators such as GPGPU in heterogeneous architectures. Third,
 is Cognitive SSD \cite{8839401} which utilizes accelerator type interfaces such
 as OpenCL to achieve programmability. Although in the complete architecture we
 think this interface is essential it should be hidden from the end users. In
@@ -317,7 +303,7 @@ hardware prototypes while the source code or design files are never published.
 Reproducibility of a work introducing new software or hardware without these
 related files is practically impossible!
 
-This problem of unreproducible works and unverifiable claims is prevelant
+This problem of unreproducible works and unverifiable claims is prevalent
 throughout the works relating to CSxs. Out of the 27 referenced works only four
 \cite{10.14778/3137628.3137632, 234968, 8839401, lukken2021zcsd}
 \footnotemark[8] of them have released source code. While only one has released
@@ -332,8 +318,8 @@ are needed in order to adress any of the remaining open research questions.
 
 \footnotetext[8]{The author of BlockNDP\cite{10.1145/3429357.3430519} has also
 been trying to release the source code ever since October 2020 but is likely
-facing severe holdback from Huawei. It is unclear if the source code will ever
-be released.}
+facing hesitation from Huawei. It is unclear if the source code will ever be
+released.}
 
 % ---------------------------------------------------------------------------
 % ----------------------- end of thesis sub-document ------------------------

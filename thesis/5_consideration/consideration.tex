@@ -16,7 +16,7 @@ instruments that can be used for safety regarding user submitted kernels.
 
 \section{Filesystem Limitations}
 
-Firstly, the current filesystem limitations of FluffleFS make it unuseable
+Firstly, the current filesystem limitations of FluffleFS make it unusable
 outside of experimental applications. Foremost, many of the datastructures are
 not routinely flushed to the drive even if \textit{fsync} is called. Among
 these datastructures are checkpoints, NAT and SIT blocks as well as some others.
@@ -33,7 +33,7 @@ to read data from the drive are not in place. For instance \textit{lookup} will
 never traverse the \textit{inode\_lba\_map} and instead solely relies on
 \textit{path\_inode\_map}. This results in the \textit{path\_inode\_map} not
 being used for caching instead containing all paths from all to all files and
-directories for the entire fileystem.
+directories for the entire filesystem.
 
 While it is important to clearly describe the severe practical shortcomings of
 FluffleFS note that all these limitations are resolved in the design. Given the
@@ -59,7 +59,7 @@ These include in no particular order \textit{lookup}, \textit{getattr},
 
 With such a predominant amount of the operations being entirely serialized with
 respect to one another it is very likely this will hinder performance in a
-non-neglible manner. For completeness, the remaining operations include
+non-negligible manner. For completeness, the remaining operations include
 \textit{read} and \textit{write} as necessary per our design requirements to
 achieve concurrent regular and offloaded access.
 
@@ -71,7 +71,7 @@ SPDK queue of 4096 bytes in size is used. However, both SPDK and the underlying
 NVMe device are capable of having multiple operations being queued concurrently.
 While several limitations apply such as only one pending \textit{append} per
 zone\footnotemark[16] it is clear a lot of the underlying drive performance is
-unutilized in this manner.
+un-utilized in this manner.
 
 \footnotetext[16]{Although multiple sectors can be written in this single
 append, within ZNS this is known as queue depth beyond one.}
@@ -113,10 +113,10 @@ running instance of uBPF that is not its own are net zero.
 Clearly, there are many potential performance improvements related to
 concurrency that could benefit the current OpenCSD and FluffleFS prototype.
 
-\section{Design for Manufacter}
+\section{Design for Manufacture}
 
 Beyond concurrency the current prototype suffers from several design decisions
-and implementations details that are not suitable for pracitcal implementations.
+and implementations details that are not suitable for practical implementations.
 Many of these limitations arise from being a monolithic application simulation
 the offloading rather than submitting it to an actual embedded device. In this
 section the necessary changes to create real world practical implementations are
@@ -124,14 +124,14 @@ described.
 
 Firstly, the current proposed changes to the NVMe command set are implemented as
 shared library linked at compile time. Such an interface where data can be
-easily moved back and forth is not pracitcal for systems utilizing communication
+easily moved back and forth is not practical for systems utilizing communication
 protocols and busses. This interface needs to be redesigned with limitations of
-these protocols inmind such as limited request size of individual commands and
+these protocols in-mind such as limited request size of individual commands and
 the asynchronous nature of command submissions. Luckily many extensions to
 the NVMe protocol already exist, ZNS being a notable example.
 
 Secondly, the interface exposed to user submitted eBPF kernels needs to be
-formalized. Furtermore, this interface needs to be ratified as part of the NVMe
+formalized. Furthermore, this interface needs to be ratified as part of the NVMe
 protocol extension so that the minimum set of supported calls from within 
 user submitted kernels is non-optional. This will prevent users from having to
 rewrite or recompile kernels across different vendors. Given the limited compute
@@ -159,7 +159,7 @@ described in this section in figure \ref{figure:practicalarchitecture}.
 
 \section{Effective Event Kernels}
 
-As mentioned the current event kernel implemenation suffers from unnecessary
+As mentioned the current event kernel implementation suffers from unnecessary
 data movement and latency. To demonstrate this situation the data path across
 requests to and from the CSx is shown in figure
 \ref{figure:currenteventkernels}. In this figure the process of opening the file
@@ -220,8 +220,8 @@ the consideration.
 
 The current prototype is carefully designed to allow users to write programs
 once and reuse it across vendors. For this we have created a specific header
-supporting various calls as explained in the implemenation section.
-Unfortanetely, however, to synchronize these kernels with the filesystem
+supporting various calls as explained in the implementation section.
+Unfortunately, however, to synchronize these kernels with the filesystem
 additional datastructures and calls are needed. For know these have been defined
 in a header specific to FluffleFS. In this section we describe a mechanism for
 many computational storage filesystems to have their own specific behavior and
@@ -251,11 +251,11 @@ provide host side scheduling mechanisms that are likely necessary in performant
 multi-user tenancy applications.
 
 % Use statfs to determine the type of filesystem, ICDs are related to a specific
-% filesystem type. The CSx eBPF ABI should contain atleast one system call to
+% filesystem type. The CSx eBPF ABI should contain at least one system call to
 % retrieve the vendor filesystem context data for the current request (already
 % part of prototype). The CSx FS API contains functions and datastructures to
 % allow the kernel to transform this context data. The API is implemented by
-% individual filesystems as shared library and made available throught the ICD.
+% individual filesystems as shared library and made available through the ICD.
 % The CSx FS runtime uses a loader with mechanisms such as \textit{dlopen} to
 % verify the contents of the provided library in accordance to the API.
 
@@ -288,13 +288,13 @@ false reporting of metadata, writes attributes to other files but also
 termination can cause issues. A malicious user submitted kernel could
 intentionally run an infinite loop, never terminating and consuming system
 resources. To implement such a static verification system for eBPF existing
-open-source tools such as ebpf-verifer \cite{ebpf-verifier} can be used.
+open-source tools such as ebpf-verifier \cite{ebpf-verifier} can be used.
 
 Beyond static analysis the CSx can record metadata and instrumentation that
 reports about the behavior the kernel exhibited. Since each time an operation of
 the ABI is called the uBPF VM traps into vendor code there would be no effective
 mechanism for the user submitted kernel to hide this activity. Potentially, the
-CSx could even immediatelly terminate the user submitted kernel without
+CSx could even immediately terminate the user submitted kernel without
 executing the requested operation entirely. For example, the regions of a file
 is supposed to read need to be provided with metadata upon kernel submission.
 By formalizing the structure of this metadata the vendor will be able to analyze

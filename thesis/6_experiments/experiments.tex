@@ -78,28 +78,28 @@ reasoning in other microbenchmarks or application evaluations. Subsequent
 microbenchmarks evaluate the performance overhead of the offloading through
 uBPF without and with concurrent regular writes respectively.
 
-Each of these microbenchmarks is used to generate a linegraph measuring
+Each of these microbenchmarks is used to generate a line-graph measuring
 throughput in MiB/S\footnotemark[16] as performance metric. For sequential
-benchmarks the evaluaton is performed with varying file size sizes while for
+benchmarks the evaluation is performed with varying file size sizes while for
 random benchmarks request size (stride) is varied. Contrarily, sequential
-benchmarks use a fixed request size of 512 KiB while random benchmarks use a
-fixed file size of 1 GiB.
+benchmarks use a fixed request size of 512KiB while random benchmarks use a
+fixed file size of 1GiB.
 
 \footnotetext[16]{MebiBytes (MiB) refers to 1048576 bytes where MegaBytes (MB)
 would refer to 1000000 bytes in total. These distinctions are denoted by the
-lowercase i in the acronym. Every denotion with such a lowercase i is a power
+lowercase i in the acronym. Every denotation with such a lowercase i is a power
 of two where without they refer to clean multiples of ten. This distinction is
-used to prevent ambiquity that was historically problematic in computer science
+used to prevent ambiguity that was historically problematic in computer science
 literature.}
 
 Combined these microbenchmarks establish the baseline performance of the current
 prototype filesystem as well as demonstrate the performance impact of
-snapshotted offloading. Finally, we establish the performance impact on
+snapshot offloading. Finally, we establish the performance impact on
 offloading when concurrent writes are going to the same file.
 
 \subsection{Applications}
 
-The evaluation of applications focusses on proving the practicality of a 
+The evaluation of applications focuses on proving the practicality of a
 filesystem supporting CSx. To achieve this our application is designed to show
 that both host CPU load can be decreased as well as the amount of data that
 needs to be moved from the drive to the host. For this a common algorithm to
@@ -167,7 +167,7 @@ respective version as well as compiler flags is given.
 
 Firstly, the system uses a Intel Xeon Silver 4210 processor running at 2.20GHz.
 However, due to hardware vulnerabilities in these series of Intel processors
-hyperthreading has been explicitly disabled. From the total pool of physical
+hyper-threading has been explicitly disabled. From the total pool of physical
 memory 32GiB has been allocated to the QEMU virtual machine. Other QEMU
 allocations include PCIe passthrough for a ZNS SSD, model number
 WZS4C8T4TDSP303, courtesy of Western Digital. This ZNS device has a total
@@ -191,7 +191,7 @@ Apart from QEMU the prototype has many other software dependencies such as SPDK.
 However, QEMU and SPDK are dependencies through different mechanisms. These
 dependencies can be divided into two categories being support and operation
 dependencies respectively. Support dependencies are used to perform compilation
-or provide the environemnt for the prototype to run in. Distinctly, they are not
+or provide the environment for the prototype to run in. Distinctly, they are not
 linked to any binaries of the prototype at compile time. Contrarily, operation
 dependencies are linked at compile time. An overview of all support dependencies
 is shown in table \ref{table:supportdependencies}.
@@ -267,7 +267,7 @@ includes scripts to perform the evaluations, raw measurements from these
 evaluations, the python code used to generate graphs and even all LaTeX source
 code to documents such as this thesis. In the field of computer science
 repeatability and verifiability are often overlooked. We hope this works sets a
-precident for the degree of openness that should be expected in our field.
+precedent for the degree of openness that should be expected in our field.
 
 % \subsection{Pitfalls}
 

@@ -3,20 +3,6 @@
 
 \chapter{Design} % top level followed by section, subsection
 
-
-% ----------------------- paths to graphics ------------------------
-
-% change according to folder and file names
-\ifpdf
-    \graphicspath{{7/figures/PNG/}{7/figures/PDF/}{7/figures/}}
-\else
-    \graphicspath{{7/figures/EPS/}{7/figures/}}
-\fi
-
-
-% ----------------------- contents from here ------------------------
-% 
-
 \section{Requirements}
 
 As mentioned our research questions are divided to address both design and
@@ -74,7 +60,7 @@ each of these software components \textit{modules}.
 \subsection{Filesystem}
 
 Until now the integration of filesystem support in CSxs has been a difficult
-avenue. Regardsless, works such as Metal FS \cite{10.1145/3415580} and INSIDER
+avenue. Regardless, works such as Metal FS \cite{10.1145/3415580} and INSIDER
 \cite{234968} definitely achieve some form of filesystem integration. However,
 filesystem integration can still be substantially improved as will be shown in
 this work. To do so we design our filesystem by selecting the best existing
@@ -108,12 +94,12 @@ targeted to support offloading. Metal FS \cite{10.1145/3415580} does not need
 additional APIs to function instead changing UNIX pipe behavior. However, it is
 not specified if this eliminates regular use of UNIX pipes on their filesystem
 implementation. Our design manages to only use existing APIs found in almost all
-\textit{UNIX derivates} further known as \textit{NIX}. The exact process of
+\textit{UNIX derivatives} further known as \textit{NIX}. The exact process of
 offloading is achieved through the following requirements.
 
 \footnotetext[9]{In the context of operating systems the term API and ABI is
-used interchangeably although most implemenations solely use an ABI. A common
-exception is microkernels that use usermode services to provide the majority of
+used interchangeably although most implementations solely use an ABI. A common
+exception is microkernels that use userspace services to provide the majority of
 features.}
 
 Firstly, the compute kernels are registered through filesystem extended
@@ -133,7 +119,7 @@ strings used for keys or the types of offloading operations to support.
 supported by almost all operating systems including Windows, FreeBSD, MacOS and
 Linux.}
 
-Our second design requirement specificies that the calling
+Our second design requirement specifies that the calling
 \textit{Process IDentifier} (PID) must be maintained in memory alongside the
 file and kernel upon such an extended attributes call. In addition, storing this
 state in a non-persistent manner is essential to the design. Lastly, the
@@ -155,7 +141,7 @@ instructions that should \textit{trap} into the vendor API. Such an interface
 that is defined at the binary level is known as an ABI.
 
 Finally, the ISA should allow for safety features including but not limited to 
-memory access validation, static verification and termination determiniation.
+memory access validation, static verification and termination detection.
 This will provide protection against misbehaving and malicious user code.
 
 Optionally, compiled kernels should allow for variable relocation so that the
@@ -166,7 +152,7 @@ depends largely on the ISA.
 Clearly, the overall design result is a cohesive solution with clear design
 requirements. However, it took several iterations of the design process to
 reach these requirements. Each of these iterations is described after the
-implemenation section.
+implementation section.
 
 % ---------------------------------------------------------------------------
 % ----------------------- end of thesis sub-document ------------------------

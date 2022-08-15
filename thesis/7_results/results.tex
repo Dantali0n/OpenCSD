@@ -11,8 +11,8 @@ potential future experiments to investigate these claims.
 \section{Microbenchmarks}
 
 Several of the results for microbenchmarks are grouped together such as
-sequential read and write results. Furtermore, all microbenchmark results use
-linegraphs scaled with $log4$ on the horizontal axis. Using this scaling the
+sequential read and write results. Furthermore, all microbenchmark results use
+line-graphs scaled with $log4$ on the horizontal axis. Using this scaling the
 distance between different file and request sizes is proportional to their
 difference in size.
 
@@ -20,7 +20,7 @@ difference in size.
 
 Our first results compare the sequential read and write performance of F2FS
 against FluffleFS. These results are shown in figures
-\ref{figure:readsequential} and \ref{figure:writesequential} resepectively.
+\ref{figure:readsequential} and \ref{figure:writesequential} respectively.
 While the performance is similar for the smallest 64KiB file size each larger
 filesize constitutes and increasingly larger performance gap. Notable
 observations include the large difference between the minimum and
@@ -53,7 +53,7 @@ is random read performance as shown in figure \ref{figure:readrandom}. Here both
 F2FS and FluffleFS reach about 25\% of their previous performance for sequential
 reads regarding largest file and request size respectively. Notable is that
 the performance of F2FS and FluffleFS is comparable for random reads using a
-request size of 4096. Coincentally, this size is equal to the sector size of
+request size of 4096. Coincidentally, this size is equal to the sector size of
 the underlying ZNS device. Furthermore, the performance F2FS achieves for 4096
 byte requests maintains roughly equal for lower request sizes. Contrarily,
 FluffleFS loses considerable performance for smaller request sizes below
@@ -67,14 +67,14 @@ data. This interface should be updated to use zero-copy instead. Lastly,
 FluffleFS allocates and deallocates buffers for each I/O request instead of
 reusing previously allocated buffers. Instead FluffleFS should use a memory-pool
 only allocating memory during startup and reusing it during the lifetime of the
-filesystem. We believe that these are the most likely reasosn for the
+filesystem. We believe that these are the most likely reason for the
 performance difference across small request size random read operation.
 
 \begin{figure}[h]
     \centering
 	\includegraphics[width=1\textwidth]{resources/images/results-random-read.pdf}
 	\caption{Results of random read microbenchmark evaluation using a file size
-        of 1 GiB}
+        of 1GiB}
     % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
     \label{figure:readrandom}
 \end{figure}
@@ -88,7 +88,7 @@ and maximum. In addition, the mean write performance of F2FS is significantly
 higher especially for larger file and request sizes. Most notably is for the
 largest results in the sequential and random write benchmarks both file and
 request size are identical. Still, the performance difference is substantial and
-can only be caused by writting the file sequentially or in random order.
+can only be caused by writing the file sequentially or in random order.
 
 By analysing source code we have determined that F2FS is capable of utilizing
 page cache for submitted writes as well as merging incoming I/O requests, writes
@@ -96,17 +96,17 @@ and calls to \textit{bio\_put}. Moreover, \textit{bio\_put} is the Linux kernel
 block interface and can potentially be used in an asynchronous manner. Given the
 large variance observed in write behavior it is likely that write calls complete
 before the actual data is flushed to the drive. To investigate how substantially
-this write caching infleunces performance the microbenchmarks can be rerun
+this write caching influences performance the microbenchmarks can be rerun
 using the \textit{O\_DIRECT} and \textit{O\_SYNC} flags upon calling
-\textit{open}. Additionally, should the use of these flags proof unsuccesful the
-memory contention can be artifically increased by severely limiting the amount
-of allocated RAM in virtual machines.
+\textit{open}. Additionally, should the use of these flags proof unsuccessful
+the memory contention can be artificially increased by severely limiting the
+amount of allocated RAM in virtual machines.
 
 \begin{figure}[h]
     \centering
 	\includegraphics[width=1\textwidth]{resources/images/results-random-write.pdf}
 	\caption{Results of random write microbenchmark evaluation using a file size
-        of 1 GiB}
+        of 1GiB}
     % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
     \label{figure:writerandom}
 \end{figure}
@@ -124,7 +124,7 @@ Firstly, FUSE based filesystems have to perform additional context switching
 between kernel and userspace. A process that has become significantly more
 computational intensive due to recently discovered hardware vulnerabilities.
 Previous work has shown that between kernel and FUSE based filesystems there can
-be a non-neglible performance degradation \cite{Vangoor2017ToFO}. This
+be a non-negligible performance degradation \cite{Vangoor2017ToFO}. This
 degradation was around 83\% in specific workloads with an accompanying increase
 in CPU usage of 31\%. However, the minimal performance degradation observed was
 just around 5\%.
@@ -155,7 +155,7 @@ multiple I/O requests concurrently.
 
 Our final set of microbenchmarks compare the performance overhead from
 offloading to regular access. In addition, we establish the performance impact
-on kernels by concurrent regular accees. These results are shown in figure
+on kernels by concurrent regular access. These results are shown in figure
 \ref{figure:passthroughresults}. Here we clearly see that the performance
 for small file sizes is near identical but starts to diverge more and more
 as file size increases. Intuitively we would expect no performance difference
@@ -186,8 +186,8 @@ performance is still impacted significantly from concurrent write jobs.
 However, kernel passthrough has better performance for most file sizes compared
 to regular access. These results still show that the concurrent regular and
 offloaded access to the same file is able to provide performance benefits.
-Unfortanetely, we can not conclude that this concurrent performance is entirely
-unstagnated. Likely several of the already proposed changes such as submitting
+Unfortunately, we can not conclude that this concurrent performance is entirely
+undisturbed. Likely several of the already proposed changes such as submitting
 multiple I/O requests concurrently are able to improve concurrent performance
 further.
 
@@ -202,15 +202,15 @@ further.
 From these microbenchmarks it is clear that the performance of FluffleFS is
 on average significantly lower then top of the line flash optimized filesystem
 such as F2FS. However, under a few circumstances both filesystems
-performened on par. Given the design requirements and goals of this work this
+performed on par. Given the design requirements and goals of this work this
 result is to be expected.
 
 To further improve the performance of this prototype many possible avenues have
 been discussed. These are reiterated briefly here. First, I/O requests to
-underyling drives  should not be rounded to upper sector size. Second, zero-copy
+underlying drives  should not be rounded to upper sector size. Second, zero-copy
 should be used across interface to reduce data movement. Third, a memory-pool
-should be implemented to prevent allocation and deallocation of memory across
-operatios. Fourth, inode and data cache functionality should be reenabled by
+should be implemented to prevent allocation and de-allocation of memory across
+operations. Fourth, inode and data cache functionality should be re-enabled by
 requiring the use of the \textit{O\_DIRECT} flag during calls to \textit{open}
 when offloading. Fifth, the NVMe backend should be updated to allow multiple
 concurrent requests to be submitted to the underlying drive. Finally, the
@@ -227,16 +227,16 @@ To evaluate this to implementations to compute shannon entropy are designed.
 One written entirely in Python while the other uses Python to combine the
 data from individually submitted kernels. Functionality to recombine data from
 submitted kernels is necessary as the maximum size of a single I/O request is
-524288 bytes (512 KiB). For each 512 KiB read from the drive only
+524288 bytes (512KiB). For each 512KiB read from the drive only
 $256 * 4=1024$ bytes are returned to the host. This constitutes a data reduction
 of 1024 times (99.90\%) for this particular application.
 
 In the next two figures the total computation (wall) time of these two
-implementations is evaluated using bargraphs. The left hand bargraphs will show
+implementations is evaluated using bar graphs. The left hand bar graphs will show
 the results for the Python implementation while the right show the offloaded
 performance. The total computation time is divided into three categories being
 time spent in userspace (user), time spent in kernelspace (sys) and time spent
-waiting (wait). Noteably, during the time spent in wait the kernel can assign
+waiting (wait). Notably, during the time spent in wait the kernel can assign
 other processes to run instead reducing CPU host load. Finally, as before the
 error bars indicate the minimum and maximum observed difference across all 30
 measurements. The results are shown in figures \ref{figure:shannonlow} and
@@ -264,10 +264,10 @@ Across all these results unanimously our kernel offloaded implementation
 is faster compared to our Python implementation. While this not the main goal of
 this experiment it is good to see that eBPF \& uBPF can achieve good
 performance when using JiT compilation. However, it should be noted that
-a fairer comparison would have evaluated a C or C++ implemenation against our
+a fairer comparison would have evaluated a C or C++ implementation against our
 offloaded kernel.
 
-Lower execution time inheriently reduces the host CPU load. However, this is not
+Lower execution time inherently reduces the host CPU load. However, this is not
 the main observation from these results. Far more important is how almost the
 entire execution time of the offloaded application is spent in wait state.
 Meaning, that the host CPU is free to perform other tasks while waiting from the

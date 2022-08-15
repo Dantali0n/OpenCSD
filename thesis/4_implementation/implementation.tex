@@ -14,7 +14,7 @@ Followed by, sections on filesystem and offloading implementation details.
 
 Firstly, OpenCSD consist of many external dependencies, most prominently
 \textit{Storage Performance Development Kit} (SPDK) \cite{spdk},
-FUSE \cite{fuse} and uBPF \cite{ubpf}. These technolgies are used as userspace
+FUSE \cite{fuse} and uBPF \cite{ubpf}. These technologies are used as userspace
 NVMe SSD driver and as virtual machine for the eBPF ISA respectively. Reusing as
 many as pre-existing technologies as possible increases the change of
 familiarity aiding ease of use. More prominently, these existing technologies
@@ -35,17 +35,17 @@ environment managed through CMake with the ability to use QEMU for ZNS SSDs
 emulation is ideal to minimize the complexity as exposed to users of OpenCSD.
 
 \footnotetext[11]{Due to limitations in the evaluation of file presence
-conditions which are not reevaluated when executing the generated makefile.}
+conditions which are not re-evaluated when executing the generated makefile.}
 
 As said OpenCSD is comprised of modules using a component architecture.
 Additionally, Each module is compiled as a static or shared library to reduce
 coupling. This creates an explicit nature of exchanging information between
 linked libraries that allows to identify feasibility problems at an early stage.
 This is opposed to potentially only identifying such issues when creating a
-first hardware prototype. A trivial example of such infeasibilities would be
+first hardware prototype. A trivial example of such an infeasibility would be
 using shared memory mutexes to synchronize filesystem and CSx kernel behaviour.
 Several modules are solely an interface with subsequent modules being one or
-more concrete implemenations of these interfaces. These module based interfaces
+more concrete implementation of these interfaces. These module based interfaces
 with loose coupling allow for simplified replacement of technologies.
 
 \subsubsection{Modules}
@@ -76,7 +76,7 @@ modules of OpenCSD.
     separated by namespaces using high performance lockless unbounded queue
     \cite{Michael1996SimpleFA}.
     \item spdk\_init - Collection of helpers to perform SPDK initialization and
-    select ZNS suppporting NVMe namespace.
+    select ZNS supporting NVMe namespace.
     \item nvme\_zns - NVMe interface to perform ZNS operations read, write and
     reset. To be used by FluffleFS for decoupled I/O operations.
     \item nvme\_zns\_memory - Memory backed implementation of nvme\_zns
@@ -126,11 +126,11 @@ Out of all modules only nvme\_zns has been given an abstract interface so the
 underlying technologies can be easily replaced. However, we argue the design
 requirements are still met as there are virtually no replacements for
 technologies used in other modules such as uBPF and FUSE\footnotemark[12].
-In addition, we feel it would have beneign benefits to create abstract
+In addition, we feel it would have benign benefits to create abstract
 interfaces of the C++ STL. Our solution allows for replacing technologies with
 readily available alternatives without creating unnecessary interfaces.
 
-\footnotetext[12]{While alternative technolgies to implement filesystems exist
+\footnotetext[12]{While alternative technologies to implement filesystems exist
 none of them are in userspace. As a result we argue there is no alternative to
 FUSE.}
 
@@ -171,7 +171,7 @@ information allows to identify reads that would return garbage data from an
 unwritten sector. We describe reads to such locations as encountering a
 \textit{hole}. Finally, zones must be erased as entire unit at a time.
 
-Beyond ZNS, FluffleFS uses on drive and in-memory datatsructures with some
+Beyond ZNS, FluffleFS uses on drive and in-memory datastructures with some
 translation between those. All FluffleFs datastructures on drive are scaled to
 fit neatly into a single sector. This scaling of datastructures to fit in
 sectors is dynamic but FluffleFS has to be recompiled to work with a different
@@ -182,7 +182,7 @@ These are write-pointers just like ZNS does itself. More importantly are
 wraparound-pointers that allow to use linear drive space as circular contiguous
 space. Given this terminology we can now describe the filesystem layout.
 
-In a very high level overview the data layout of FluffleFS is spraid across
+In a very high level overview the data layout of FluffleFS is spread across
 three parts. These are a fixed zone, random zone and log zone. These names are
 adopted from F2FS and have no relation to ZNS zones. In addition, it should be
 noted that the random zone unlike F2FS does not require random writes and has
@@ -207,7 +207,7 @@ limit the types of datastructure to a single one for the entire zone.
 \end{figure}
 
 Consider the fixed zones as depicted in figure \ref{figure:flufflelayout}. In
-this region the drive layout distinquishes between three different
+this region the drive layout distinguishes between three different
 datastructures the first two occupying an entire zone.
 
 Firstly, the superblock identifies the filesystem using a magic cookie. In
@@ -219,7 +219,7 @@ partitions.
 
 Secondly, the dirtyblock keeps track of filesystem opening and shutdown. The 
 block is written upon opening the filesystem and removed once closed completely.
-Other datastructures in combination with the dirtyblock allow to identify andmod
+Other datastructures in combination with the dirtyblock allow to identify which
 checkpoint maintains the wraparound-pointers\footnotemark[13] for both the random
 and log zone. Moreover, after the first sector of zone $(n+1) \bmod{2}$ is
 written then zone $n \bmod{2}$ is reset. The filesystem can always recover by
@@ -297,9 +297,9 @@ layout of these regions is shown in figure \ref{figure:flufflelayoutlog}.
 \end{figure}
 
 Firstly, the log zone contains three different datastructures that can be
-interleaved to an extend. These datatsructures include raw data, data blocks
+interleaved to an extend. These datastructures include raw data, data blocks
 keeping track of raw data and inode blocks keeping track of inodes and data
-blocks. The decoupling of inodes and data blocks reduces write-amplifcation.
+blocks. The decoupling of inodes and data blocks reduces write-amplification.
 
 For consistency all raw data is always written before the data block that
 indicates their existence is. Only after the data blocks are the inode blocks
@@ -315,7 +315,7 @@ The first data block is found through the inode block by means of an inode
 entry. In addition, these entries contain the parent inode, the inode number
 itself, the type of inode and the size of the inode entry including the null
 terminated name. This null terminated name is placed directly after each
-inode entry. Each inode block is a dynamc list of inode entries and names
+inode entry. Each inode block is a dynamic list of inode entries and names
 until no more entries or the name of the newly added inode no longer fits
 inside the current block. No optimizations are made to try and balance inode
 entries with their names across multiple inode blocks. Finally, inode entries
@@ -348,12 +348,12 @@ reinitialize after a previous clean unmount.
 
 This next section addresses how the filesystem data is represented in memory.
 Firstly, an overview of all these datastructures is given and afterwards their
-structure and use. In additon, we describe which in memory representation are
+structure and use. In addition, we describe which in memory representation are
 synchronized to the drive and how the translations are performed. Several
 techniques are in place to ensure that these in memory representations are
 performant as well as easily be synchronized with the drive contents. Primarily,
 Red-black self-balancing \textit{binary search tree} (BST)s
-\cite{Bayer2004SymmetricBB} are heavily used to ensure datatsructure operations
+\cite{Bayer2004SymmetricBB} are heavily used to ensure datastructure operations
 can be performed with cost $\mathcal{O}(\log n)$.
 
 In total there are eight large datastructures kept in memory by FluffleFS of
@@ -412,7 +412,7 @@ alleviate some of this cost for cache misses.
 
 This \textit{inode\_lba\_map} maps inode numbers to a small datastructure that
 retains the inode number, its parent inode number and a mutex. The main purpose
-of this datatsructure is to quickly evaluate if an inode exists on the
+of this datastructure is to quickly evaluate if an inode exists on the
 filesystem. In addition, the parent inode number reduces the cost of
 \textit{path\_inode\_map} misses since we can find all children of an inode at
 cost $\mathcal{O}(n \log n)$. This is substantially lower than having to find
@@ -421,7 +421,7 @@ $\mathcal{O}(n + (n \log n))$ especially as \textit{inode\_lba\_map} prevents
 reading from the drive entirely.
 
 Once the inode is located and its existence is verified the next steps of
-operations can begin. For typical operations such as reading and writting
+operations can begin. For typical operations such as reading and writing
 FluffleFS must keep track of files opened. This is done through
 \textit{open\_inode\_vect}. For every opened file a unique file handle is
 created that is associated with the inode, calling PID and the flags from the
@@ -467,7 +467,7 @@ accessed to obtain the next block with corresponding complexity
 $\mathcal{O}(n)$. While in memory the \textit{data\_block\_map} allows for
 accesses of $\mathcal{O}(2 \log n)$. Still this design of linked data blocks is
 strongly unrecommended and has a severe flaw causing significant write
-amplifcation. Should the last data block of a particular inode be rewritten due
+amplification. Should the last data block of a particular inode be rewritten due
 to file changes then every other data block needs to be rewritten as well.
 Consider a write to the tail of a file size 1GiB on a drive with 4KiB sectors
 then this will result in 512 data blocks being rewritten. This flaw is
@@ -497,7 +497,7 @@ step.
 \subsubsection{Operational Rules}
 
 In a filesystem substantial effort goes into designing the individual steps of
-each operation and all their possible concurrent interleavings such that
+each operation and all their possible concurrent interleaving such that
 together they still guarantee properties such as consistency and atomicity.
 Similar effort and design steps have been taken for FluffleFS in which we
 identify five individual operations. Moreover, in the subsequent section these
@@ -509,7 +509,7 @@ five primary operations of FluffleFS include:
     \item Creating a new inode, \textit{create}
     \item Resizing a file, \textit{ftruncate}
     \item Reading a file, \textit{read}
-    \item Writting a file, \textit{write}
+    \item Writing a file, \textit{write}
     \item Synchronizing filesystem with drive, \textit{fsync}
 \end{enumerate}
 
@@ -670,11 +670,11 @@ consistency guarantees.
 \end{enumerate}
 
 Should the drive be out of free space during any of these operations either the
-garbage collection for the log zone or the rewritting of the random zone will
+garbage collection for the log zone or the rewriting of the random zone will
 be performed and the operation will be repeated.
 
 All these operations together form the majority of the FluffleFS filesystem.
-This shows a practical implementaton\footnotemark[15] of our design that adheres
+This shows a practical implementation\footnotemark[15] of our design that adheres
 to the requirements set out for concurrent regular and offloaded filesystem
 access on CSxs. The degree of concurrency and how this is achieved is described
 in the next section.
@@ -719,7 +719,7 @@ type of lock for filesystem operations it is possible to allow most to happen
 concurrently. Only intricate filesystem operations such as flushing or garbage
 collection have to be performed sequentially.
 
-Due to the concurrency for most filesystem operations indivudual datastructures
+Due to the concurrency for most filesystem operations individual datastructures
 also have their own MRSW locks. These prevent typical problems with non
 thread-safe when performing operations such as insertion or deletion in
 parallel. Furthermore, by using a MRSW lock read operations on these
@@ -738,7 +738,7 @@ information about the inode.
 
 Clearly OpenCSD \& FluffleFS are able to have many of their operations be executed
 concurrently using fine-grained locking. Implementing concurrency is important
-given the prevalance of many-core systems and the asynchronous nature of I/O
+given the prevalence of many-core systems and the asynchronous nature of I/O
 operations. We argue that is unlikely to achieve comparable performance to other
 flash optimized filesystems without it.
 
@@ -746,13 +746,13 @@ flash optimized filesystems without it.
 
 Such a performance comparison requires measurement and instrumentation. Here
 there is often a steep trade-off between the performance impact and the amount
-telemtry that can be recorded. OpenCSD uses a boundless lockless
+telemetry that can be recorded. OpenCSD uses a boundless lockless
 queue \cite{Michael1996SimpleFA} that has low overhead for concurrent insertion
 thereby optimizing to reduce the instrumentation impact.
 
 The instrumentation in the OpenCSD framework provides the median, minimum and
 maximum execution time of individual functions. While not used during the
-performance evaluation itself this instrumentation provides valueable insights
+performance evaluation itself this instrumentation provides valuable insights
 especially during development.
 
 \subsection{Offloading}
@@ -776,10 +776,10 @@ Firstly is registering which file operations should be offloaded through
 extended attributes. As per design these associations are managed on a per
 process level. Trivially one would simply get the PID for each incoming I/O
 operation and determine the appropriate action. However, this is not
-possible due to the absense of the PID from the call information for special
+possible due to the absence of the PID from the call information for special
 operations such as \textit{release} and \textit{close} in FUSE. 
 
-Instead our implemenation maintains two datastructures one 
+Instead our implementation maintains two datastructures one 
 \textit{open\_inode\_vect}, explained previously, and a \textit{snapshots\_map}.
 Here the entries in the \textit{snapshots\_map} can be correlated to the open
 files in \textit{open\_inode\_vect} through PID inode pairs. In addition the
@@ -808,7 +808,7 @@ For each of these types of offloading a key is chosen that identifies which
 offloading procedure to perform. These are
 \textit{user.process.csd\_read\_stream},
 \textit{user.process.csd\_write\_stream} \textit{user.process.csd\_read\_event}
-and \textit{user.process.csd\_write\_event} resepectively. Of these
+and \textit{user.process.csd\_write\_event} respectively. Of these
 \textit{user.process.csd\_read\_stream} and
 \textit{user.process.csd\_write\_event} have arguably the most practical 
 applications.
@@ -824,7 +824,7 @@ request. For instance, if a \textit{read} system call is performed at offset
 512000 with size 4096 then the buffer will be 4096 bytes in size as well.
 
 For \textit{event} offloads user or system configuration might be required to
-determine apppropriate buffer sizes. We will first explain the behavior of event
+determine appropriate buffer sizes. We will first explain the behavior of event
 and stream offloads.
 
 with \textit{stream} offloads the I/O operation is performed by the user
@@ -841,10 +841,10 @@ request complete and run on the data that was read or written. The result is
 that they return or write additional data. For writes this can introduce
 substantial complexity that can largely be mitigated by only allowing appending
 writes to the end of the file. The most trivial implementation of this will
-simply refuse to launch the event kernel if the reguarl I/O request is not
+simply refuse to launch the event kernel if the regular I/O request is not
 performed up until or beyond \textit{End Of File}(EOF). Given that the regular
 I/O request must first complete \textit{event} offloads suffer from additional
-data movement and latency while waiting for this request roundtrip over busses
+data movement and latency while waiting for this request round-trip over busses
 such as PCIe. We will address this issue with a potential solution in our
 consideration section.
 
@@ -866,10 +866,10 @@ Firstly, some additional details about uBPF with some brief reminders. By using
 uBPF we are able to define specific operation behavior and have the user
 submitted programs trap into these operations optionally with arguments. The
 underlying ISA, eBPF, has this capability by supporting special
-\textit{syscall} instructions. This call instruction can be hooked to an
+\textit{(sys)call} instructions. This call instruction can be hooked to an
 operation defined outside of the uBPF VM. The types of operations supported in
-our uBPF environemnt are defined firstly by a generic header (\textit{OpenCSD})
-and secondly by a filesystem specfic header (\textit{FluffleFS}). Again, tying
+our uBPF environment are defined firstly by a generic header (\textit{OpenCSD})
+and secondly by a filesystem specific header (\textit{FluffleFS}). Again, tying
 operations defined in headers to trapped instructions without exposing the
 underlying binary code or firmware is known as an
 \textit{Application Binary Interface} (ABI). Like previously, as graphical
@@ -956,7 +956,7 @@ bytecode stored in a file on the FluffleFS filesystem, this file is called
 kernel.o in our figure. This \textit{stat} call is essentialy stateless and does
 not create any notable internal behavior within OpenCSD and FluffleFS.
 
-Next, the user opens the file for reading or writting using the \textit{open}
+Next, the user opens the file for reading or writing using the \textit{open}
 call. The file on which this \textit{open} is performed is the file that will be
 offloaded called \textit{target file} in this example. When \textit{open} is
 called FluffleFS will create an internally managed file handle that uniquely
@@ -974,7 +974,7 @@ the snapshots for other operations to occur at different moments in time with
 potentially different file contents.
 
 Lastly, is the actual \textit{read} or \textit{write} call. Nix based operating
-systems contain many calls to perform this behaviour but our example focusses
+systems contain many calls to perform this behaviour but our example focuses
 on the ones using an offset and size. Upon this call FluffleFS will detect that
 the particular inode and PID pair are configured for offloading. It will access
 the relevant metadata from the snapshots datastructure and retrieve the
@@ -983,7 +983,7 @@ This data is passed to the \textit{NVME\_CSD} module of OpenCSD as it is
 responsible for managing offloading state with uBPF. This module creates a new
 instance of uBPF as well as some memory space after obtaining a lock. Next the
 state and metadata extracted from snapshots is placed at the beginning of this
-reserved memory sppace. After which the bytecode of the kernel is read utilizing
+reserved memory space. After which the bytecode of the kernel is read utilizing
 the metadata from the snapshot. Finally, the uBPF VM can be started using this
 bytecode at which point it starts executing. Upon the creation of the uBPF VM
 each of the operations defined in the header are hooked up to implementations.
@@ -996,7 +996,7 @@ return data from the kernel back to the host a special operation is used. The
 implementation of this operation essentially performs a copy of a memory segment
 from the reserved memory space into a host controlled area. This mechanisms of
 copying and moving data will be different in the case of practical
-implemenations where data has to be moved over busses such as PCIe. Once the
+implementations where data has to be moved over busses such as PCIe. Once the
 kernel has finished and the data has been moved the uBPF VM is cleaned up. Due
 to the use of anonymous callbacks only one instance of a uBPF VM can be active
 within a single process at a time. This is why a lock is used within
@@ -1013,10 +1013,10 @@ existing APIs having minimized the barrier to entree to motivate adoption.
 
 \section{Iterations}
 
-This section is covered separetely to prevent clutter in the overall design and
+This section is covered separately to prevent clutter in the overall design and
 implementation sections. Here the distinct iterative changes made throughout the
 research project are described on an individual basis. Our process consisted of
-four destinct iterations. Two relating primarily to the framework, one to the
+four distinct iterations. Two relating primarily to the framework, one to the
 filesystem and one to offloading. This section describes each iteration briefly
 before going in more detail. Firstly regarding framework iterations we see the
 distinct decision to switch from a multi process architecture using mmap for
@@ -1034,12 +1034,12 @@ described in the same order as previously defined.
 
 \subsection{Shared Memory Monolith}
 
-Modern operating systems offer fastly different methods to write sofware. From
+Modern operating systems offer fastly different methods to write software. From
 kernel modules, to distributed processes, UNIX pipes and shared memory maps.
 Choosing the right model impacts practicalities such as the amount of
 development effort required and the robustness of the final solution. 
-Furtermore, depending on the software architecture some solutions will be better
-suited than others.
+Furthermore, depending on the software architecture some solutions will be
+better suited than others.
 
 During the design the use of shared memory maps was replaced with using regular
 shared memory. While both solutions provide shared memory they are fundamentally
@@ -1053,15 +1053,15 @@ software today. The concepts of such a program are very well understood as
 well as the development using imperative languages being straightforward.
 
 While shared memory maps are typically found in device drivers, such as those
-for graphics cards, their use consistutes severe additional development effort.
-In conjuction with our design being a simulation there is no scientific value in
-using shared memory maps for our design. However, for practical implemenations 
-this decision needs to be reevaluated.
+for graphics cards, their use constitutes severe additional development effort.
+In conjunction with our design being a simulation there is no scientific value
+in using shared memory maps for our design. However, for practical
+implementations this decision needs to be re-evaluated.
 
 \subsection{NVMe Namespace Command Set}
 
 Typically kernel drivers utilizing shared memory maps and \textit{ioctl} In
-accelarator applications have their own dedicated API. This is similar to
+accelerator applications have their own dedicated API. This is similar to
 popular GPU APIs like OpenCL or Vulkan. Initially our work set out to design
 a similar API for computational storage applications. However, their are several
 downsides that make the use of such an API more impractical.
@@ -1078,23 +1078,23 @@ gaining adoption creating a significant barrier to entree.
 Lastly, is that the NVMe protocol has implemented a native system to extend the
 protocol with additional functionality. In addition, extensions to the NVMe
 protocol can be proposed and adopted to into the standard. This is a known
-procedure that has succesfully been used to introduce ZNS \cite{nvme-zns} for
+procedure that has successfully been used to introduce ZNS \cite{nvme-zns} for
 example.
 
-Our design moved from the development of an accelarator API to an artificial
+Our design moved from the development of an accelerator API to an artificial
 extension to the NVMe commands set, just like ZNS. In total our design proposes
 four new commands of which two are to launch a kernel on the CSx. The first
 run command is without metadata and the second with. This metadata, like
 mentioned previously, is placed at the top of the reserved memory segment. In
 addition, one command is used to retrieve the return data from a terminated
 kernel while they other retrieves read / write statistics. In a practical
-implemenation a so called completion command will signal when a kernel has
+implementation a so called completion command will signal when a kernel has
 terminated. However, given our monolithic design in our simulation the function
 simply returns synchronously.
 
-Given the downsides of an accelarator API in a simulated setting especially
+Given the downsides of an accelerator API in a simulated setting especially
 with the decision to use a shared memory monolith the change to use an
-artifical NVMe command set extension is entirely justified.
+artificial NVMe command set extension is entirely justified.
 
 \subsection{FUSE Filesystem}
 
@@ -1111,17 +1111,17 @@ complications arise that make this impractical.
 Firstly, only a single process could use our framework at any given time as the
 state of it is essentially bound to the process on which \textit{LD\_PRELOAD}
 has been used. This would complicate automated testing, debugging and
-experimental evaluation. In addtion, such a limitation means that any action
+experimental evaluation. In addition, such a limitation means that any action
 performed by one process will be invisible to others. However, such a limitation
 would never arise as attempting to claim the NVMe device in a second process
-will prevent it from spawning alltogether.
+will prevent it from spawning all together.
 
 Secondly, overriding the behavior of I/O system calls will interfere with the
 regular operation of many tools such BASH or Python that otherwise simplify
 experimental evaluation and testing.
 
 Lastly, the use of \textit{LD\_PRELOAD} and \textit{RTLD\_NEXT} is arguably
-less intuitive then interacting with a regularly mounted filesystem creaing
+less intuitive then interacting with a regularly mounted filesystem creating
 additional complexity and increasing the barrier to entree.
 
 Together it was clear that there are many downsides to this solution so instead
@@ -1136,7 +1136,7 @@ The final iteration revolved around extended attributes as already thoroughly
 discussed. Initially, our design set out to use the POSIX system call
 \textit{fadvise}. This call hints the kernel about future file access
 patterns. These include hints that the contents of a file are no longer
-needed or that a region of a file will be randomly accessed. Unfortanetely
+needed or that a region of a file will be randomly accessed. Unfortunately
 however, these calls never arrive at the filesystem level so the filesystem is
 unable to detect these and take action. Instead, the kernel decides how to
 handle these conditions based on CPU and memory pressure. Typically, this
