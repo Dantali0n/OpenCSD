@@ -106,7 +106,7 @@ complete \textit{Computational Storage} solution that offers a filesystem
 capable of concurrent regular and computationally offloaded access (hybrid).
 We introduce each of the solutions briefly before describing their complete
 case. Firstly, circumvent the complexity of complete vertical integration by
-creating a simulation platform on top of QEMU \cite{qemu}. Secondly, eliminate
+creating an emulation platform on top of QEMU \cite{qemu}. Secondly, eliminate
 potential incompatibilities across vendors by using \textit{Extended Berkely
 Packet Filer} (eBPF) \cite{what-ebpf} as compute kernel language. Third, bridge
 the semantic gap by using \textit{Zoned Namespaces} (ZNS) \cite{zns} SSDs which
@@ -115,7 +115,7 @@ concurrent \textit{Hybrid Filesystem} access by developing a specialized
 \textit{Log-Structured Filesystem} (LFS) \cite{Rosenblum1992TheDA} with an
 in-memory snapshot consistency model \cite{Viotti2016ConsistencyIN}. We present
 this complete solution as \textit{OpenCSD} an open-source Apache 2 licensed CSx
-simulation framework with accompanying filesystem called \textit{FluffleFS}
+emulation framework with accompanying filesystem called \textit{FluffleFS}
 \cite{qemu-csd}.
 
 Our work aligns with the hollistic system-wide qualities of the future Dutch
@@ -129,7 +129,7 @@ bottleneck. However, there remain clear challenges that currently prevent it
 from being effective. Having mentioned the four parts of our solution briefly we
 now describe their complete cases in the next sections.
 
-\subsection{A Case for CSx Simulation}
+\subsection{A Case for CSx Emulation}
 
 The lack of a standardized design has lead to a large variety of different
 hardware architectures being explored including using embedded CPUs or
@@ -143,7 +143,7 @@ capabilities are sufficient to support CSxs. Meanwhile existing technologies
 such as QEMU allow rapid development of new simulated hardware.
 
 The lack of a clear standardized design combined with the ease of prototyping
-designs in simulation clearly shows that choosing simulation over an actual
+designs in emulation clearly shows that choosing emulation over an actual
 hardware prototype is the current logical choice.
 
 \subsection{A Case for eBPF Programmability}
@@ -293,7 +293,7 @@ called \textit{hybrid filesystems}. We formulate that into the following
 research question. Namely,
 
 \begin{displayquote}
-    How to create a \textit{hybrid} LFS with concurrent regular and 
+    (R1) How to create a \textit{hybrid} LFS with concurrent regular and 
     Computational Storage offloading support?
 \end{displayquote}
 
@@ -304,46 +304,52 @@ research question. Namely,
 
 \begin{itemize}
     \item Design Requirements
-    \begin{enumerate}
-        \item What existing technologies are best suited for a hybrid LFS?
-        \item What techniques can be used to minimize the complexity required to
-              use a hybrid LFS?
-        \item What mechanisms allow for simplified replacement of used existing
-              technologies in a hybrid LFS?
-        \item How to register CSx compute kernels using existing operating 
+    \begin{itemize}
+        \item (RD1) What existing technologies are best suited for a hybrid LFS?
+        \item (RD2) What techniques can be used to minimize the complexity
+              required to use a hybrid LFS?
+        \item (RD3) What mechanisms allow for simplified replacement of used
+              existing technologies in a hybrid LFS?
+        \item (RD4) How to register CSx compute kernels using existing operating 
               system APIs?
-        \item How to differentiate individual users, files and I/O operations in
-              relation to their CSx compute kernel?
-        \item How to design a compute kernel API that can be reused across
+        \item (RD5) How to differentiate individual users, files and I/O
+              operations in relation to their CSx compute kernel?
+        \item (RD6) How to design a compute kernel API that can be reused across
               devices?
-        \item How to ensure user submitted CSx compute kernels are safe?
-    \end{enumerate}
+        \item (RD7) How to ensure user submitted CSx compute kernels are safe?
+    \end{itemize}
     \item Experimental Evaluation
-    \begin{enumerate}
-        \item Can a concurrent hybrid LFS achieve undisturbed performance
+    \begin{itemize}
+        \item (RE1) Can a concurrent hybrid LFS achieve undisturbed performance
               for concurrent regular and offloaded file access?
-        \item Can a concurrent hybrid LFS reduce the data movement
+        \item (RE2) Can a concurrent hybrid LFS reduce the data movement
               between device and host?
-        \item Can a concurrent hybrid LFS reduce the host load for
+        \item (RE3) Can a concurrent hybrid LFS reduce the host load for
               asynchronous applications?
-    \end{enumerate}
+    \end{itemize}
 \end{itemize}
 
-Our design requirements aim to result in practical solution that can easily be
-adopted should new technologies emerge with high ease of use while still
-allowing for concurrent regular and offloaded access. In addition, our
-experimental evaluation aims to show that while doing so we can achieve the
-typical benefits associated with such designs.
+Our design requirements aim to result in practical solution (RD2) that can
+easily be adopted should new technologies emerge (RD3) with high ease of use
+(RD2) while still allowing for concurrent regular and offloaded access
+(R1, RD5, RD6, RD7). In addition, our experimental evaluation aims to show that
+while doing so we can achieve the typical benefits associated with such designs
+(RE1, RE2, RE3).
 
 \section{Research Method}
 
 A well-defined research method is needed to answer the main, design requirements
 and performance evaluation research questions. Given the nature of the work,
 being the development and evaluation of a research software prototype, an
-iterative design approach similar to that of Agile is best suited. Meanwhile the
-evaluation method uses a more straightforward approach consisting of several
-performance evaluations. Each of these evaluations provides evidence supporting
-claims made about the concurrent hybrid LFS.
+iterative design approach similar to that of Agile
+(M1 \cite{Schwaber2001AgileSD}) is best suited. Meanwhile the evaluation method
+uses a more straightforward aproach consisting of several performance
+evaluations (M2 \cite{Jain1991TheAO}). Each of these evaluations provides
+insights into aspects of our concurrent hybrid LFS. However, we should
+be careful about concluding cause and effect from our results instead only
+suggesting possible future avenues for further experiments to support our
+predictions. Finally, our work follows principles of open science
+(M3 \cite{Wilkinson2016TheFG}).
 
 Given the large of possible iterative design approaches we describe ours
 more elaborately in the next section.
@@ -354,13 +360,48 @@ Our design approach consists of an initial step performed only once followed by
 as many iterations as necessary to complete the design. The first being
 identifying the critical components. Subsequently, the iterative design approach
 consists of the following three steps. First, identify existing technologies
-that can be used for one or more of the critical components. Secondly,
+that can be used for one or more of the critical components (RD1). Secondly,
 evaluate each of the potential technologies. Third, implement the
 functionality of the component using the selected technology. Any issue that
 prevents the further use of a chosen technology starts the next iteration of the
 design process. If no alternatives can be found workarounds or practical
-limitations are introduced instead.
+limitations are introduced instead. During the iterative process weekly
+discussion are held with relevant stakeholders to demonstrate progress, indicate
+potential problems and find solutions.
 
 This design approach should allow for the selection of the best available
-existing technologies given the design requirements while allowing to change
-any chosen technologies during the implementation process.
+existing technologies (RD1) given the design requirements while allowing to
+change any chosen technologies (RD3) during the implementation process.
+
+\subsection{Main Contributions}
+
+Our work contributes in three areas being \begin{enumerate*} \item conceptual
+\item experimental \item artifacts \end{enumerate*}. In total this work
+provides seven distinct contributions.
+
+\begin{itemize}
+    \item (Conceptual) A design of a complete userspace emulation framework
+    supporting filesystem integration for concurrent regular and offloaded
+    (hybrid) access.
+    \item (Conceptual) A design of a hybrid userspace filesystem reusing
+    existing operating system APIs.
+    \item (Experimental) Characterization of the performance of an userspace
+    hybrid filesystem in microbenchmarks.
+    \item (Experimental) Characterization of reduction in data movement and host
+    CPU load by offloading applications.
+    \item (Artifact) A prototype framework and accompanying filesystem capable
+    of hybrid filesystem access \cite{qemu-csd}.
+    \item (Dissemination) Presentations about progression on this research
+        prototype.
+        \begin{itemize}
+            \item ICT.OPEN 2022: OpenCSD: Unified Architecture for eBPF-powered
+                  Computational Storage Devices (CSD) with Filesystem Support
+                  \cite{lukken2022ictopen}
+        \end{itemize}
+    \item (Dissemination) Publications on earlier versions of this prototype and
+        related literature.
+        \begin{itemize}
+            \item Past, Present and Future of Computational Storage: A Survey \cite{lukken2021past}
+            \item ZCSD: a Computational Storage Device over Zoned Namespaces (ZNS) SSDs \cite{lukken2021zcsd}
+        \end{itemize}
+\end{itemize}

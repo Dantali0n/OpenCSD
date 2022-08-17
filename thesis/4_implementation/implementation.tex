@@ -88,7 +88,7 @@ modules of OpenCSD.
     kernel.
     \item bpf\_helpers - Collection of headers that define the eBPF ABI
     supported for CSx kernels. ABI to be implemented by device vendor
-    or in this case nvme\_csd for simulation. The ABI is filesystem agnostic.
+    or in this case nvme\_csd for emulation. The ABI is filesystem agnostic.
     \item bpf\_programs - Collection of eBPF programs linked at runtime for
     previous ZCSD \cite{lukken2021zcsd} prototype.
     \item FluffleFs - FUSE LFS supporting in-memory snapshots to achieve
@@ -1054,7 +1054,7 @@ well as the development using imperative languages being straightforward.
 
 While shared memory maps are typically found in device drivers, such as those
 for graphics cards, their use constitutes severe additional development effort.
-In conjunction with our design being a simulation there is no scientific value
+In conjunction with our design being an emulation there is no scientific value
 in using shared memory maps for our design. However, for practical
 implementations this decision needs to be re-evaluated.
 
@@ -1089,7 +1089,7 @@ mentioned previously, is placed at the top of the reserved memory segment. In
 addition, one command is used to retrieve the return data from a terminated
 kernel while they other retrieves read / write statistics. In a practical
 implementation a so called completion command will signal when a kernel has
-terminated. However, given our monolithic design in our simulation the function
+terminated. However, given our monolithic design in our emulation the function
 simply returns synchronously.
 
 Given the downsides of an accelerator API in a simulated setting especially

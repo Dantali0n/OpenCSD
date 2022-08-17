@@ -2,21 +2,240 @@
 % content in this file will be fed into the main document
 
 %: ----------------------- name of chapter  -------------------------
-% \chapter*{Appendix} % top level followed by section, subsection
+\chapter*{Appendix} % top level followed by section, subsection
+\addcontentsline{toc}{chapter}{\protect\numberline{}Appendix}%
 
+% \appendix
+\section{Artifact Description: Prototype emulation framework with
+filesystem supporting hybrid access}
 
-% %: ----------------------- paths to graphics ------------------------
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Abstract}
 
-% % change according to folder and file names
-% \ifpdf
-%     \graphicspath{{X/figures/PNG/}{X/figures/PDF/}{X/figures/}}
-% \else
-%     \graphicspath{{X/figures/EPS/}{X/figures/}}
-% \fi
+This abstract contains the necessary information to install our functional
+prototype, use it potentially rerunning our experiments and generate the
+graphs as shown in our work.
 
-%: ----------------------- contents from here ------------------------
-% \includepdf[pages=1-5]{CodesTable}
-% \includepdf[pages=1-4]{InterviewQuestions}
+\subsection{Artifact check-list (meta-information)}
+
+{\small
+\begin{itemize}
+  \item {\textbf{Algorithm:} Shannon entropy}
+  \item {\textbf{Program:} Python, BASH and fio, preinstalled in supplied
+  QEMU image.}
+  \item {\textbf{Compilation:} See table \ref{table:supportdependencies} for
+  compilation dependencies, note that QEMU can be automatically compiled by our
+  framework.}
+  \item {\textbf{Data set:} Randomly generated input data using \textit{\textbackslash dev\textbackslash random}}
+  \item {\textbf{Run-time environment:} virtualenv \& QEMU using Arch based Linux OS.}
+  \item {\textbf{Hardware:} Intel Xeon Silver 4210 with 32GiB of working memory and
+  a western digital WZS4C8T4TDSP303 ZNS SSD.}
+  \item {\textbf{Metrics:} Execution time, throughput (MiB/S), data movement and
+  host CPU load (time spent in wait vs sys / user)}
+  \item {\textbf{Output:} Throughput and iops stored in csv files found in the
+  measurements directory of our source code \cite{qemu-csd}}
+  \item {\textbf{Experiments:} Scripts are provided to run each experiment some
+  manual setup is required to configure the ZNS device.}
+  \item {\textbf{How much disk space required (approximately)?:} 75 GB}
+  \item {\textbf{How much time is needed to prepare workflow (approximately)?:} 4 hours}
+  \item {\textbf{How much time is needed to complete experiments (approximately)?:} 2 days}
+  \item {\textbf{Publicly available?:} Yes all code including unit tests, document
+  source code (LaTeX), raw measurements and scripts to generate plots and graphs
+  are publicly available at Github \cite{qemu-csd}}
+  \item {\textbf{Code licenses?:} Apache 2}
+  \item {\textbf{Data licenses?:} Public Domain}
+\end{itemize}
+}
+
+\subsection{Description}
+
+\subsubsection{How to access}
+
+Publicly available online \cite{qemu-csd}.
+
+\subsubsection{Hardware dependencies}
+
+Our compilation process uses compiler arguments to optimize for the target CPU
+architecture (\textit{march=native}) a different CPU microarchitecture could
+result in fastly different results. In addition, the use of jitting with uBPF
+requires that the host is using the x86 architecture.
+
+\subsubsection{Software dependencies}
+
+Several compilers as well as build systems are required to compile QEMU. Once
+QEMU is compiled the supplied image will have all dependencies preinstalled.
+
+\begin{itemize}
+    \item To compile QEMU at least GCC, CMake, meson, pyelftools and ninja need
+    to be installed. Special CMake arguments are needed to disable default build
+    targets that have additional dependencies. See our README for details
+    \cite{qemu-csd}
+    \item Native execution of our framework and filesytem requires the
+    dependencies as specified in table \ref{table:supportdependencies}.
+    Through CMake arguments several dependencies such as those for testing and
+    documentation can be removed, see our README for details \cite{qemu-csd}.
+    \item All other dependencies such as those listed in table
+    \ref{table:operationdepdencies} are automatically installed by our
+    framework. A modified virtualenv is used to configure the environment
+    variables to expose these dependencies.
+\end{itemize}
+
+\subsubsection{Data sets}
+
+All data sets used to perform experiments where randomly generated using
+\textit{\textbackslash dev\textbackslash random}. No data sets are stored
+persistently. All scripts to perform experiments automatically generate the
+required tests files and populate them with random data.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Installation}
+
+Installation can be executed using the following steps. There are many options
+available such as native installation or using QEMU. These steps here only
+cover installation using QEMU see our README for details on other methods
+\cite{qemu-csd}. These installation steps assume all required software
+dependencies are installed.
+
+\bashexternal{resources/bash/install.sh}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Experiment workflow}
+
+Experiments are divided into two groups one for F2FS evaluations the other for
+our emulation framework. Before continuing we describe several generic steps
+required to passthrough the appropriate ZNS device to QEMU:
+
+\bashexternal{resources/bash/vfio.sh}
+
+Afterwards modify \textit{qemu-start-real-zns.sh} in the build directory
+(available after installation). Ensure that the \textit{host=} parameter for
+vfio-pci device matches the pci address of your ZNS device.
+
+With the virtualenv activated, (\textit{source activate}), the QEMU VM can now
+be started with ZNS device passthrough \textit{ld-sudo ./qemu-start-zns-real.sh}
+
+In the absense of a real ZNS device use \textit{ld-sudo ./qemu-start-256-kvm.sh}
+instead. However, the further workflow description is based on using an actual
+ZNS device.
+
+All subsequent commands shown are assumed to be executed after using SSH to
+login to the QEMU VM. In addition all commands shown are executed relative
+to root of the project directory unless otherwise specified.
+
+\subsubsection{F2FS workflow}
+
+Firstly the ZNS device needs to be configured with 4096 byte sectors. In
+addition, we must assign the first namespace as conventional block storage.
+Without such a conventional block storage parition an F2FS filesystem can not
+be created.
+
+Initially, delete all currently created namespaces:
+
+\bashexternal{resources/bash/delete-namespace.sh}
+
+Next create \& attach a 4GiB conventional block storage namespace and a
+~800GiB ZNS namespace:
+
+\bashexternal{resources/bash/create-namespace-f2fs.sh}
+
+With the ZNS namespaces configured, an F2FS partition can be created and
+mounted:
+
+\bashexternal{resources/bash/format-f2fs.sh}
+
+The F2FS filesystem must be mounted under the \textit{/mnt} directory prior to
+starting any of the experiments. Afterwards, with the virtualenv activated, any
+script can be started. These scripts are found in the
+\textit{/scripts/benchmark} folder of the project \cite{qemu-csd} and include:
+
+\begin{itemize}
+    \item ld-sudo ./scripts/benchmarks/fio-read-write/fio-rand-performance-f2fs.sh
+    \item ld-sudo ./scripts/benchmarks/fio-read-write/fio-seq-performance-f2fs.sh
+\end{itemize}
+
+Each of these benchmarks will automatically generate csv files with appropriate
+names. These names match the convention found in our measurements folder.
+
+The device paths used in these examples and the scripts inside the benchmark
+folder need to be changed from \textit{\textbackslash dev\textbackslash nvme0}
+in case QEMU is not used. In additon, the namespace configuration as
+conventional block device is only supported when using the WZS4C8T4TDSP303 ZNS
+drive.
+
+\subsubsection{FluffleFS workflow}
+
+FluffleFS workflow is similar but requires only a single namespace:
+
+\bashexternal{resources/bash/delete-namespace.sh}
+
+\bashexternal{resources/bash/create-namespace-fluffle.sh}
+
+Since Fluffle uses userspace SPDK NVMe drivers the current kernel drivers needs
+to be unloaded, after this commands such as \textit{nvme list} no longer work:
+
+\bashexternal{resources/bash/setup-spdk.sh}
+
+With SPDK configured the necessary paths and directories can now be setup:
+
+\bashexternal{resources/bash/setup-fluffle.sh}
+
+Finally, the experiments for FluffleFS can be run, the filesystem will
+automatically be formatted between each measurement. The list of available
+experiments includes. Note that these expirements must be started from the
+\textit{/build/qemu-csd} directory:
+
+\begin{itemize}
+    \item ld-sudo ../../scripts/benchmarks/fio-read-write/fio-rand-performance-fluffle.sh
+    \item ld-sudo ../../scripts/benchmarks/fio-read-write/fio-seq-performance-fluffle.sh
+    \item ld-sudo ../../scripts/benchmarks/fio-read-write/fio-seq-concurrent-fluffle.sh
+    \item ld-sudo ../../scripts/benchmarks/entropy-kernel.sh
+    \item ld-sudo ../../scripts/benchmarks/entropy-regular.sh
+    \item ld-sudo ../../scripts/benchmarks/passthrough-concurrent.sh
+    \item ld-sudo ../../scripts/benchmarks/passthrough-regular.sh
+\end{itemize}
+
+Several of these experiments especially those for random read/write performance
+can take a very long time to complete. Between experiments it is important to
+validate that SPDK is functioning correctly as we routinely observed errors
+during our evaluation.
+
+This can be verified either waiting until an experiment completes or by killing
+the BASH process and unmounting the filesystem. Next use the following command
+to verify SPDK is still working:
+
+\bashexternal{resources/bash/check-spdk.sh}
+
+SPDK should start correctly and appear mounted under the specified test
+directory. If SPDK fails to start the QEMU VM needs to be rebooted and the SPDK
+setup needs to be repeated after reboot. In addition, do not forget to
+reactivate the virtualenv inside the \textit{build/qemu-csd} directory after
+every reboot.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Evaluation and expected results}
+
+Our performance evalation compares throughput in MiB/S and iops in several
+microbenchmarks using sequential read and write and random read and write jobs.
+These microbenchmarks are orchestrated by BASH script that take care of starting
+and stopping the filesystem as well as calling \textit{fio}. Fio is a readily
+available and industry standard tool to evaluate filesystem performance.
+
+\subsubsection{Shannon entropy}
+
+Apart from performance we measure data movement and host CPU load using a
+shannon entropy algorithm. This algorithm is implemented twice, once in Python
+using regular I/O and once in eBPF using offloaded I/O. The amount of data
+movement is compared statically through mathematical computation while the host
+CPU load is evaluated using \textit{time}. This readily available program is
+able to categorize cpu time of a process across wait, userspace and kernelspace
+states. The files for which the shannon entropy are filled with randomly
+generated data using \textit{\textbackslash dev\textbackslash random}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Notes}
+
+Please see our Github for more detailed instructions including a tutorial
+video \cite{qemu-csd}.
 
 % ---------------------------------------------------------------------------
 %: ----------------------- end of thesis sub-document ------------------------

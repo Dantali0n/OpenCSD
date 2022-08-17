@@ -8,7 +8,7 @@ do
     echo "real,user,sys" > entropy-kernel-${size}.csv
     for _ in {1..30}
     do
-        ./fuse-entry -- -d -o max_read=2147483647 test > /dev/null 2>&1 &
+        ./fuse-entry-sdpk -- -d -o max_read=2147483647 test > /dev/null 2>&1 &
         pid=$!
         sleep 5
         cp bin/bpf_* test/ || exit 1

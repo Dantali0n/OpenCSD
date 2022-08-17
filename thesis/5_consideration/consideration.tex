@@ -5,7 +5,7 @@ experimental evaluation several aspects have to be considered that can be
 substantially improved. Throughout this sections those aspects are divided into
 five categories. Firstly, several limitations in FluffleFS prevent regular use
 of the filesystem outside of experimental settings. Secondly, the current
-prototype has limited concurrency due to the use locks. Third, this simulation
+prototype has limited concurrency due to the use locks. Third, this emulation
 framework can not be used as practical implementation and we would like to
 address the necessary changes. Fourth, as previously mentioned, event kernels
 suffer from unnecessary latency and data movement due to waiting for the
@@ -117,7 +117,7 @@ concurrency that could benefit the current OpenCSD and FluffleFS prototype.
 
 Beyond concurrency the current prototype suffers from several design decisions
 and implementations details that are not suitable for practical implementations.
-Many of these limitations arise from being a monolithic application simulation
+Many of these limitations arise from being a monolithic application emulation
 the offloading rather than submitting it to an actual embedded device. In this
 section the necessary changes to create real world practical implementations are
 described.
