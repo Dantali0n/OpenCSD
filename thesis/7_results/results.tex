@@ -1,4 +1,4 @@
-\chapter{Results}
+\section{Results}
 
 This section describes the results from the previously defined experiments.
 Similar to the experiments section these results are separated into two
@@ -8,7 +8,7 @@ For each result we explain the information being presented as well as further
 findings. In addition, probably causes are discussed as well as
 potential future experiments to investigate these claims.
 
-\section{Microbenchmarks}
+\subsection{Microbenchmarks}
 
 Several of the results for microbenchmarks are grouped together such as
 sequential read and write results. Furthermore, all microbenchmark results use
@@ -16,7 +16,9 @@ line-graphs scaled with $log4$ on the horizontal axis. Using this scaling the
 distance between different file and request sizes is proportional to their
 difference in size.
 
-\subsection{Sequential Results}
+% \subsubsection{Sequential Results}
+
+\label{re3}
 
 Our first results compare the sequential read and write performance of F2FS
 against FluffleFS. These results are shown in figures
@@ -46,7 +48,7 @@ write throughput for FluffleFS.
     \label{figure:writesequential}
 \end{figure}
 
-\subsection{Random Results}
+% \subsubsection{Random Results}
 
 Random read and write performance has fastly different results the most notable
 is random read performance as shown in figure \ref{figure:readrandom}. Here both
@@ -111,7 +113,7 @@ amount of allocated RAM in virtual machines.
     \label{figure:writerandom}
 \end{figure}
 
-\subsection{Regular Access Results Discussion}
+% \subsubsection{Regular Access Results Discussion}
 
 Similar to sequential reads and writes there is a substantial performance
 difference between F2FS and FluffleFS for random reads and writes. Overall the
@@ -172,7 +174,7 @@ performance of F2FS no probable cause is known.
     \label{figure:passthroughresults}
 \end{figure}
 
-\subsection{Concurrent Access Results}
+% \subsubsection{Concurrent Access Results}
 
 Our final microbenchmark result is shown in figure
 \ref{figure:concurrentpassthrough}. In this figure Dotted lines indicate
@@ -180,6 +182,8 @@ baselines from the previous microbenchmark. Furthermore, the red to yellow line
 indicates passthrough kernel performance. Contrarily, the blue to cyan line is
 used for regular performance. Finally, darker colors represent increasing
 numbers of concurrent write jobs scaling from one to four.
+
+\label{re1}
 
 From the results shown we can see that both regular and kernel passthrough
 performance is still impacted significantly from concurrent write jobs.
@@ -217,11 +221,13 @@ concurrent requests to be submitted to the underlying drive. Finally, the
 size of buffers should be increased to allow to move more than 4096 bytes in a
 single request.
 
-\section{Shannon Entropy}
+\subsection{Shannon Entropy}
 
 In the last results we demonstrate that applications can reduce host CPU load
 as well as reduce data movement between the device and host. As discussed the
 computation of shannon entropy has been chosen for this.
+
+\label{re2}
 
 To evaluate this to implementations to compute shannon entropy are designed.
 One written entirely in Python while the other uses Python to combine the

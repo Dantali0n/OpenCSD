@@ -49,18 +49,18 @@ graphs as shown in our work.
 
 \subsection{Description}
 
-\subsubsection{How to access}
+\subsubsection*{How to access}
 
 Publicly available online \cite{qemu-csd}.
 
-\subsubsection{Hardware dependencies}
+\subsubsection*{Hardware dependencies}
 
 Our compilation process uses compiler arguments to optimize for the target CPU
 architecture (\textit{march=native}) a different CPU microarchitecture could
 result in fastly different results. In addition, the use of jitting with uBPF
 requires that the host is using the x86 architecture.
 
-\subsubsection{Software dependencies}
+\subsubsection*{Software dependencies}
 
 Several compilers as well as build systems are required to compile QEMU. Once
 QEMU is compiled the supplied image will have all dependencies preinstalled.
@@ -80,7 +80,7 @@ QEMU is compiled the supplied image will have all dependencies preinstalled.
     variables to expose these dependencies.
 \end{itemize}
 
-\subsubsection{Data sets}
+\subsubsection*{Data sets}
 
 All data sets used to perform experiments where randomly generated using
 \textit{\textbackslash dev\textbackslash random}. No data sets are stored
@@ -122,8 +122,6 @@ All subsequent commands shown are assumed to be executed after using SSH to
 login to the QEMU VM. In addition all commands shown are executed relative
 to root of the project directory unless otherwise specified.
 
-\subsubsection{F2FS workflow}
-
 Firstly the ZNS device needs to be configured with 4096 byte sectors. In
 addition, we must assign the first namespace as conventional block storage.
 Without such a conventional block storage parition an F2FS filesystem can not
@@ -161,8 +159,6 @@ folder need to be changed from \textit{\textbackslash dev\textbackslash nvme0}
 in case QEMU is not used. In additon, the namespace configuration as
 conventional block device is only supported when using the WZS4C8T4TDSP303 ZNS
 drive.
-
-\subsubsection{FluffleFS workflow}
 
 FluffleFS workflow is similar but requires only a single namespace:
 
@@ -219,8 +215,6 @@ microbenchmarks using sequential read and write and random read and write jobs.
 These microbenchmarks are orchestrated by BASH script that take care of starting
 and stopping the filesystem as well as calling \textit{fio}. Fio is a readily
 available and industry standard tool to evaluate filesystem performance.
-
-\subsubsection{Shannon entropy}
 
 Apart from performance we measure data movement and host CPU load using a
 shannon entropy algorithm. This algorithm is implemented twice, once in Python

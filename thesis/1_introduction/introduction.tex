@@ -126,159 +126,14 @@ Usability.
 
 Clearly computational storage is a promising avenue to the data movement
 bottleneck. However, there remain clear challenges that currently prevent it
-from being effective. Having mentioned the four parts of our solution briefly we
-now describe their complete cases in the next sections.
+from being effective. We will describe the four cases of our solution in the
+design section.
 
-\subsection{A Case for CSx Emulation}
 
-The lack of a standardized design has lead to a large variety of different
-hardware architectures being explored including using embedded CPUs or
-\textit{Field-Programmable Gate Arrays} (FPGA)s. Moreover, closed-source
-devices have even become commercially available. Still there is a lot of
-uncertainty about the right computational hardware models, interconnects and
-interconnects their interfaces. Even though the \textit{Peripheral Component
-Interconnect Express} (PCIe) interconnect and the NVMe storage interface
-currently dominate modern storage devices it is unclear if their current
-capabilities are sufficient to support CSxs. Meanwhile existing technologies
-such as QEMU allow rapid development of new simulated hardware.
+% Having mentioned the four parts of our solution briefly we
+% now describe their complete cases in the next sections.
 
-The lack of a clear standardized design combined with the ease of prototyping
-designs in emulation clearly shows that choosing emulation over an actual
-hardware prototype is the current logical choice.
-
-\subsection{A Case for eBPF Programmability}
-
-The concept of programmability provides end users the capability to run their
-own provided code. With the introduction of modern \textit{Operating Systems}
-(OS)s this is expected to happen in safe and dynamic manner. Programmability
-can be achieved in different manners such as through the kernel in kernel
-modules, with filesystems through \textit{Virtual FileSystem} (VFS) \cite{vfs}
-or \textit{Filesystem in USErspace} (FUSE) \cite{fuse} and with language
-runtimes such as those in Python. In addition programmability can also target a
-peripherals instead of the host directly such as is prevalent in
-\textit{General-Purpose computing on Graphics Processing Units} (GPGPU)
-programming through \textit{Application Programming Interfaces} (API)s like
-OpenCL \cite{opencl} and CUDA \cite{cuda}. Through similar mechanisms
-programmability in CSxs can be achieved.
-
-The uncertainty of the hardware design makes it unclear exactly how close to the
-hardware and through which method of programmability CSxs will be effective.
-Although, naturally, the closer to the actual storage the better
-(Near-Data Processing). Therefore, our programmability must not be restricted or
-favor a particular type.
-
-Introducing eBPF an ISA and \textit{Application Binary Interface} (ABI) with a
-large collection of toolchains and wide-ranging implementations
-\cite{what-ebpf, McCanne1993TheBP}. These implementations range from complex,
-such as the one found in the Linux kernel, to simple such as the one found in
-uBPF \cite{ubpf}, with the key difference in complexity being the supported ABI.
-Effectively, the implementation running (runtime) eBPF code decides the ABI by
-tying special eBPF (sys)call instructions to predefined code. In addition, this
-allows the user program and runtime to exchange important information such as
-prominently done in Linux through eBPF maps \cite{bpf-man}. We demonstrate the
-flexibility of such a vendor agnostic ABI as well as the internals of uBPF in
-figure \ref{figure:ubpf-abi}.
-
-\begin{figure}
-    \centering
-	\includegraphics[width=0.8\textwidth]{resources/images/ubpf-abi.pdf}
-	\caption{Achieving vendor agnostic \textit{Application Binary Interfaces}
-        (ABI) through uBPF.}
-    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
-    \label{figure:ubpf-abi}
-\end{figure}
-
-The benefits of eBPF are four fold. First, the ISA is not tailored to any
-specific domain and it has been used in networking \cite{xdp},
-tracing \cite{enhanced-ebpf} and security \cite{seccomp} applications. Second,
-the simple nature of the eBPF ISA allows for verification and bounded execution
-checking such as performed by the Linux kernel \cite{kern-analysis}. Third, eBPF
-supports efficient code generation through jitting (Just in Time compilation)
-achieving close to bare-metal performance. Lastly, eBPF has been positioned as
-the unified ISA for heterogeneous computing \cite{Brunella2020hXDPES, bpf-uapi}.
-
-\subsection{A Case for ZNS}
-
-A new emerging NVMe standard is \textit{Zoned NameSpaces} (ZNS). It can been
-seen as the technical successor to Open-Channel % \cite{Bjrling2017LightNVMTL}.
-This standard allows host visibility and control over data placement
-(host-managed) while more closely representing NAND flash behaviour. This
-replacement for the traditional block interface offers reduced
-write-amplification, lower SSD hardware requirements and more intelligent
-wear-levelling and garbage collection. However, ZNS SSDs come with several
-constraints such as not allowing in-place updates (append only), using a large
-collection of sectors as single erasure unit and requiring wear-levelling and
-garbage collection to be explicitly programmed by the host. The fundamental
-difference between conventional and ZNS SSDs is shown in figure
-\ref{figure:znsvsconventional}.
-
-\begin{figure}
-    \centering
-	\includegraphics[width=0.6\textwidth]{resources/images/zns-vs-conventional.pdf}
-	\caption{Differences between conventional and ZNS SSDs.}
-    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
-    \label{figure:znsvsconventional}
-\end{figure}
-
-Yet we argue ZNS greatly improves the feasibility of CSxs supporting
-\textit{hybrid filesystems}. Firstly, ZNS offers more predictable performance in
-conjunction with \textit{Log-Structured Filesystems} as the absence of a device
-FTL means the behaviour of \textit{append-only} writes will not be influenced by
-underlying write-amplification or garbage-collection. Secondly, the direct
-relationship between dimensions as reported to the host and to those known on
-the device results in a greatly simplified exchange of information from host
-submitted compute kernels as well as reduced kernel runtime translations.
-Finally, this reduced semantic gap between the host and device is essential for
-compute kernels running autonomously and without shared virtual memory.
-
-\subsection{A Case for LFS}
-
-\textit{Log-Structured Filesystems} have been around for a long
-time \cite{Rosenblum1992TheDA} but have not really been popularized until the
-recent advancement of NAND flash. A LFS maintains one or multiple logs which
-are append only sections of the filesystem. This has the advantage of the
-underlying device receiving filesystem writes as sequential I/O operations,
-which is known to improve performance. In addition, LFSs are often relatively
-easy to implement. Unfortunately, LFSs suffer from write-amplification because
-modifications updating inode or other data location information travels up the
-chain in history. The specific type of write-amplification common in LFSs is
-also known as the wandering tree problem. An example of write-amplification is
-shown in figure \ref{figure:writeamplification}.
-
-\begin{figure}
-    \centering
-	\includegraphics[width=0.7\textwidth]{resources/images/write-amplification.pdf}
-	\caption{Example of write-amplification where a single invalidation leads
-    to multiple linked blocks being rewritten.}
-    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
-    \label{figure:writeamplification}
-\end{figure}
-
-Yet we argue an LFS is essential for an effective \textit{hybrid filesystem} due
-to the following three reasons. Firstly, the append-only nature of a LFS is the
-best fit for the append-only requirement of ZNS SSDs. Secondly, the
-chronological order of logs allows for snapshotting, versioning and simplified
-crash recovery. It is thanks to the properties of an LFS that FluffleFS is able
-to provide in-memory snapshots to compute kernels. Lastly, the problem around
-write-amplification is a solved issue thanks to the work of F2FS
-\cite{Lee2015F2FSAN} which introduced a so called \textit{Node Address Table}
-(NAT). A diagram showing a simplified view of F2FS and the NAT is shown in
-figure \ref{figure:f2fsnat}.
-
-\begin{figure}
-    \centering
-	\includegraphics[width=0.7\textwidth]{resources/images/f2fs-nat.pdf}
-	\caption{Overcoming LFS limitations with a separate random zone and NAT.}
-    % \includesvg[width=0.6\columnwidth]{resources/images/module-dependencies}
-    \label{figure:f2fsnat}
-\end{figure}
-
-As shown each of these cases demonstrates the importance of each part. Only
-together are they able to provide a complete solution for open research
-questions given the current state of the field as we will proof in the design
-section.
-
-\section{Research Question}
+\section{Research Questions}
 
 The main scientific contribution of this work is formulated in the form of a
 research question. In addition, we formulate several sub questions which aid in
@@ -296,8 +151,6 @@ research question. Namely,
     (R1) How to create a \textit{hybrid} LFS with concurrent regular and 
     Computational Storage offloading support?
 \end{displayquote}
-
-\subsection{Sub Questions}
 
 % Ensure the research questions are such that they support the design
 % requirements.

@@ -1,21 +1,24 @@
 \chapter{Conclusion}
 
 To conclude, we have demonstrated that many previous prototype for flash based
-CSxs exist and have been developed in the past decade. Until now, none of
-these prototype where able to provide concurrent regular and offloaded
-filesystem access (R1), aptly named \textit{hybrid filesystems}. Our emulation
-framework \textit{OpenCSD} and filesystem \textit{FluffleFS} are able to perform
-offloading entirely using existing APIs (RD4), no shared libraries or network
-communication is necessary. In addition, our kernels are vendor agnostic and
-filesystem aware (RD6).
+CSxs exist and have been developed in the past decade
+(table \ref{table:csxoverview}). Until now, none of these prototype where able
+to provide concurrent regular and offloaded filesystem access (R1), aptly named
+\textit{hybrid filesystems}. Our emulation framework \textit{OpenCSD} and
+filesystem \textit{FluffleFS} are able to perform offloading entirely using
+existing APIs (RD4, section \ref{extended-attributes}), no shared libraries or
+network communication is necessary. In addition, our kernels are vendor
+agnostic and filesystem aware (RD6, section \ref{ubpf}).
 
 \subsubsection*{(RD1) Best suited existing technologies for a hybrid LFS}
 
 Throughout this work we have argued why LFS, ZNS, eBPF and extended attributes
-are the current best suited technologies to implement a hybrid filesystem.
-With the ability to reuse existing operating systems APIs, provide
-a snaphshot consistency model, reduce translations between host and device
-(semantic gap) and provide vendor agnostic kernels among the core reasons.
+are the current best suited technologies to implement a hybrid filesystem
+(sections \ref{emulatecase}, \ref{ebpfcase}, \ref{znscase}, \ref{lfscase},
+\ref{extendedcase}). With the ability to reuse existing operating systems APIs,
+provide a snaphshot consistency model, reduce translations between host and
+device (semantic gap) and provide vendor agnostic kernels among the core
+reasons.
 
 It is through these technologies and by utilizing a snapshot
 consistency model that concurrent regular and offloaded can be achieved (R1).
@@ -23,33 +26,35 @@ consistency model that concurrent regular and offloaded can be achieved (R1).
 \subsubsection*{(RD2) Minimizing complexity for a hybrid LFS}
 
 Using these technologies our prototype runs entirely in userspace requiring no
-understanding of the Linux kernel or modifications. In addition, interacting
-with offloading can be done in minimal lines of code using common system call
-such as \textit{open}, \textit{read} and \textit{setxattr}. The use of eBPF
-further reduces complexity as development can be done using the common C
-programming language.
+understanding of the Linux kernel or modifications (section \ref{ease-of-use}).
+In addition, interacting with offloading can be done in minimal lines of code
+using common system call such as \textit{open}, \textit{read} and
+\textit{setxattr} (section \ref{operation}). The use of eBPF further reduces
+complexity as development can be done using the common C programming
+language.
 
 \subsubsection*{(RD3) Simple replacement of existing technologies}
 
 Our framework \textit{OpenCSD} utilizes a component architure in addition to
 separating frontend and backends with interfaces. this allows for simple
-replacement of any used technology.
+replacement of any used technology (section \ref{module-interfaces}).
 
 \subsubsection*{(RD4) Registering CSx compute kernels using existing operating
 system APIs}
 
 Our offloading is triggered through filesystem extended attributes
-resulting in complete isolation from regular operating system behavior.
-These filesystem extended attributes are present in all modern operating systems
-including Windows, MacOs, FreeBSD and Linux. Across all previous CSx works only
-a single other work managed to use existing APIs and in doing so they changed
-UNIX pipe behavior \cite{10.1145/3342195.3387557}.
+resulting in complete isolation from regular operating system behavior
+(section \ref{extended-attributes}). These filesystem extended attributes are
+present in all modern operating systems including Windows, MacOs,
+FreeBSD and Linux. Across all previous CSx works only a single other
+work managed to use existing APIs and in doing so they changed UNIX pipe
+behavior \cite{10.1145/3342195.3387557}.
 
 \subsubsection*{(RD5) Differentiating individual users, files and I/O operations in
 relation to their CSx compute kernel}
 
 We have proven that regular and offloaded accesses can be easily differentiated
-utlizing PID inode pairs.
+utlizing PID inode pairs (section \ref{extended-attributes}).
 
 \subsubsection*{(RD6) Reusing the compute kernel API across devices}
 
@@ -57,29 +62,30 @@ By utilizing eBPF and uBPF these kernels written for offloading can be made
 vendor and filesystem agnostic. While the API for kernel filesystem support
 still needs to be formalized and the proposed CSx runtime is still absent in our
 prototype, the possibility of filesystem awareness in a concurrent regular and
-offloaded setting has been proven.
+offloaded setting has been proven (section \ref{ubpfreuse}).
 
 \subsubsection*{(RD7) Ensure user submitted kernels are safe}
 
 Throughout our consideration section we have defined three concrete
 methodologies that can be used to ensure safety of user submitted kernels.
 In addition, as inline with our other research questions most recommendations
-utilize existing technologies.
+utilize existing technologies (section \ref{safety}).
 
 \subsubsection*{(RE1) Undisturbed performance for concurrent regular and
 offloaded file access in a hybrid LFS}
 
 Our limited performance optimizations made us unable to proof that concurrent
-offloaded and regular file access can achieve undisturbed performance.
+offloaded and regular file access can achieve undisturbed performance
+(section \ref{re1}).
 
 \subsubsection*{(RE2, RE3) Reduced host CPU load and data movement for
 asynchronous offloaded applications}
 
 During the evaluation we showed that offloaded applications can reduce
 data movement between the device and host by 99.9\% as well as drastically
-reduce the host CPU load. However, the overall performance of FluffleFS still
+reduce the host CPU load (section \ref{re2}). However, the overall performance of FluffleFS still
 needs to be improved significantly, only able to perform on par with flash
-optimized filesystems under very select circumstances. 
+optimized filesystems under very select circumstances (section \ref{re3}). 
 
 \subsection*{Published under open science principles}
 

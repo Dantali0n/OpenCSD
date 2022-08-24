@@ -3,14 +3,16 @@
 
 \chapter{Implementation} % top level followed by section, subsection
 
-\section{OpenCSD}
+% \section{OpenCSD}
 
 In this section we describe the tools and techniques used with the OpenCSD
 framework, detail modules with their respective functionality and show the
 external dependencies as well as internal relationships of these modules. 
 Followed by, sections on filesystem and offloading implementation details.
 
-\subsection{Framework}
+\section{Framework}
+
+\label{ease-of-use}
 
 Firstly, OpenCSD consist of many external dependencies, most prominently
 \textit{Storage Performance Development Kit} (SPDK) \cite{spdk},
@@ -48,7 +50,7 @@ Several modules are solely an interface with subsequent modules being one or
 more concrete implementation of these interfaces. These module based interfaces
 with loose coupling allow for simplified replacement of technologies.
 
-\subsubsection{Modules}
+% \subsubsection{Modules}
 
 The overall modules of OpenCSD are shown in figure
 \ref{figure:moduledependencies} along with any external or internal
@@ -122,6 +124,8 @@ should be noted that ISAs typically have a hard limit on the number of arguments
 that can be supported, in the case of eBPF this is five arguments. Lastly, is
 FluffleFS which is described in the next section in detail.
 
+\label{module-interfaces}
+
 Out of all modules only nvme\_zns has been given an abstract interface so the
 underlying technologies can be easily replaced. However, we argue the design
 requirements are still met as there are virtually no replacements for
@@ -134,7 +138,7 @@ readily available alternatives without creating unnecessary interfaces.
 none of them are in userspace. As a result we argue there is no alternative to
 FUSE.}
 
-\subsection{Filesystem}
+\section{Filesystem}
 
 This section describes the filesystem implementation and how it meets the design
 requirements. In addition, it describes how data is layed out on the drive as
@@ -155,7 +159,7 @@ operations are described such as when a file exists or not. Lastly, the
 concurrency model of FluffleFS is described as well as some of the concurrency
 limitations.
 
-\subsubsection{Layout}
+\subsection{Layout}
 
 We briefly reintroduce some fundamental terminology for this section. A ZNS
 device consist of $\{0,1,...,n-1\}$ zones each with $\{0,1,...,s-1\}$ sectors
@@ -344,7 +348,7 @@ Clearly, all regions combined create a functional data layout that can support
 typical filesystem operations such as the creation, deletion of files and
 reinitialize after a previous clean unmount.
 
-\subsubsection{Memory}
+\subsection{Memory}
 
 This next section addresses how the filesystem data is represented in memory.
 Firstly, an overview of all these datastructures is given and afterwards their
@@ -494,7 +498,7 @@ form a layered but cohesive representation of the state of the filesystem. The
 next section we show how different operations access and modify data step by
 step.
 
-\subsubsection{Operational Rules}
+\subsection{Operational Rules}
 
 In a filesystem substantial effort goes into designing the individual steps of
 each operation and all their possible concurrent interleaving such that
@@ -697,7 +701,7 @@ firmware to perform our simulated functionality in practice.}
 % No unlink and rename functionality, unmarking / reclaiming of blocks not
 % performed.
 
-\subsection{Concurrency}
+\section{Concurrency}
 
 The use of snapshots allows for concurrent regular and offloaded access to the
 same file. This is achieved by ensuring the data pointed to in the snapshot
@@ -707,7 +711,7 @@ no other work has been able to provide this much concurrency for CSxs with
 filesystem integration. However the entire framework still needs to use several
 locking mechanisms across various parts to ensure correct operation.
 
-\subsubsection{Fine-grained Locking}
+\subsection{Fine-grained Locking}
 
 These include a global multi-reader single-writer (MRSW) lock for filesystem
 operations, a mutex per inode, a mutex for SPDK requests, a mutex for the uBPF
@@ -742,7 +746,7 @@ given the prevalence of many-core systems and the asynchronous nature of I/O
 operations. We argue that is unlikely to achieve comparable performance to other
 flash optimized filesystems without it.
 
-\subsubsection{Performance Instrumentation}
+\subsection{Performance Instrumentation}
 
 Such a performance comparison requires measurement and instrumentation. Here
 there is often a steep trade-off between the performance impact and the amount
@@ -755,7 +759,7 @@ maximum execution time of individual functions. While not used during the
 performance evaluation itself this instrumentation provides valuable insights
 especially during development.
 
-\subsection{Offloading}
+\section{Offloading}
 
 By far the most important part of a CSx is the system to offload execution on
 the device. However, the degree of user programmability strongly various in
@@ -770,7 +774,8 @@ verification should be possible. The next section describes how each of these
 features is implemented. Afterwards, the entire offloading process is described
 as a whole.
 
-\subsubsection{Extended Attributes}
+\subsection{Extended Attributes}
+\label{extended-attributes}
 
 Firstly is registering which file operations should be offloaded through
 extended attributes. As per design these associations are managed on a per
@@ -813,7 +818,7 @@ and \textit{user.process.csd\_write\_event} respectively. Of these
 \textit{user.process.csd\_write\_event} have arguably the most practical 
 applications.
 
-\subsubsection{Types of Offloading}
+\subsection{Types of Offloading}
 
 The behavior of these offloading types is different between read and write as
 well as stream and event. Read offloads are given an empty buffer to store and
@@ -854,13 +859,16 @@ would be hard to implement effectively without these different types. Clearly,
 the different types of offloading create a flexible user-programmable system
 overall.
 
-\subsubsection{uBPF}
+\subsection{uBPF}
+\label{ubpf}
 
 As mentioned previously uBPF \cite{ubpf} is used to perform the execution of
 user-programmable aspects of our system. This section describes additional
 detail about how uBPF works as well as what types of operations we have
 implemented through uBPF. Finally, the setup and teardown of the uBPF VM is
 described in the next operation section.
+
+\label{ubpfreuse}
 
 Firstly, some additional details about uBPF with some brief reminders. By using
 uBPF we are able to define specific operation behavior and have the user
@@ -925,7 +933,9 @@ otherwise perform. While minimal we show in the result section that this set of
 operations is capable of performing practical applications all be it in a
 simulated setting.
 
-\subsubsection{Operation}
+\subsection{Operation}
+
+\label{operation}
 
 With implementation details described we can finally show how the entire
 offloading operation is performed. This section not only describes what steps

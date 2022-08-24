@@ -76,7 +76,8 @@ implementation is so separated from its implementation that it does not have to
 be linked at compile time or even be present on the host system. Previous works
 have already explained why eBPF is such a good fit for computational storage in
 detail \cite{ebpf_cs_2021}. Lastly, the capabilities of eBPF have already been
-demonstrated in the case of disaggregated storage \cite{kourtis2020safe}.
+demonstrated in the case of disaggregated storage
+\cite{kourtis2020safe, 280870}.
 
 \section{Computational Storage Devices}
 
@@ -105,13 +106,14 @@ features that hinder adoption and widespread use of CSxs.
 
 \subsection{CSx characteristics}
 
-There are four types of characteristics that set CSxs apart. First there is
-the end user \textit{programming model}, the model of programming developers
-have to use in order to interact with CSx. Second, there is the execution
-environment, the level of software abstraction the end user programs are run on
-(on the device). Third, is the \textit{degree of programmability}, the amount of
-programming control offered to the end user. Lastly, there is the interface used
-to connect the device to the host.
+There are four types of characteristics that set CSxs apart
+\cite{lukken2021past}. First there is the end user \textit{programming model},
+the model of programming developers have to use in order to interact with CSx.
+Second, there is the execution environment, the level of software abstraction
+the end user programs are run on (on the device). Third, is the
+\textit{degree of programmability}, the amount of programming control offered to
+the end user. Lastly, there is the interface used to connect the device to the
+host.
 
 With end user programming models there are, in no particular order,
 \textit{Dataflow (MapReduce, DAG)}, \textit{Client / Server
