@@ -6,13 +6,14 @@
 
 ## Publications
 
+* thesis, 26 August 2022 - [OpenCSD: LFS enabled Computational Storage Device over Zoned Namespaces (ZNS) SSDs](https://nextcloud.dantalion.nl/index.php/s/CH8sr8YbmwgMxHK/download)
 * [ICT.OPEN](https://www.ictopen.nl/home/), 7 April 2022 - [OpenCSD: Unified Architecture for eBPF-powered Computational Storage Devices (CSD) with Filesystem Support](https://gitlab.dantalion.nl/vu/qemu-csd/-/jobs/4591/artifacts/raw/build/ictopen2022.pdf?inline=false)
 * arXiv, 13 December 2021 - [Past, Present and Future of Computational Storage: A Survey](https://arxiv.org/abs/2112.09691)
 * arXiv, 29 November 2021 - [ZCSD: a Computational Storage Device over Zoned Namespaces (ZNS) SSDs](https://arxiv.org/abs/2112.00142)
 
 **on-going / pending**
 
-* thesis - [OpenCSD: LFS enabled Computational Storage Device over Zoned Namespaces (ZNS) SSDs](https://gitlab.dantalion.nl/vu/qemu-csd/-/jobs/artifacts/master/download?job=build-documentation)
+* Investigation better publication locations for thesis and or availability through university portal.
 
 # OpenCSD
 
