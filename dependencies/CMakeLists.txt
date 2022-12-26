@@ -502,20 +502,6 @@ add_custom_command(OUTPUT qemu-build-dir PRE_BUILD
 add_custom_command(
     TARGET qemu-build POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-    ${CMAKE_SOURCE_DIR}/scripts/qemu-start.sh
-    ${PRJ_ROOT}/qemu-start.sh
-)
-
-add_custom_command(
-    TARGET qemu-build POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-    ${CMAKE_SOURCE_DIR}/scripts/qemu-start-kvm.sh
-    ${PRJ_ROOT}/qemu-start-kvm.sh
-)
-
-add_custom_command(
-    TARGET qemu-build POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
     ${CMAKE_SOURCE_DIR}/scripts/qemu-start-256.sh
     ${PRJ_ROOT}/qemu-start-256.sh
 )
