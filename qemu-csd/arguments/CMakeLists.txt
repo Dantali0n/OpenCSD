@@ -49,7 +49,7 @@ target_link_libraries(
     ${QEMUCSD_ARGUMENTS_LIBRARIES}
 )
 
-add_dependencies(qemucsd_arguments boost-build)
+add_dependencies(qemucsd_arguments boost-build xenium-build)
 
 # Add qemucsd_arguments to the modules
 add_qemucsd_module(qemucsd_arguments)
