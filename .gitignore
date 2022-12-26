@@ -103,6 +103,7 @@ thesis/*
 !thesis/CMakeLists.txt
 !thesis/**/*.bib
 !thesis/**/*.tex
+!thesis/**/*.md
 !thesis/resources
 
 thesis-old/*
