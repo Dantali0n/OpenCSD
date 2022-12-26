@@ -113,7 +113,7 @@ This project has a large selection of dependencies as shown below. Note however,
 [a bug in DPDK](https://bugs.dpdk.org/show_bug.cgi?id=836)
 
 * General
-    * Linux 5.5 or higher
+    * Linux 6.0 or higher
     * compiler with c++17 support
     * clang 10 or higher
     * cmake 3.18 or higher
@@ -151,7 +151,7 @@ build directory.
 | [libfuse](https://github.com/libfuse/libfuse)                    | OpenCSD  | 3.10.5                                                                                                          |
 | [libbpf-bootstrap](https://github.com/libbpf/libbpf)             | ZCSD     | [67a29e5](https://github.com/libbpf/libbpf-bootstrap/commit/67a29e511cc9d0a570d4d3b9797827f3a08ccdb5)           |
 | [linux](https://www.kernel.org/)                                 | ZCSD     | 5.14                                                                                                            |
-| [spdk](https://github.com/spdk/spdk)                             | ZCSD     | 22.01                                                                                                           |
+| [spdk](https://github.com/spdk/spdk)                             | ZCSD     | 22.09                                                                                                           |
 | [isa-l](https://github.com/intel/isa-l)                          | ZCSD     | spdk-v2.30.0                                                                                                    |
 | [rocksdb](https://github.com/facebook/rocksdb)                   | OpenCSD  | 6.25.3                                                                                                          |
 | [qemu](https://www.qemu.org/)                                    | ZCSD     | 6.1.0                                                                                                           |
@@ -191,15 +191,15 @@ cmake .. # this prevents re-compiling dependencies on every next make command
 ```shell script
 cd build/qemu-csd
 source activate
-qemu-img create -f raw znsssd.img 16777216 # 34359738368
+qemu-img create -f raw znsssd.img 34359738368 # 16777216
 # By default qemu will use 4 CPU cores and 8GB of memory
-./qemu-start.sh
+./qemu-start-256-kvm.sh
 # Wait for QEMU VM to fully boot... (might take some time)
 git bundle create deploy.git HEAD
+# Type password (arch)
 rsync -avz -e "ssh -p 7777" deploy.git arch@localhost:~/
 # Type password (arch)
 ssh arch@localhost -p 7777
-# Type password (arch)
 git clone deploy.git qemu-csd
 rm deploy.git
 cd qemu-csd
