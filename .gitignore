@@ -136,6 +136,19 @@ ictopen2022/*
 !ictopen2022/**/python/
 
 # latex intermediate files
+fosdem2023/*
+!fosdem2023/**/
+!fosdem2023/CMakeLists.txt
+!fosdem2023/narrative.md
+!fosdem2023/vu-logo.png
+!fosdem2023/**/*.bib
+!fosdem2023/**/*.tex
+!fosdem2023/**/*.sty
+!fosdem2023/**/bash/
+!fosdem2023/**/images/
+!fosdem2023/**/python/
+
+# latex intermediate files
 presentation/*
 !presentation/**/
 !presentation/CMakeLists.txt
