@@ -63,7 +63,17 @@ add_custom_target(xenium-build ALL DEPENDS xenium-copy)
 # ------------------------- #
 
 add_custom_command(OUTPUT generate-bin PRE_BUILD
-    COMMAND mkdir bin -p
+    COMMAND mkdir -p ${PRJ_BINARIES}
+    WORKING_DIRECTORY ${PRJ_ROOT}
+)
+
+add_custom_command(OUTPUT generate-include PRE_BUILD
+    COMMAND mkdir -p ${PRJ_HEADERS}
+    WORKING_DIRECTORY ${PRJ_ROOT}
+)
+
+add_custom_command(OUTPUT generate-lib PRE_BUILD
+    COMMAND mkdir -p ${PRJ_LIBRARIES}
     WORKING_DIRECTORY ${PRJ_ROOT}
 )
 
@@ -89,6 +99,7 @@ else()
     add_custom_command(
         OUTPUT xenium-copy PRE_BUILD
         COMMAND cp -r ${CMAKE_CURRENT_SOURCE_DIR}/xenium/xenium ${PRJ_HEADERS}
+        DEPENDS generate-include
     )
 endif()
 

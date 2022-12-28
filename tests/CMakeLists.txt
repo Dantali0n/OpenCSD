@@ -57,6 +57,7 @@ add_custom_target(
 set(${PRJ_PRX}_TEST_LIBRARIES
 	${PRJ_LIB}
 	boost_timer
+	boost_chrono
 	boost_unit_test_framework
 )
 
