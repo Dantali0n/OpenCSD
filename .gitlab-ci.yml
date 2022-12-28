@@ -51,7 +51,7 @@ build-documentation:
     - cd $CI_PROJECT_DIR
     - mkdir -p build
     - cd build || exit
-    - cmake -DENABLE_DOCUMENTATION=on ..
+    - cmake -DIS_DEPLOYED=on -DENABLE_DOCUMENTATION=on ..
     - make all-documents
   artifacts:
     paths:
@@ -62,7 +62,7 @@ build-source-documentation:
     - cd $CI_PROJECT_DIR
     - mkdir -p build
     - cd build || exit
-    - cmake -DENABLE_DOCUMENTATION=on ..
+    - cmake -DIS_DEPLOYED=on -DENABLE_DOCUMENTATION=on ..
     - make doxygen
   artifacts:
     paths:
@@ -75,7 +75,7 @@ build-binaries:
     - cd $CI_PROJECT_DIR || exit
     - mkdir -p build
     - cd build || exit
-    - cmake -DENABLE_PLAYGROUND=off -DENABLE_DOCUMENTATION=off ..
+    - cmake -DIS_DEPLOYED=on -DENABLE_PLAYGROUND=off -DENABLE_DOCUMENTATION=off ..
     - make
   artifacts:
     paths:
@@ -103,7 +103,7 @@ build-playground:
     - cd $CI_PROJECT_DIR || exit
     - mkdir -p build
     - cd build || exit
-    - cmake -DENABLE_PLAYGROUND=on -DENABLE_DOCUMENTATION=off ..
+    - cmake -DIS_DEPLOYED=on -DENABLE_PLAYGROUND=on -DENABLE_DOCUMENTATION=off ..
     - make playground
   artifacts:
     paths:
@@ -116,7 +116,7 @@ test:
     - cd $CI_PROJECT_DIR || exit
     - mkdir -p build
     - cd build || exit
-    - cmake -DENABLE_PLAYGROUND=off -DENABLE_DOCUMENTATION=off -DENABLE_TESTS=on ..
+    - cmake -DIS_DEPLOYED=on -DENABLE_PLAYGROUND=off -DENABLE_DOCUMENTATION=off -DENABLE_TESTS=on ..
     - make check
   artifacts:
     reports:
@@ -140,7 +140,7 @@ coverage:
     - cd $CI_PROJECT_DIR || exit
     - mkdir -p build
     - cd build || exit
-    - cmake -DENABLE_CODECOV=on ..
+    - cmake -DIS_DEPLOYED=on -DENABLE_CODECOV=on -DENABLE_DOCUMENTATION=off ..
     - make clean
     - make check
     - make qemu-csd_coverage
@@ -160,7 +160,7 @@ memory-valgrind:
     - cd $CI_PROJECT_DIR || exit
     - mkdir -p build
     - cd build || exit
-    - cmake -DENABLE_PLAYGROUND=off -DENABLE_DOCUMENTATION=off -DENABLE_TESTS=on ..
+    - cmake -DIS_DEPLOYED=on -DENABLE_PLAYGROUND=off -DENABLE_DOCUMENTATION=off -DENABLE_TESTS=on ..
     - make tests
     - 'for test in $(ls tests/test*); do DEBUGINFOD_URLS="https://debuginfod.archlinux.org" G_SLICE=always-malloc valgrind --leak-check=full "$test"; done'
 memory-sanitizer:
@@ -171,5 +171,5 @@ memory-sanitizer:
     - cd $CI_PROJECT_DIR || exit
     - mkdir -p build
     - cd build || exit
-    - cmake -DENABLE_LEAK_TESTS=on ..
+    - cmake -DIS_DEPLOYED=on -DENABLE_LEAK_TESTS=on ..
     - make check
