@@ -12,7 +12,6 @@ variables:
 cache:
   paths:
 #    - "dependencies/*"
-    - "build/qemu-csd/arch-qemucsd.qcow2"
     - "build/qemu-csd/bin/*"
     - "build/qemu-csd/lib/*"
     - "build/qemu-csd/include/*"
@@ -144,7 +143,7 @@ coverage:
     - make clean
     - make check
     - make qemu-csd_coverage
-    - bash <(curl -s https://codecov.io/bash) -f coverage.total.info || echo "Codecov did not collect coverage reports"
+    - bash <(curl -s https://codecov.io/bash) -f coverage.base.info || echo "Codecov did not collect coverage reports"
   artifacts:
     paths:
       - build/coverage/*
