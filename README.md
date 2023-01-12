@@ -190,28 +190,7 @@ cmake -DENABLE_DOCUMENTATION=off -DIS_DEPLOYED=on ..
 cmake --build .
 ```
 
-```shell script
-git remote set-url origin git@github.com:Dantali0n/qemu-csd.git
-ssh-keygen -t rsa -b 4096
-eval $(ssh-agent) # must be done after each login
-ssh-add ~/.ssh/NAME_OF_KEY
-```
-
-```shell script
-virtualenv -p python3 python
-cd python
-source bin/activate
-pip install -r requirements.txt
-```
-
-### Running & Debugging
-
-Running and debugging programs is an essential part of development. Often,
-barrier to entry and clumsy development procedures can severely hinder
-productivity. Qemu-csd comes with a variety of scripts preconfigured to reduce
-this initial barrier and enable quick development iterations.
-
-#### Environment:
+### Environment:
 Within the build folder will be a `qemu-csd/activate` script. This script can be
 sourced using any shell `source qemu-csd/activate`. This script configures
 environment variables such as `LD_LIBRARY_PATH` while also exposing an essential
@@ -219,14 +198,23 @@ sudo alias: `ld-sudo`.
 
 The environment variables ensure any linked libraries can be found for targets
 compiled by Cmake. Additionally, `ld-sudo` provides a mechanism to start targets
-with  sudo privileges while retaining these environment variables. The
+with sudo privileges while retaining these environment variables. The
 environment can be deactivated at any time by executing `deactivate`.
 
-#### Usage Examples:
+### Usage Examples:
 
-TODO: Generate integer data file, describe qemucsd and spdk-native applications,
-usage parameters, relevant code segments to write your own BPF program, relevant
-code segments to extend the prototype.
+
+1. Start the filesystem in a memory backed mode and mount it on `test`.
+
+```
+cd build
+make fuse-entry
+cmake ..
+cd qemu-csd
+mkdir −p test
+source activate
+ld−sudo ./fuse−entry −− −d −o max_read=2147483647 test &
+```
 
 ### Contributing
 

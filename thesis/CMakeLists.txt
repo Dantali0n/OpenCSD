@@ -34,7 +34,7 @@ set(MAIN_TEX "${CMAKE_CURRENT_SOURCE_DIR}/thesis.tex")
 
 if(LATEX_FOUND AND LATEX_PDFLATEX_FOUND)
     # First pass.
-    add_custom_target(thesis-prebuild
+    add_custom_target(latex-thesis-prebuild
         COMMAND texi2pdf -o ${OUT_DIRECTORY}/thesis.pdf -b ${MAIN_TEX}
         COMMENT "Starting Prebuild."
         WORKING_DIRECTORY ${WORKINGDIR}
@@ -42,14 +42,14 @@ if(LATEX_FOUND AND LATEX_PDFLATEX_FOUND)
     )
 
     # Second pass - generate the final pdf.
-    add_custom_target(thesis-pdf
+    add_custom_target(latex-thesis-pdf
         COMMAND texi2pdf -o ${OUT_DIRECTORY}/thesis.pdf ${MAIN_TEX}
         WORKING_DIRECTORY ${WORKINGDIR}
         COMMENT "Assembling the final pdf file."
-        DEPENDS latex-prebuild
+        DEPENDS latex-thesis-prebuild
     )
 
-    add_dependencies(all-documents thesis-pdf)
+    add_dependencies(all-documents latex-thesis-pdf)
 else()
     message(ERROR "No latex tools found!")
 endif()

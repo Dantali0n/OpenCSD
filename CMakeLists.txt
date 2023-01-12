@@ -227,7 +227,7 @@ if(ENABLE_CODECOV)
 	include(CTest)
 	add_custom_target(ctest COMMAND ${CMAKE_CTEST_COMMAND})
 
-	setup_target_for_coverage_lcov(${PRJ_PRX}_coverage ctest coverage)
+		setup_target_for_coverage_lcov(${PRJ_PRX}_coverage ctest coverage)
 endif(ENABLE_CODECOV)
 
 # Project documentation and report
