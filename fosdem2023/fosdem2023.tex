@@ -1,4 +1,4 @@
-\documentclass{beamer}
+\documentclass[aspectratio=169]{beamer}
 \usepackage[utf8]{inputenc}
 \usepackage[inline]{enumitem}
 \usepackage{pdfpages}
@@ -7,6 +7,8 @@
 \usepackage{wasysym}
 \usepackage[export]{adjustbox}[2011/08/13]
 \usetheme{cern}
+
+\addtobeamertemplate{note page}{}{\thispdfpagelabel{notes:\insertframenumber}}
 
 \newcommand{\btVFill}{\vskip0pt plus 1filll}
 
@@ -192,25 +194,35 @@
 % demonstrate why we need Computational storage in the first place.
 
 \frame{\titlepage}
+
 \begin{frame}{Index}
-    \begin{itemize}
-        \item Who am I
-        \item What is Computational Storage
-        \begin{itemize}
-            \item \footnotesize Why do we Need it
-            \item \footnotesize State of Current Prototypes
-        \end{itemize}
-        \item OpenCSD \& FluffleFS
-        \begin{itemize}
-            \item \footnotesize Key Design Aspects
-            \item \footnotesize Component Breakdown
-            \item \footnotesize Shannon Entropy Demo
-            \item \footnotesize Operating Principle Details
-            \item \footnotesize Limitations and Considerations
-        \end{itemize}
-        \item Future Work
-    \end{itemize}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \begin{itemize}
+                \item Who am I
+                \item What is Computational Storage
+                \begin{itemize}
+                    \item \footnotesize Why do we Need it
+                    \item \footnotesize State of Current Prototypes
+                \end{itemize}
+                \item OpenCSD \& FluffleFS
+                \begin{itemize}
+                    \item \footnotesize Key Design Aspects
+                    \item \footnotesize Component Breakdown
+                    \item \footnotesize Shannon Entropy Demo
+                    \item \footnotesize Operating Principle Details
+                    \item \footnotesize Limitations and Considerations
+                \end{itemize}
+                \item Future Work
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+        \end{column}
+    \end{columns}
 \end{frame}
+\note{
+
+}
 
 \begin{frame}{Who am I}
     \begin{itemize}
@@ -230,22 +242,179 @@
         \end{itemize}
     \end{itemize}
 \end{frame}
+\note{
 
+}
+
+\begin{frame}{Why do we need it}
+    \begin{columns}
+        \begin{column}{0.3\textwidth}
+            \begin{itemize}
+                \item test
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.7\textwidth}
+            \begingroup
+            \small
+            \begin{figure}
+                \centering
+                \includegraphics[width=0.9\textwidth]{resources/images/data-problem.png}
+            \end{figure}
+            % \begin{itemize}
+            % 	\item Bring compute closer to storage
+            % 	\item Many benefits and challenges % Energy efficient, reduce host load, scalability
+            % 	\item A long time in the making [1] % it has taken over a decade without any widespread adoption
+            % \end{itemize}
+            % \textit{\tiny $^{1}$Past, Present and Future of Computational Storage: A
+            % Survey, Corne Lukken \& Animesh Trivedi - https://arxiv.org/abs/2112.09691}
+            \endgroup
+        \end{column}
+    \end{columns}
+\end{frame}
+\note{
+
+}
+
+% page 2
+\begin{frame}{Why do we need it}
+    \begin{columns}
+        \begin{column}{0.3\textwidth}
+            \footnotesize
+            \begin{itemize}
+            	\item Von Neumann architecture
+            	\item Memory bottlenecks
+            	\item Interconnect bottlenecks
+            	\item Energy efficiency
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.7\textwidth}
+            \begingroup
+            \small
+            \begin{figure}
+                \centering
+                \includegraphics[width=0.7\textwidth]{resources/images/bottleneck.png}
+            \end{figure}
+            \endgroup
+        \end{column}
+    \end{columns}
+\end{frame}
+\note{
+    Perhaps the most prominent bottleneck in computer systems today is the one
+    caused by the Von Neumann architecture. This architecture imposes restrictions
+    on the location of data a CPU is able to operate on. Being it must either be
+    in system memory, cache or a register. This prevents processors from directly
+    operating on data provided by peripherals such as SSD flash storage. In
+    addition the memory controller often has lower bandwidth then the interface
+    used to connect peripherals while internally many flash devices togeteher are
+    often able to saturate the bandwidth of peripheral interface as well. This
+    leads to substantial bottlenecks primarily in enterprise SSD storage servers.
+}
+
+\begin{frame}{Why do we need it}
+    \begin{columns}
+        \begin{column}{0.3\textwidth}
+            \footnotesize
+            \begin{itemize}
+                \item
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.7\textwidth}
+            \begingroup
+            \small
+            \begin{figure}
+                \centering
+                \includegraphics[width=0.92\textwidth]{resources/images/storage-bottleneck.png}
+            \end{figure}
+            \endgroup
+        \end{column}
+    \end{columns}
+\end{frame}
+\note{
+}
+
+% page 3
 \begin{frame}{What is Computational Storage}
-    \begin{itemize}
-        \item Move compute to storage
-    \end{itemize}
-    \begin{figure}
-        \centering
-        \includegraphics[width=0.9\textwidth]{resources/images/data-problem.png}
-    \end{figure}
+    \begin{columns}
+        \begin{column}{0.3\textwidth}
+            \begin{itemize}
+                \item test
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.7\textwidth}
+            \begingroup
+            \small
+            \begin{figure}
+                \centering
+                \includegraphics[width=0.7\textwidth]{resources/images/csd.png}
+            \end{figure}
+            \endgroup
+        \end{column}
+    \end{columns}
 \end{frame}
+\note{
+    With computational storage, flash storage devices are fitted with their own
+    computational elements and memory. Often a combination of a regular processor
+    combined with a field-programmable gate array, a subject we are unfortunately
+    not able to cover further today. With computational storage the host system
+    sends a user provided program along with metadata upon a particular I/O event
+    or at the users descretion to the device for execution. All data from the
+    storage device is thus moved internally an only the result of the execution is
+    returned to the host for further processing. While the result still has to be
+    moved to system memor, the computation often is reductive in nature, reducing
+    the amount of bandwidth occupied on the perihperal interfaces and memory
+    controller.
+}
 
-\begin{frame}{Why do we Need it}
-\end{frame}
+% % page 4
+% % But such a heregoenous distributed system comes with many challenges and
+% % complexities. Of which it be impossible to cover them all today. Instead we
+% % focus on a prime example which is concurrent write modifcations to the same
+% % file. How can we ensure that in multi-user tenant systems concurrent writes
+% % partly on computational storage and partly executed by the host will not
+% % override each others data. In the next slides some of the technologies used
+% % to overcome this challenge are demonstrated.
+% \begin{frame}{What is Computational Storage}
+% 	\begingroup
+% 	\small
+% 	\begin{figure}
+% 		\centering
+% 		\includegraphics[width=0.7\textwidth]{resources/images/challenges.png}
+% 	\end{figure}
+% 	% \begin{itemize}
+% 	% 	\item Von Neumann architecture
+% 	% 	\item Memory bottlenecks
+% 	% 	\item Energy efficiency
+% 	% \end{itemize}
+% 	\endgroup
+% \end{frame}
 
-\begin{frame}{State of Current Prototypes}
+\begin{frame}{State of Current Prototypes (September 2022)}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            Shortlist:
+            \footnotesize
+            \begin{itemize}
+                \item BlockNDP (2020) \footnotemark[1]
+                \item Metal FS (2020) \footnotemark[2]
+                \item INSIDER (July 2019) \footnotemark[3]
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            Impediments:
+            \footnotesize
+            \begin{itemize}
+                \item Lack of concurrent access
+                \item Requires linking shared libraries
+                \item Cumbersome interfaces
+            \end{itemize}
+        \end{column}
+    \end{columns}
+    \footnotetext[1]{\tiny https://doi.org/10.1145/3429357.3430519}
+    \footnotetext[2]{\tiny https://doi.org/10.1145/3342195.3387557}
+    \footnotetext[3]{\tiny https://www.usenix.org/conference/atc19/presentation/ruan}
 \end{frame}
+\note{
+}
 
 \begin{frame}{OpenCSD \& FluffleFS}
 \end{frame}
@@ -270,97 +439,7 @@
 % we are expected to store 200 Zettabytes of data in total by 2050.
 % Such high data capacity and throughput requirements pose signficant challenges
 % to existing and future technolgies.
-\begin{frame}{Data-driven society}
-	\begingroup
-	\small
-	\begin{figure}
-		\centering
-		\includegraphics[width=0.9\textwidth]{resources/images/data-problem.png}
-	\end{figure}
-	% \begin{itemize}
-	% 	\item Bring compute closer to storage
-	% 	\item Many benefits and challenges % Energy efficient, reduce host load, scalability
-	% 	\item A long time in the making [1] % it has taken over a decade without any widespread adoption
-	% \end{itemize}
-	% \textit{\tiny $^{1}$Past, Present and Future of Computational Storage: A
-	% Survey, Corne Lukken \& Animesh Trivedi - https://arxiv.org/abs/2112.09691}
-	\endgroup
-\end{frame}
 
-% page 2
-% Perhaps the most prominent bottleneck in computer systems today is the one
-% caused by the Von Neumann architecture. This architecture imposes restrictions
-% on the location of data a CPU is able to operate on. Being it must either be
-% in system memory, cache or a register. This prevents processors from directly
-% operating on data provided by peripherals such as SSD flash storage. In
-% addition the memory controller often has lower bandwidth then the interface
-% used to connect peripherals while internally many flash devices togeteher are
-% often able to saturate the bandwidth of peripheral interface as well. This
-% leads to substantial bottlenecks primarily in enterprise SSD storage servers.
-\begin{frame}{Von Neumann bottleneck}
-	\begingroup
-	\small
-	\begin{figure}
-		\centering
-		\includegraphics[width=0.7\textwidth]{resources/images/bottleneck.png}
-	\end{figure}
-	% \begin{itemize}
-	% 	\item Von Neumann architecture
-	% 	\item Memory bottlenecks
-	% 	\item Energy efficiency
-	% \end{itemize}
-	\endgroup
-\end{frame}
-
-% page 3
-% With computational storage, flash storage devices are fitted with their own
-% computational elements and memory. Often a combination of a regular processor
-% combined with a field-programmable gate array, a subject we are unfortunately
-% not able to cover further today. With computational storage the host system
-% sends a user provided program along with metadata upon a particular I/O event
-% or at the users descretion to the device for execution. All data from the
-% storage device is thus moved internally an only the result of the execution is
-% returned to the host for further processing. While the result still has to be
-% moved to system memor, the computation often is reductive in nature, reducing
-% the amount of bandwidth occupied on the perihperal interfaces and memory
-% controller.
-\begin{frame}{Computational Storage Devices}
-	\begingroup
-	\small
-	\begin{figure}
-		\centering
-		\includegraphics[width=0.7\textwidth]{resources/images/csd.png}
-	\end{figure}
-	% \begin{itemize}
-	% 	\item Von Neumann architecture
-	% 	\item Memory bottlenecks
-	% 	\item Energy efficiency
-	% \end{itemize}
-	\endgroup
-\end{frame}
-
-% page 4
-% But such a heregoenous distributed system comes with many challenges and
-% complexities. Of which it be impossible to cover them all today. Instead we
-% focus on a prime example which is concurrent write modifcations to the same
-% file. How can we ensure that in multi-user tenant systems concurrent writes
-% partly on computational storage and partly executed by the host will not
-% override each others data. In the next slides some of the technologies used
-% to overcome this challenge are demonstrated.
-\begin{frame}{Challenges}
-	\begingroup
-	\small
-	\begin{figure}
-		\centering
-		\includegraphics[width=0.7\textwidth]{resources/images/challenges.png}
-	\end{figure}
-	% \begin{itemize}
-	% 	\item Von Neumann architecture
-	% 	\item Memory bottlenecks
-	% 	\item Energy efficiency
-	% \end{itemize}
-	\endgroup
-\end{frame}
 
 % page 2
 % \begin{frame}{Our Contribution}
