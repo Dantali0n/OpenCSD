@@ -12,9 +12,9 @@ variables:
 cache:
   paths:
 #    - "dependencies/*"
-    - "build/qemu-csd/bin/*"
-    - "build/qemu-csd/lib/*"
-    - "build/qemu-csd/include/*"
+    - "build/opencsd/bin/*"
+    - "build/opencsd/lib/*"
+    - "build/opencsd/include/*"
 # before_script:
 #  - git submodule update --init
 build-image:
@@ -78,8 +78,8 @@ build-binaries:
     - make
   artifacts:
     paths:
-      - "build/qemu-csd/*.so"
-      - "build/qemu-csd/qemucsd"
+      - "build/opencsd/*.so"
+      - "build/opencsd/qemucsd"
 # build-binaries-windows:
 #  stage: build
 #  tags:
@@ -92,8 +92,8 @@ build-binaries:
 #    - cmake --build . --target ALL_BUILD
 #  artifacts:
 #    paths:
-#      - "build/qemu-csd/*.so"
-#      - "build/qemu-csd/qemucsd"
+#      - "build/opencsd/*.so"
+#      - "build/opencsd/opencsd"
 build-playground:
   stage: build
   tags:
@@ -142,7 +142,7 @@ coverage:
     - cmake -DIS_DEPLOYED=on -DENABLE_CODECOV=on -DENABLE_DOCUMENTATION=off ..
     - make clean
     - make check
-    - make qemu-csd_coverage
+    - make opencsd_coverage
     - bash <(curl -s https://codecov.io/bash) -f coverage.total.info || echo "Codecov did not collect coverage reports"
   artifacts:
     paths:

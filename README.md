@@ -1,14 +1,14 @@
-[![pipeline status](https://gitlab.dantalion.nl/vu/qemu-csd/badges/master/pipeline.svg)](https://gitlab.dantalion.nl/vu/qemu-csd/-/pipelines)
-[![coverage report](https://gitlab.dantalion.nl/vu/qemu-csd/badges/master/coverage.svg)](https://gitlab.dantalion.nl/vu/qemu-csd/-/jobs/artifacts/master/download?job=coverage)
-[![latest commit](https://shields.io/github/last-commit/Dantali0n/qemu-csd)](https://gitlab.dantalion.nl/vu/qemu-csd/-/commits/master)
-[![source code license MIT](https://shields.io/github/license/Dantali0n/qemu-csd)](https://gitlab.dantalion.nl/vu/qemu-csd/-/blob/master/LICENSE)
+[![pipeline status](https://gitlab.dantalion.nl/vu/opencsd/badges/master/pipeline.svg)](https://gitlab.dantalion.nl/vu/opencsd/-/pipelines)
+[![coverage report](https://gitlab.dantalion.nl/vu/opencsd/badges/master/coverage.svg)](https://gitlab.dantalion.nl/vu/opencsd/-/jobs/artifacts/master/download?job=coverage)
+[![latest commit](https://shields.io/github/last-commit/Dantali0n/opencsd)](https://gitlab.dantalion.nl/vu/opencsd/-/commits/master)
+[![source code license MIT](https://shields.io/github/license/Dantali0n/opencsd)](https://gitlab.dantalion.nl/vu/opencsd/-/blob/master/LICENSE)
 [![follow me on twitter](https://img.shields.io/twitter/follow/D4ntali0n?style=social)](https://twitter.com/D4ntali0n)
 
 ## Publications
 
 * FOSDEM, 5 February 2023- [OpenCSD, simple and intuitive computational storage emulation with QEMU and eBPF](https://fosdem.org/2023/schedule/event/csd/)
-* thesis, 26 August 2022 - [OpenCSD: LFS enabled Computational Storage Device over Zoned Namespaces (ZNS) SSDs](https://nextcloud.dantalion.nl/index.php/s/CH8sr8YbmwgMxHK/download)
-* [ICT.OPEN](https://www.ictopen.nl/home/), 7 April 2022 - [OpenCSD: Unified Architecture for eBPF-powered Computational Storage Devices (CSD) with Filesystem Support](https://gitlab.dantalion.nl/vu/qemu-csd/-/jobs/4591/artifacts/raw/build/ictopen2022.pdf?inline=false)
+* Thesis, 26 August 2022 - [OpenCSD: LFS enabled Computational Storage Device over Zoned Namespaces (ZNS) SSDs](https://nextcloud.dantalion.nl/index.php/s/CH8sr8YbmwgMxHK/download)
+* [ICT.OPEN](https://www.ictopen.nl/home/), 7 April 2022 - [OpenCSD: Unified Architecture for eBPF-powered Computational Storage Devices (CSD) with Filesystem Support](https://gitlab.dantalion.nl/vu/opencsd/-/jobs/4591/artifacts/raw/build/ictopen2022.pdf?inline=false)
 * arXiv, 13 December 2021 - [Past, Present and Future of Computational Storage: A Survey](https://arxiv.org/abs/2112.09691)
 * arXiv, 29 November 2021 - [ZCSD: a Computational Storage Device over Zoned Namespaces (ZNS) SSDs](https://arxiv.org/abs/2112.00142)
 
@@ -48,10 +48,13 @@ concurrent regular user access to the same file!
 
 ### Directory Structure
 
-* qemu-csd - Project source files
 * cmake - Small cmake snippets to enable various features
 * dependencies - Project dependencies
 * docs - Doxygen generated source code documentation
+* fosdem2023 - FOSDEM 2023 emulator devroom presentation
+* ictopen2022 - ICTOPEN 2022 presentation
+* measurements - Raw experiment data used during thesis
+* opencsd - Project source files
 * [playground]([playground/README.md]) - Small toy examples or other
   experiments
 * [python](python/README.md) - Python scripts to aid in visualization or
@@ -133,29 +136,42 @@ build directory.
 | [spdk](https://github.com/spdk/spdk)                             | 22.09                                                                                                           |
 | [isa-l](https://github.com/intel/isa-l)                          | spdk-v2.30.0                                                                                                    |
 | [rocksdb](https://github.com/facebook/rocksdb)                   | 6.25.3                                                                                                          |
-| [qemu](https://www.qemu.org/)                                    | 6.1.0                                                                                                           |
+| [qemu](https://www.qemu.org/)                                    | 7.2.0                                                                                                           |
 | [uBPF](https://github.com/iovisor/ubpf)                          | [9eb26b4](https://github.com/iovisor/ubpf/commit/9eb26b4bfdec6cafbf629a056155363f12cec972)                      |
 | [xenium](https://github.com/mpoeter/xenium/)                     | [f1d28d0](https://github.com/mpoeter/xenium/commit/f1d28d0980cf2128c3f6b77d321aad5ca469dbce)                    |
 
 ### Setup
 
-The project requires between 15 and 30 GB of disc space depending on
-your configuration. While there are no particular system memory or performance
-requirements for running OpenCSD, debugging requires between 10 and 16 GB of
-reserved system memory. The table shown below explains the differences between
-the  possible configurations and their requirements.
+Several different setups are available of which two are officially supported.
+We recommend using QEMU for a non-volatile filesystem setup provided by QEMU
+ZNS emulation.
 
-| Storage Mode   | Debugging | Disc space | System Memory | Cmake Parameters                                               |
-|----------------|-----------|------------|---------------|----------------------------------------------------------------|
-| Non-persistent | No        | 15 GB      | < 2 GB        | -DCMAKE_BUILD_TYPE=Release -DIS_DEPLOYED=on -DENABLE_TESTS=off |                                
-| Non-persisten  | Yes       | 15 GB      | 13 GB         | -DCMAKE_BUILD_TYPE=Debug -DIS_DEPLOYED=on                      |
-| Persistent     | No        | 30 GB      | 10 GB         | -DCMAKE_BUILD_TYPE=Release -DENABLE_TESTS=off                  |
-| Persistent     | Yes       | 30 GB      | 16 GB         | default                                                        |
+1. [Through QEMU; non-volatile filesystem](#qemu-setup)
+2. [Direct on host; volatile memory backed filesystem](#host-setup)
 
-OpenCSD its initial configuration and compilation must be performed prior to
-its use. After checking out the OpenCSD repository this can be achieved by
-executing the commands shown below. Each section of individual commands must be
-executed from the root of the project directory.
+#### QEMU Setup
+
+QEMU setup will provide an emulated environment with emulated Zoned Namespaces
+NVMe device providing a non-volatile CSD filesystem experience. In addition,
+the use of QEMU ensures software libraries and frameworks use supported
+versions.
+
+```shell
+# git clone ssh://git@gitlab.dantalion.nl:4022/vu/opencsd.git
+cd opencsd
+git submodule update --init
+mkdir build
+cd build
+cmake ..
+make qemu-build
+cmake ..
+```
+
+#### Host Setup
+
+Note, in case of failure to detect native kernel sources install location; a
+fixed version from `./dependencies/linux` will be used. This can cause failures
+in `vmlinux.h` with `bpftool` when accessing `/sys/kernel/btf/vmlinux`.
 
 ```shell script
 git submodule update --init
@@ -168,7 +184,7 @@ cmake .. # this prevents re-compiling dependencies on every next make command
 ```
 
 ```shell script
-cd build/qemu-csd
+cd build/opencsd
 source activate
 qemu-img create -f raw znsssd.img 34359738368 # 16777216
 # By default qemu will use 4 CPU cores and 8GB of memory
@@ -179,9 +195,9 @@ git bundle create deploy.git HEAD
 rsync -avz -e "ssh -p 7777" deploy.git arch@localhost:~/
 # Type password (arch)
 ssh arch@localhost -p 7777
-git clone deploy.git qemu-csd
+git clone deploy.git opencsd
 rm deploy.git
-cd qemu-csd
+cd opencsd
 git -c submodule."dependencies/qemu".update=none submodule update --init
 mkdir build
 cd build
@@ -191,8 +207,8 @@ cmake --build .
 ```
 
 ### Environment:
-Within the build folder will be a `qemu-csd/activate` script. This script can be
-sourced using any shell `source qemu-csd/activate`. This script configures
+Within the build folder will be a `opencsd/activate` script. This script can be
+sourced using any shell `source opencsd/activate`. This script configures
 environment variables such as `LD_LIBRARY_PATH` while also exposing an essential
 sudo alias: `ld-sudo`.
 

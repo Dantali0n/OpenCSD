@@ -133,7 +133,7 @@ FUNCTION(SETUP_TARGET_FOR_COVERAGE_LCOV _targetname _testrunner _outputname)
         COMMAND ${LCOV_PATH} -i --directory . --capture --output-file ${coverage_base}
         COMMAND ${LCOV_PATH} --directory . --capture --output-file ${coverage_info}
         COMMAND ${LCOV_PATH} -a ${coverage_base} -a ${coverage_info} -o ${coverage_total}
-        COMMAND ${LCOV_PATH} --remove ${coverage_total} '${CMAKE_BINARY_DIR}/qemu-csd/include/*' '${CMAKE_SOURCE_DIR}/dependencies/*' '${CMAKE_SOURCE_DIR}/tests/*' '/usr/*' --output-file ${coverage_cleaned}
+        COMMAND ${LCOV_PATH} --remove ${coverage_total} '${CMAKE_BINARY_DIR}/opencsd/include/*' '${CMAKE_SOURCE_DIR}/dependencies/*' '${CMAKE_SOURCE_DIR}/tests/*' '/usr/*' --output-file ${coverage_cleaned}
         COMMAND ${GENHTML_PATH} -o ${_outputname} ${coverage_cleaned}
         COMMAND ${CMAKE_SOURCE_DIR}/python/lcov-to-cobertura/lcov_cobertura/lcov_cobertura.py ${coverage_cleaned}
         COMMAND ${CMAKE_COMMAND} -E remove ${coverage_info} ${coverage_base}

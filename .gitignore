@@ -43,18 +43,18 @@ playground/libbpf-bootstrap/bpf_bootstrap_program.h
 playground/generic-ebpf/bpf_bootstrap_program.h
 
 # object files and binaries
-qemu-csd/**
-!qemu-csd/**/
-!qemu-csd/**/*.c
-!qemu-csd/**/*.cl
-!qemu-csd/**/*.cxx
-!qemu-csd/**/*.h
-!qemu-csd/**/*.hpp
-!qemu-csd/**/*.tpp
-!qemu-csd/**/CMakeLists.txt
+opencsd/**
+!opencsd/**/
+!opencsd/**/*.c
+!opencsd/**/*.cl
+!opencsd/**/*.cxx
+!opencsd/**/*.h
+!opencsd/**/*.hpp
+!opencsd/**/*.tpp
+!opencsd/**/CMakeLists.txt
 
 # Ignore generated headers
-qemu-csd/bpf_programs/*.h
+opencsd/bpf_programs/*.h
 
 #dependencies
 dependencies/*

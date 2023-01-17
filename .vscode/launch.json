@@ -25,10 +25,10 @@
             "ssh": {
                 "host": "127.0.0.1",
                 "port": 7777,
-                "cwd": "/home/arch/qemu-csd/",
+                "cwd": "/home/arch/opencsd/",
                 "user": "root",
                 "password": "arch",
-                "bootstrap": "source /home/arch/qemu-csd/build/qemu-csd/activate",
+                "bootstrap": "source /home/arch/opencsd/build/opencsd/activate",
                 "forwardX11": false
             }
         },
@@ -41,10 +41,10 @@
             "ssh": {
                 "host": "127.0.0.1",
                 "port": 7777,
-                "cwd": "/home/arch/qemu-csd/",
+                "cwd": "/home/arch/opencsd/",
                 "user": "root",
                 "password": "arch",
-                "bootstrap": "source /home/arch/qemu-csd/build/qemu-csd/activate",
+                "bootstrap": "source /home/arch/opencsd/build/opencsd/activate",
                 "forwardX11": false
             }
         },
@@ -52,15 +52,15 @@
             "name": "SSH attach zcsd",
             "type": "gdb",
             "request": "launch",
-            "target": "./build/qemu-csd/zcsd/zcsd",
+            "target": "./build/opencsd/zcsd/zcsd",
             "cwd": "${workspaceRoot}",
             "ssh": {
                 "host": "127.0.0.1",
                 "port": 7777,
-                "cwd": "/home/arch/qemu-csd/",
+                "cwd": "/home/arch/opencsd/",
                 "user": "root",
                 "password": "arch",
-                "bootstrap": "source /home/arch/qemu-csd/build/qemu-csd/activate",
+                "bootstrap": "source /home/arch/opencsd/build/opencsd/activate",
                 "forwardX11": false
             }
         },
@@ -68,15 +68,15 @@
             "name": "SSH attach zcsd-spdk",
             "type": "gdb",
             "request": "launch",
-            "target": "./build/qemu-csd/zcsd/zcsd-spdk",
+            "target": "./build/opencsd/zcsd/zcsd-spdk",
             "cwd": "${workspaceRoot}",
             "ssh": {
                 "host": "127.0.0.1",
                 "port": 7777,
-                "cwd": "/home/arch/qemu-csd/",
+                "cwd": "/home/arch/opencsd/",
                 "user": "root",
                 "password": "arch",
-                "bootstrap": "source /home/arch/qemu-csd/build/qemu-csd/activate",
+                "bootstrap": "source /home/arch/opencsd/build/opencsd/activate",
                 "forwardX11": false
             }
         },
@@ -84,17 +84,17 @@
             "name": "SSH attach fuse-entry",
             "type": "gdb",
             "request": "launch",
-            "target": "./build/qemu-csd/fuse-entry",
+            "target": "./build/opencsd/fuse-entry",
             "arguments": "-- -d -o max_read=2147483647 test",
             "cwd": "${workspaceRoot}",
             "ssh": {
                 "host": "127.0.0.1",
                 "port": 7777,
-                "cwd": "/home/arch/qemu-csd/",
+                "cwd": "/home/arch/opencsd/",
                 "user": "root",
                 "password": "arch",
                 "bootstrap":
-                    "source /home/arch/qemu-csd/build/qemu-csd/activate",
+                    "source /home/arch/opencsd/build/opencsd/activate",
                 "forwardX11": false
             }
         },
@@ -102,17 +102,17 @@
             "name": "SSH attach fuse-entry-spdk",
             "type": "gdb",
             "request": "launch",
-            "target": "./build/qemu-csd/fuse-entry-spdk",
+            "target": "./build/opencsd/fuse-entry-spdk",
             "arguments": "-- -d -o max_read=2147483647 test",
             "cwd": "${workspaceRoot}",
             "ssh": {
                 "host": "127.0.0.1",
                 "port": 7777,
-                "cwd": "/home/arch/qemu-csd",
+                "cwd": "/home/arch/opencsd",
                 "user": "root",
                 "password": "arch",
                 "bootstrap":
-                    "source /home/arch/qemu-csd/build/qemu-csd/activate",
+                    "source /home/arch/opencsd/build/opencsd/activate",
                 "forwardX11": false
             }
         }

@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.18)
-PROJECT(qemu-csd)
+PROJECT(opencsd)
 
 # Project name under shorter variable
 set(PRJ_PRX ${CMAKE_PROJECT_NAME})
@@ -204,7 +204,7 @@ if(ENABLE_CODECOV)
 endif()
 
 # Collection of concrete implementations
-add_subdirectory(qemu-csd)
+add_subdirectory(opencsd)
 
 # Toy experiments
 if(ENABLE_PLAYGROUND)
@@ -235,7 +235,6 @@ if(ENABLE_DOCUMENTATION)
 
 	add_custom_target(all-documents ALL)
 	add_subdirectory(thesis)
-	add_subdirectory(presentation)
 	add_subdirectory(ictopen2022)
 	add_subdirectory(fosdem2023)
 	add_subdirectory(zcsd/compsys2021)

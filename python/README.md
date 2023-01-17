@@ -30,7 +30,7 @@ These files have the following prerequisites:
    current path (not the path of python files themselves).
 2. The kernel objects registered and launched by the python file must exist
    on the mounted FluffleFS filesystem. The `bin` folder inside the project
-   build directory `./build/qemu-csd/bin` will contain these.
+   build directory `./build/opencsd/bin` will contain these.
 3. A test file with (often) arbitrary test data must exist under `/test` from
    the FluffleFS mount point. Due to the simplicity of kernels the size must be
    sector aligned.

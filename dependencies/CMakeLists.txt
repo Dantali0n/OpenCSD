@@ -140,6 +140,7 @@ download_file(
     ${boost_source_url}
     ${CMAKE_CURRENT_SOURCE_DIR}/${boost_source_file}
     SHA256 ${boost_source_hash}
+    600
 )
 
 # Extracts an archive in a directory and sets the directory as a file target (Nasty hack)
@@ -493,7 +494,7 @@ add_custom_command(OUTPUT qemu-install PRE_BUILD
 )
 
 add_custom_command(OUTPUT qemu-configure PRE_BUILD
-    COMMAND ../configure --enable-debug --disable-zstd --target-list=x86_64-softmmu --prefix=${PRJ_ROOT}
+    COMMAND CFLAGS=-Wno-error=deprecated-declarations ../configure --enable-debug --disable-zstd --target-list=x86_64-softmmu --prefix=${PRJ_ROOT}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/qemu/build
     DEPENDS qemu-patch
 )
@@ -542,5 +543,6 @@ download_file(
     https://nextcloud.dantalion.nl/index.php/s/W9sXftrndti3WF7/download
     ${PRJ_ROOT}/arch-qemucsd.qcow2
     SHA256 e2c75c95129171f845ab6882178b38826b27c65b72830eba65f0c7f944467381
+    1500
 )
 endif()

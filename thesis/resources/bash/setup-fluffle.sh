@@ -1,2 +1,2 @@
-cd build/qemu-csd
+cd build/opencsd
 mkdir test

@@ -7,7 +7,7 @@ cd build
 cmake ..
 make qemu-build
 cmake ..
-cd qemu-csd
+cd opencsd
 source activate
 qemu-img create -f raw znsssd.img 34359738368
 ld-sudo ./qemu-start-256-kvm.sh
@@ -16,9 +16,9 @@ git bundle create deploy.git HEAD
 rsync -avz -e "ssh -p 7777" deploy.git arch@localhost:~/
 # Type password (arch)
 ssh arch@localhost -p 7777
-git clone deploy.git qemu-csd
+git clone deploy.git opencsd
 rm deploy.git
-cd qemu-csd
+cd opencsd
 git -c submodule."dependencies/qemu".update=none submodule update --init
 mkdir build
 cd build

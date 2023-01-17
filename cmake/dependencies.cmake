@@ -23,11 +23,11 @@
 # Functions to help with dependency management
 
 # https://www.scivision.dev/cmake-download-verify-file/
-function(download_file url filename hash_type hash)
+function(download_file url filename hash_type hash timeout)
     if(NOT EXISTS "${filename}")
         message("Downloading: ${filename}")
         file(DOWNLOAD ${url} ${filename}
-            TIMEOUT 900  # seconds
+            TIMEOUT ${timeout}  # seconds
             EXPECTED_HASH ${hash_type}=${hash}
             TLS_VERIFY ON)
     endif()
