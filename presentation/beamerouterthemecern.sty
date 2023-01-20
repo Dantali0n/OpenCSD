@@ -1,0 +1,61 @@
+% https://github.com/jeromebelleman/beamer-cern
+% Jerome Belleman <Jerome.Belleman@cern.ch>, March 2015
+
+\usepackage{calc}
+\mode<presentation>
+
+% Lengths: trust Inkscape to measure them, PowerPoint if far too approximate
+
+\newlength{\footlinedp}
+\setlength{\footlinedp}{7.127mm * \ratio{128mm}{254mm}}
+\newlength{\footlineht}
+\setlength{\footlineht}{19.454mm * \ratio{128mm}{254mm} - \footlinedp}
+\newlength{\footlinesk}
+\setlength{\footlinesk}{3.338mm * \ratio{128mm}{254mm}}
+
+\newlength{\logowd}
+\setlength{\logowd}{49.046mm * \ratio{128mm}{254mm}}
+\pgfdeclareimage[width=\logowd]{smalllogo}{vu-logo}
+\newlength{\logolw}
+\setlength{\logolw}{\footlinedp - 2.392mm * \ratio{128mm}{254mm}}
+
+\newlength{\footlinetextwd}
+\setlength{\footlinetextwd}{140pt}
+
+\newlength{\numberwd}
+\setlength{\numberwd}{20pt}
+
+\defbeamertemplate*{footline}{cern}
+{
+  \ifbeamer@cern@cover
+  \else
+    \begin{beamercolorbox}[wd=\paperwidth,dp=\footlinedp,ht=\footlineht,
+                           leftskip=\footlinesk,
+                           rightskip=\footlinesk]{footline}%
+      \usebeamerfont{title in head/foot}%
+      \lower\logolw\hbox{\pgfuseimage{smalllogo}}%
+      \hfill\makebox[\footlinetextwd][c]{\insertshortdate}%
+      \makebox[\numberwd][r]{\insertframenumber}%
+    \end{beamercolorbox}%
+  \fi
+}
+
+\defbeamertemplate*{frametitle}{cern}
+{
+  \vspace{16pt}
+  % Set depth=0pt to avoid body position from depending on whether title
+  % text has any depth or not.
+  \begin{beamercolorbox}[dp=0pt,leftskip=\titlelf]{title}
+    \usebeamerfont{frametitle}%
+    \insertframetitle 
+  \end{beamercolorbox}
+}
+
+\defbeamertemplate*{navigation symbols}{cern}{}
+
+\defbeamertemplate*{frametitle continuation}{cern}{
+  (\insertcontinuationcountroman)
+}
+
+\mode
+<all>
