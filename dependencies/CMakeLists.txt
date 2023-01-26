@@ -55,7 +55,7 @@ add_custom_target(spdk-build DEPENDS spdk-install)
 add_custom_target(dpdk-build DEPENDS dpdk-copy)
 add_custom_target(isa-l-build DEPENDS isa-l-install)
 add_custom_target(generate_bpftool DEPENDS bpftool_copy)
-add_custom_target(qemu-build ALL DEPENDS qemu-install)
+add_custom_target(qemu-build ALL DEPENDS qemu-image)
 add_custom_target(xenium-build ALL DEPENDS xenium-copy)
 
 # ------------------------- #
@@ -484,8 +484,14 @@ add_custom_command(OUTPUT ubpf-install PRE_BUILD
 # Do not rebuild qemu if being run inside qemu
 file_exists(${PRJ_ROOT}/bin/qemu-system-x86_64 has_qemu)
 if(${has_qemu} OR IS_DEPLOYED)
-    add_custom_target(qemu-install)
+    add_custom_target(qemu-image)
 endif()
+
+add_custom_command(OUTPUT qemu-image PRE_BUILD
+    COMMAND qemu-img create -f raw znsssd.img 34359738368
+    WORKING_DIRECTORY ${PRJ_ROOT}
+    DEPENDS qemu-install
+)
 
 add_custom_command(OUTPUT qemu-install PRE_BUILD
     COMMAND make -j ${command_nproc} install
@@ -496,14 +502,14 @@ add_custom_command(OUTPUT qemu-install PRE_BUILD
 add_custom_command(OUTPUT qemu-configure PRE_BUILD
     COMMAND CFLAGS=-Wno-error=deprecated-declarations ../configure --enable-debug --disable-zstd --target-list=x86_64-softmmu --prefix=${PRJ_ROOT}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/qemu/build
-    DEPENDS qemu-patch
-)
-
-add_custom_command(OUTPUT qemu-patch PRE_BUILD
-    COMMAND bash -c 'git apply --check --reverse ../qemu-patches/ebpf-replace-deprecated-bpf_program__set_socket_filter.diff && git apply ../qemu-patches/ebpf-replace-deprecated-bpf_program__set_socket_filter.diff' || exit 0
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/qemu
     DEPENDS qemu-build-dir
 )
+
+#add_custom_command(OUTPUT qemu-patch PRE_BUILD
+#    COMMAND bash -c 'git apply --check --reverse ../qemu-patches/ebpf-replace-deprecated-bpf_program__set_socket_filter.diff && git apply ../qemu-patches/ebpf-replace-deprecated-bpf_program__set_socket_filter.diff' || exit 0
+#    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/qemu
+#    DEPENDS qemu-build-dir
+#)
 
 add_custom_command(OUTPUT qemu-build-dir PRE_BUILD
     COMMAND mkdir build -p
@@ -540,9 +546,9 @@ add_custom_command(
 # Download qemu image if preparing deployment / on host development
 if(NOT IS_DEPLOYED)
 download_file(
-    https://nextcloud.dantalion.nl/index.php/s/W9sXftrndti3WF7/download
+    https://nextcloud.dantalion.nl/index.php/s/xKPgSXcb66ggJ5j/download
     ${PRJ_ROOT}/arch-qemucsd.qcow2
-    SHA256 e2c75c95129171f845ab6882178b38826b27c65b72830eba65f0c7f944467381
+    SHA256 6b35abbf09cb20392b2eaf1770210674deb0d5fd0242788b9ba83ec7fd3deead
     1500
 )
 endif()

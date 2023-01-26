@@ -63,6 +63,7 @@ concurrent regular user access to the same file!
   install project dependencies
 * tests - Unit tests and possibly integration tests
 * thesis - Thesis written on OpenCSD using LaTeX
+* thesis-presentation - Thesis presentation written on OpenCSD using LaTeX
 * [zcsd](zcsd/README.md) - Documentation on the previous prototype.
   * compsys 2021 - CompSys 2021 presentation written in LaTeX
   * documentation - Individual Systems Project report written in LaTeX
@@ -142,7 +143,7 @@ build directory.
 
 ### Setup
 
-Several different setups are available of which two are officially supported.
+Several setups are available of which two are officially supported.
 We recommend using QEMU for a non-volatile filesystem setup provided by QEMU
 ZNS emulation.
 
@@ -156,6 +157,11 @@ NVMe device providing a non-volatile CSD filesystem experience. In addition,
 the use of QEMU ensures software libraries and frameworks use supported
 versions.
 
+The QEMU setup will try to download a 4.5 GB qcow2 image that will fail if not
+downloaded within 30 minutes. Alternatively, the file can be downloaded as
+torrent [through this link](https://nextcloud.dantalion.nl/index.php/s/4ni8qCpQbPWRZmR/download).
+This file should be saved as `./build/opencsd/arch-qemucsd.qcow2`.
+
 ```shell
 # git clone ssh://git@gitlab.dantalion.nl:4022/vu/opencsd.git
 cd opencsd
@@ -163,7 +169,25 @@ git submodule update --init
 mkdir build
 cd build
 cmake ..
+# This will also create a 32gb zns image
 make qemu-build
+cmake ..
+
+cd opencsd
+source activate
+# By default qemu will use 4 CPU cores and 8GB of memory + kvm
+./qemu-start-256-kvm.sh
+# Wait for QEMU VM to fully boot... (might take some time)
+# Type password (arch)
+ssh arch@localhost -p 7777
+cd opencsd
+git pull origin master
+git -c submodule."dependencies/qemu".update=none submodule update --init
+mkdir build
+cd build
+cmake -DENABLE_DOCUMENTATION=off -DIS_DEPLOYED=on ..
+# Do not use make -j $(nproc)
+make fuse-entry-spdk
 cmake ..
 ```
 
