@@ -235,6 +235,7 @@ if(ENABLE_DOCUMENTATION)
 
 	add_custom_target(all-documents ALL)
 	add_subdirectory(thesis)
+	add_subdirectory(thesis-presentation)
 	add_subdirectory(ictopen2022)
 	add_subdirectory(fosdem2023)
 	add_subdirectory(zcsd/compsys2021)

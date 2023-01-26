@@ -149,16 +149,16 @@ fosdem2023/*
 !fosdem2023/**/python/
 
 # latex intermediate files
-presentation/*
-!presentation/**/
-!presentation/CMakeLists.txt
-!presentation/vu-logo.png
-!presentation/**/*.bib
-!presentation/**/*.tex
-!presentation/**/*.sty
-!presentation/**/bash/
-!presentation/**/images/
-!presentation/**/python/
+thesis-presentation/*
+!thesis-presentation/**/
+!thesis-presentation/CMakeLists.txt
+!thesis-presentation/vu-logo.png
+!thesis-presentation/**/*.bib
+!thesis-presentation/**/*.tex
+!thesis-presentation/**/*.sty
+!thesis-presentation/**/bash/
+!thesis-presentation/**/images/
+!thesis-presentation/**/python/
 
 # Old prototype files
 zcsd/**/*.log

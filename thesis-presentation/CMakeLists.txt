@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2022 Dantali0n
+# Copyright (c) 2023 Dantali0n
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -42,14 +42,14 @@ if(LATEX_FOUND AND LATEX_PDFLATEX_FOUND)
     )
 
     # Second pass - generate the final pdf.
-    add_custom_target(thesis-presentation
+    add_custom_target(latex-thesis-presentation
         COMMAND texi2pdf -o ${OUT_DIRECTORY}/thesis-presentation.pdf ${MAIN_TEX}
         WORKING_DIRECTORY ${WORKINGDIR}
         COMMENT "Assembling the final pdf file."
         DEPENDS prebuild-thesis-presentation
     )
 
-    add_dependencies(all-documents thesis-presentation)
+    add_dependencies(all-documents latex-thesis-presentation)
 else()
     message(ERROR "No latex tools found!")
 endif()
