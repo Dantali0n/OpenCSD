@@ -172,12 +172,14 @@ cmake ..
 # This will also create a 32gb zns image
 make qemu-build
 cmake ..
-
 cd opencsd
 source activate
 # By default qemu will use 4 CPU cores and 8GB of memory + kvm
 ./qemu-start-256-kvm.sh
 # Wait for QEMU VM to fully boot... (might take some time)
+```
+
+```shell
 # Type password (arch)
 ssh arch@localhost -p 7777
 cd opencsd
