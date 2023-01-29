@@ -189,7 +189,7 @@ mkdir build
 cd build
 cmake -DENABLE_DOCUMENTATION=off -DIS_DEPLOYED=on ..
 # Do not use make -j $(nproc)
-make fuse-entry-spdk
+make fuse-entry-spdk -j $(nproc)
 cmake ..
 ```
 
@@ -204,32 +204,8 @@ git submodule update --init
 mkdir build
 cd build
 cmake .. # For non default configurations copy the cmake parameters before the ..
-cmake --build .
-# Do not use make -j $(nproc), CMake is not able to solve concurrent dependency chain
+make fuse-entry -j $(nproc)
 cmake .. # this prevents re-compiling dependencies on every next make command
-```
-
-```shell script
-cd build/opencsd
-source activate
-qemu-img create -f raw znsssd.img 34359738368 # 16777216
-# By default qemu will use 4 CPU cores and 8GB of memory
-./qemu-start-256-kvm.sh
-# Wait for QEMU VM to fully boot... (might take some time)
-git bundle create deploy.git HEAD
-# Type password (arch)
-rsync -avz -e "ssh -p 7777" deploy.git arch@localhost:~/
-# Type password (arch)
-ssh arch@localhost -p 7777
-git clone deploy.git opencsd
-rm deploy.git
-cd opencsd
-git -c submodule."dependencies/qemu".update=none submodule update --init
-mkdir build
-cd build
-cmake -DENABLE_DOCUMENTATION=off -DIS_DEPLOYED=on ..
-# Do not use make -j $(nproc), CMake is not able to solve concurrent dependency chain
-cmake --build .
 ```
 
 ### Environment:
@@ -245,14 +221,13 @@ environment can be deactivated at any time by executing `deactivate`.
 
 ### Usage Examples:
 
-
 1. Start the filesystem in a memory backed mode and mount it on `test`.
 
 ```
 cd build
 make fuse-entry
 cmake ..
-cd qemu-csd
+cd opencsd
 mkdir −p test
 source activate
 ld−sudo ./fuse−entry −− −d −o max_read=2147483647 test &
