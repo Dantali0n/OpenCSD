@@ -1,4 +1,5 @@
-\documentclass[aspectratio=169]{beamer}
+% \documentclass[aspectratio=169]{beamer}
+\documentclass[aspectratio=169, notes]{beamer}
 \usepackage[utf8]{inputenc}
 \usepackage[inline]{enumitem}
 \usepackage{pdfpages}
@@ -9,6 +10,13 @@
 \usetheme{cern}
 
 \addtobeamertemplate{note page}{}{\thispdfpagelabel{notes:\insertframenumber}}
+
+\newcommand\FourQuad[4]{%
+    \begin{minipage}[b][.35\textheight][t]{.47\textwidth}#1\end{minipage}\hfill%
+    \begin{minipage}[b][.35\textheight][t]{.47\textwidth}#2\end{minipage}\\[0.5em]
+    \begin{minipage}[b][.35\textheight][t]{.47\textwidth}#3\end{minipage}\hfill
+    \begin{minipage}[b][.35\textheight][t]{.47\textwidth}#4\end{minipage}%
+}
 
 \newcommand{\btVFill}{\vskip0pt plus 1filll}
 
@@ -194,10 +202,17 @@
 % demonstrate why we need Computational storage in the first place.
 
 \frame{\titlepage}
+\note{
+    30s - 0.5
+    \begin{itemize}
+        \item Emulating computational storage with QEMU and eBPF
+        \item QEMU is used to simplify setup but not strictly necessary
+    \end{itemize}
+}
 
 \begin{frame}{Index}
     \begin{columns}
-        \begin{column}{0.5\textwidth}
+        \begin{column}{0.6\textwidth}
             \begin{itemize}
                 \item Who am I
                 \item What is Computational Storage
@@ -216,12 +231,21 @@
                 \item Future Work
             \end{itemize}
         \end{column}
-        \begin{column}{0.5\textwidth}
+        \begin{column}{0.4\textwidth}
         \end{column}
     \end{columns}
 \end{frame}
 \note{
-
+    30s - 1.0
+    \begin{itemize}
+        \item What we will talk about today
+        \item Some introduction
+        \item Most probably unfamiliar with computational storage
+        \item Show how to install and run OpenCSD and FluffleFS
+        \item Show some code examples and a demo
+        \item Describe the API and how to create your own computational
+              storage kernels
+    \end{itemize}
 }
 
 \begin{frame}{Who am I}
@@ -243,15 +267,22 @@
     \end{itemize}
 \end{frame}
 \note{
-
+    30s - 1.5
+    \begin{itemize}
+        \item 12 years of academia including an associate, bachelor and master degree
+        \item Health Technology - Outdoor Navigation for visually impaired
+        \item Openstack - Cloud Optimization by live migration
+        \item Computational Storage - This talk
+        \item SCADA - LOFAR 2 station software
+    \end{itemize}
 }
 
 \begin{frame}{Why do we need it}
     \begin{columns}
         \begin{column}{0.3\textwidth}
-            \begin{itemize}
-                \item test
-            \end{itemize}
+%             \begin{itemize}
+%                 \item test
+%             \end{itemize}
         \end{column}
         \begin{column}{0.7\textwidth}
             \begingroup
@@ -260,19 +291,19 @@
                 \centering
                 \includegraphics[width=0.9\textwidth]{resources/images/data-problem.png}
             \end{figure}
-            % \begin{itemize}
-            % 	\item Bring compute closer to storage
-            % 	\item Many benefits and challenges % Energy efficient, reduce host load, scalability
-            % 	\item A long time in the making [1] % it has taken over a decade without any widespread adoption
-            % \end{itemize}
-            % \textit{\tiny $^{1}$Past, Present and Future of Computational Storage: A
-            % Survey, Corne Lukken \& Animesh Trivedi - https://arxiv.org/abs/2112.09691}
             \endgroup
         \end{column}
     \end{columns}
 \end{frame}
 \note{
-
+    1m - 2.5
+    \begin{itemize}
+        \item We life in a data-driven society, a world exploding data.
+        \item So much data that we are expected to store 200 Zettabytes of data
+              in total by 2050.
+        \item Such high data capacity and throughput requirements pose
+              significant challenges to existing and future technologies.
+    \end{itemize}
 }
 
 % page 2
@@ -299,15 +330,18 @@
     \end{columns}
 \end{frame}
 \note{
-    Perhaps the most prominent bottleneck in computer systems today is the one
-    caused by the Von Neumann architecture. This architecture imposes restrictions
-    on the location of data a CPU is able to operate on. Being it must either be
-    in system memory, cache or a register. This prevents processors from directly
-    operating on data provided by peripherals such as SSD flash storage. In
-    addition the memory controller often has lower bandwidth then the interface
-    used to connect peripherals while internally many flash devices togeteher are
-    often able to saturate the bandwidth of peripheral interface as well. This
-    leads to substantial bottlenecks primarily in enterprise SSD storage servers.
+    1m - 3.5
+    \begin{itemize}
+        \item Von Neumann architecture causes most prominent bottleneck
+        \item All data needs to be moved to main system memory prior to CPU
+              processing.
+        \item Prevents processor from directly operating on data.
+        \item Memory controller, PCIe root complex, other interconnects and
+              networks often have lower bandwidth then SSD storage arrays found
+              in enterprise storage servers.
+        \item The cost of additional memory and CPU as well as rackspace is
+              significant compared to the cost of additional SSD storage.
+    \end{itemize}
 }
 
 \begin{frame}{Why do we need it}
@@ -315,7 +349,9 @@
         \begin{column}{0.3\textwidth}
             \footnotesize
             \begin{itemize}
-                \item
+                \item 4.5x bandwidth gap with 64 SSD storage server (2021)
+                \item Flash chip bandwidth under NDA
+                \item PCIe p2p-dma \footnotemark[1]
             \end{itemize}
         \end{column}
         \begin{column}{0.7\textwidth}
@@ -323,21 +359,37 @@
             \small
             \begin{figure}
                 \centering
-                \includegraphics[width=0.92\textwidth]{resources/images/storage-bottleneck.png}
+                \includegraphics[width=0.87\textwidth]{resources/images/storage-bottleneck.png}
             \end{figure}
             \endgroup
         \end{column}
     \end{columns}
+    \footnotetext[1]{\tiny https://www.kernel.org/doc/html/latest/driver-api/pci/p2pdma.html}
 \end{frame}
 \note{
+    1m - 4.5
+    \begin{itemize}
+        \item Enterprise storage servers face large bandwidth gaps to meet
+              economic densities.
+        \item Actual bandwidth of flash chips on SSDs is often unknown.
+        \item The PCIe root complex typically offers more bandwidth then the
+              memory controller. Can be utilized by Peer-to-Peer DMA.
+        \item p2p-dma across root complexes not supported by Linux due to
+              optional support in specification.
+    \end{itemize}
 }
 
 % page 3
 \begin{frame}{What is Computational Storage}
     \begin{columns}
         \begin{column}{0.3\textwidth}
+            \footnotesize
             \begin{itemize}
-                \item test
+                \item Fit compute \& memory on storage device
+                \item Specialized hardware (ASIC / FPGA)
+                \item Improve energy efficiency
+                \item Reduce data movement
+                \item User submits programs to run on device (\textit{kernels})
             \end{itemize}
         \end{column}
         \begin{column}{0.7\textwidth}
@@ -352,17 +404,20 @@
     \end{columns}
 \end{frame}
 \note{
-    With computational storage, flash storage devices are fitted with their own
-    computational elements and memory. Often a combination of a regular processor
-    combined with a field-programmable gate array, a subject we are unfortunately
-    not able to cover further today. With computational storage the host system
-    sends a user provided program along with metadata upon a particular I/O event
-    or at the users descretion to the device for execution. All data from the
-    storage device is thus moved internally an only the result of the execution is
-    returned to the host for further processing. While the result still has to be
-    moved to system memor, the computation often is reductive in nature, reducing
-    the amount of bandwidth occupied on the perihperal interfaces and memory
-    controller.
+    1m - 5.5
+    \begin{itemize}
+        \item Storage devices are fitted with their own computational elements
+              and memory
+        \item Often combination of regular processor and FPGA
+        \item Host system sends user provided program to the device with metadata
+        \item All data from storage moved internally to compute element
+        \item Only result of computation moved over interconnect back to system
+              memory.
+        \item Results, in reduced energy consumption, occupied memory and
+              peripheral bandwidth.
+        \item Specialized lower performance cores often more energy efficient
+              then high performance general performance.
+    \end{itemize}
 }
 
 % % page 4
@@ -394,9 +449,9 @@
             Shortlist:
             \footnotesize
             \begin{itemize}
-                \item BlockNDP (2020) \footnotemark[1]
-                \item Metal FS (2020) \footnotemark[2]
-                \item INSIDER (July 2019) \footnotemark[3]
+                \item BlockNDP (2020) \footnotemark[2]
+                \item Metal FS (2020) \footnotemark[3]
+                \item INSIDER (July 2019) \footnotemark[4]
             \end{itemize}
         \end{column}
         \begin{column}{0.5\textwidth}
@@ -409,49 +464,182 @@
             \end{itemize}
         \end{column}
     \end{columns}
-    \footnotetext[1]{\tiny https://doi.org/10.1145/3429357.3430519}
-    \footnotetext[2]{\tiny https://doi.org/10.1145/3342195.3387557}
-    \footnotetext[3]{\tiny https://www.usenix.org/conference/atc19/presentation/ruan}
+    \footnotetext[2]{\tiny https://doi.org/10.1145/3429357.3430519}
+    \footnotetext[3]{\tiny https://doi.org/10.1145/3342195.3387557}
+    \footnotetext[4]{\tiny https://www.usenix.org/conference/atc19/presentation/ruan}
 \end{frame}
 \note{
+    1m - 6.5
+    \begin{itemize}
+        \item BlockNDP, designed for filesystem integration but never implemented
+        \item Metal FS. overwrites default Linux pipe behavior
+        \item INSIDER, requires linking a shared library
+        \item None, support concurrent regular file and offloaded file access
+        \item Interfaces often cumbersome, esoteric and unlike other filesystem
+              interfaces.
+    \end{itemize}
+}
+
+\begin{frame}{Related Work}
+    \begin{columns}
+        \begin{column}{0.25\textwidth}
+            \footnotesize
+            \begin{itemize}
+                \item Over a decade of research
+                \item Many works, many different approaches
+                \item Past survey for complete overview \footnotemark[5]
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.75\textwidth}
+            \begingroup
+            \begin{figure}
+                \centering
+                \includegraphics[width=0.8\textwidth]{resources/images/related-work.png}
+            \end{figure}
+            \endgroup
+        \end{column}
+    \end{columns}
+    \footnotetext[5]{\tiny https://arxiv.org/abs/2112.09691}
+\end{frame}
+\note{
+    30s - 7.0
+    \begin{itemize}
+        \item A little more of a complete overview
+        \item Ordered chronologically
+        \item Part of a bigger survey I did during my masters
+    \end{itemize}
 }
 
 \begin{frame}{OpenCSD \& FluffleFS}
+    \begin{columns}
+        \begin{column}{0.45\textwidth}
+            \footnotesize
+            \begin{itemize}
+                \item Entirely runs in user-space
+                \item Using pre-existing system calls
+                \item Concurrent access to same file
+                \item Built using existing open-source libraries
+                \item Use and experiment without any additional hardware
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.55\textwidth}
+            \begin{figure}
+                \centering
+                \includegraphics[width=1\textwidth]{resources/images/module-dependencies.pdf}
+            \end{figure}
+        \end{column}
+    \end{columns}
 \end{frame}
+\note{
+    1m - 8.0
+    \begin{itemize}
+        \item No kernel modules are required
+        \item Use of system calls does not interfere with regular OS use
+        \item First ever filesystem to support concurrent regular and offloaded
+              access to the same file
+        \item All features enabled by mixing the right pre-existing technologies
+        \item Thanks to QEMU no additional hardware has to be purchased to try this
+    \end{itemize}
+}
 
-\begin{frame}{Key Design Aspects}
+% page 7
+% To create such a filesystem our work relies on 5 fundamental design deicision
+% and technologies. First is a software design using modules and interfaces this
+% allows for rapid prototyping and loose coupling. Second is the use of a
+% filesystem design from the 1990's a log-structured filesystem using append
+% only writes. Third is the use of a new NVMe technology called Zoned Namespaces
+% and fourth is the use of a filesystem feature supported by almost every
+% filesystem even though not officially part of POSIX caled extended attributes.
+\begin{frame}{Design}
+	\begingroup
+	\small
+
+	\FourQuad%
+		{\centering Modules \& Interfaces
+		\begin{figure}
+			\centering
+			\includegraphics[width=0.85\textwidth]{resources/images/modules-interfaces.png}
+		\end{figure}
+		}
+		{\centering Log-Structured Filesystem (LFS) \footnotemark[6]
+		\begin{figure}
+			\centering
+			\includegraphics[width=0.9\textwidth]{resources/images/lfs-example.png}
+		\end{figure}
+		}
+		{\centering Zoned Namespaces (ZNS)
+		\begin{figure}
+			\centering
+			\includegraphics[width=0.55\textwidth]{resources/images/zns-simple.png}
+		\end{figure}
+		}
+		{\centering Extended Attributes (xattr)
+		\begin{figure}
+			\centering
+			\includegraphics[width=0.65\textwidth]{resources/images/xattr-inode.png}
+		\end{figure}
+		}
+		\footnotetext[6]{\tiny The design and implementation of a Log-structured File System}
+	\endgroup
 \end{frame}
+\note{
+    1m - 9.0
+    \begin{itemize}
+        \item Firstly, we separate the project into modules that can be combined
+        \item Some modules, separate frontend and backends
+        \item Allows to switch backend on the fly.
+              Memory backed ZNS vs SPDK backend ZNS interface
+        \item Use LFS, no in-place updates, write only append
+        \item Will explain ZNS in more detail with some background on SSDs and
+              the block interface.
+        \item Extended attributes, system call allows to store arbitrary
+              key-value pairs on individual files and folders. Present on
+              basically any operating system (not POSIX).
+    \end{itemize}
+}
 
-\begin{frame}{Component Breakdown}
+\begin{frame}{Design: Zoned NameSpaces (ZNS) 1/2}
+    \begin{columns}
+        \begin{column}{0.45\textwidth}
+            \footnotesize
+            Conventional SSDs
+            \begin{itemize}
+                \item The (traditional) block interface
+                \item Linear writes
+                \item Large erase units
+                \item Flash Translation Layer (FTL)
+                \item Logical vs Physical Block Address \\ (LBA / PBA)
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.55\textwidth}
+            \begingroup
+            \small
+            \begin{figure}
+                \centering
+                \includegraphics[width=0.5\textwidth]{resources/images/conventional.png}
+            \end{figure}
+            \endgroup
+        \end{column}
+    \end{columns}
 \end{frame}
-
-\begin{frame}{Shannon Entropy Demo}
-\end{frame}
-
-\begin{frame}{Operating Principle Details}
-\end{frame}
-
-\begin{frame}{Limitations and Considerations}
-\end{frame}
-
-% page 1
-% We life in a data-driven society, a world exploding data. So much data that
-% we are expected to store 200 Zettabytes of data in total by 2050.
-% Such high data capacity and throughput requirements pose signficant challenges
-% to existing and future technolgies.
-
-
-% page 2
-% \begin{frame}{Our Contribution}
-% 	\begingroup
-% 	\small
-% 	\begin{itemize}
-% 		\item Simple and easy to use (OpenCSD)
-% 		\item Intuitive pre-existing offloading interface (xattr)
-% 		\item \underline{CSD multi-user tenant filesystem (FluffleFS)} % Presentation focus
-% 	\end{itemize}
-% 	\endgroup
-% \end{frame}
+\note{
+    1m - 11.0
+    \begin{itemize}
+        \item The block interface was created for hard-drives, spinning rust
+        \item Any sector could be read and written in arbitrary fashion
+        \item This same block interfaces was applied to SSDs
+        \item However, SSD Nand Flash has much more restrictive properties
+        \item In Nand flash every page / sector within a block needs to be
+              linearly written
+        \item Every block of sectors needs to be erased as a whole before
+              it can be written again
+        \item Since the block interface presents an arbitrary read / write
+              interface the SSD needs to perform translations between the
+              requested address and the actual address inside nand flash.
+        \item This translation is known as the Flash Translation Layer (FTL)
+              Reason most SSDs have relatively powerful microcontrollers.
+    \end{itemize}
+}
 
 % page 5
 % First is zoned namespaces. A ratified extensions to the NVMe specification
@@ -464,189 +652,323 @@
 % pointer separated across individual zones. This results in each zone being
 % written sequentially. Should the host desire to erase data it must do so one
 % entire zone at a time.
-\begin{frame}{Zoned NameSpaces (ZNS)}
-	\begingroup
-	\small
-	\begin{figure}
-		\centering
-		\includegraphics[width=1\textwidth]{resources/images/zns-vs-conventional-layout.pdf}
-	\end{figure}
-	\textit{\tiny $^{2}$NVM Express Zoned Namespace Command Set Specification 1.1b - 
-	https://nvmexpress.org/developers/nvme-command-set-specifications/}
-	\endgroup
+\begin{frame}{Design: Zoned NameSpaces (ZNS) \footnotemark[7] 2/2}
+    \begin{columns}
+        \begin{column}{0.45\textwidth}
+            \footnotesize
+            Zoned Namespaces SSDs
+            \begin{itemize}
+                \item Fit interface to nand flash behavior
+                \item Devide erase units in zones
+                \item Require each zone is linearly written
+                \item Perfect match for LFS filesystems
+                \item Host operating system manages FTL
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.55\textwidth}
+            \begingroup
+            \small
+            \begin{figure}
+                \centering
+                \includegraphics[width=0.5\textwidth]{resources/images/zns-lfs2.png}
+            \end{figure}
+            \endgroup
+        \end{column}
+    \end{columns}
+    \footnotetext[7]{
+        \tiny NVM Express Zoned Namespace Command Set Specification 1.1b -
+        https://nvmexpress.org/developers/nvme-command-set-specifications/
+    }
 \end{frame}
+\note{
+    1m - 12.0
+    \begin{itemize}
+        \item Zoned Namespaces SSDs solves these issues with the block interface
+        \item Allow the host to control data placement and decide when to perform
+              erasure.
+        \item No translation allows host filesystem to understand and reason
+              about physical data location
+        \item Absence of the FTL is critical for synchronising host
+              filesystem with computational storage operations without expensive
+              shared virtual memory.
+    \end{itemize}
+}
 
-% page 6
-% We combine ZNS with a Log-structured File System,
-% A filesystem design from the late 90's repopularized partly due to flash
-% storage.
-% LFS is Append-only, all writes go to the current tail of the log, even if the
-% actual write overwrites parts of an already existing file. This allows to
-% create in-memory representations of a file called snapshots that can be
-% guaranteed to be immutable during the execution of a computational storage
-% device program, often called kernels. Moreover this allows regular I/O 
-% requests to happen concurrently even if the I/O goes to the same file.
-% However, it does mean that the execution of the kernel can potentially operate
-% on partially stale data.
-\begin{frame}{Log-structured File System (LFS)}
-	\begingroup
-	\small
-	\begin{figure}
-		\centering
-		\includegraphics[width=0.7\textwidth]{resources/images/lfs.png}
-	\end{figure}
-	% \begin{itemize}
-	% 	\item Append only writes
-	% 	\item Journaling, snapshotting and revovery
-	% 	\item Perfect match for ZNS
-	% \end{itemize}
-	% Append only writes
-	% Simple support for journaling, snapshotting and revovery
-	% Our design based on F2FS to prevent write-amplification
-	% \begin{figure}
-	% 	\centering
-	% 	\includegraphics[width=0.7\textwidth]{resources/images/f2fs-nat.pdf}
-	% \end{figure}
-	\textit{\tiny $^{3}$The design and implementation of a Log-structured File System \\}
-	\textit{\tiny $^{4}$F2FS: A New File System for Flash Storage}
-	\endgroup
+\begin{frame}{Design: ZNS + LFS}
+    \begin{columns}
+        \begin{column}{0.45\textwidth}
+            \footnotesize
+            Synchronizing host \& device filesystem
+            \begin{itemize}
+                \item Ensure file immutable for kernels
+                \item No host communication during kernel execution
+                \item Unblock regular access
+                \item Check \& understand kernel behavior
+            \end{itemize}
+            \textit{Snapshot consistency model}
+        \end{column}
+        \begin{column}{0.55\textwidth}
+            \begingroup
+            \small
+            \begin{figure}
+                \centering
+                \includegraphics[width=1\textwidth]{resources/images/zns-lfs3.png}
+            \end{figure}
+            \endgroup
+        \end{column}
+    \end{columns}
 \end{frame}
-
-% page 5
-% \begin{frame}{extended Berkely Packet Filter (eBPF)}
-% 	\begingroup
-% 	\small
-% 	% used in the Linux kernel but effectively its an ISA like x86 but easy
-% 	% to implement in virtual machines
-% 	\begin{figure}
-% 		\centering
-% 		\includegraphics[width=1\textwidth]{resources/images/ubpf-simple.png}
-% 	 \end{figure}
-% 	\endgroup
-% \end{frame}
-
-% page 7
-% With these technologies it is clear how we can support multi-user tenent
-% file system access in a computational storage device setting. We now
-% demonstrate the exact mechanism of registering and offloading programs as used
-% in FluffleFS. First is the compilation process of the kernel by the end user.
-% This is done through two header files one for CSD operations itself such as
-% reading from the storage device and returning data to the host. The other
-% specific to the FluffleFS filesystem. It should be noted that the CSD header
-% is already written in a manor that allows for vendor agnostic implementation.
-% Meaning that this header prevents users from having to recompile their kernels
-% for different CSD vendors. Designing an file system agnostic interface
-% remains an open research question, however.
-\begin{frame}{FluffleFS}
-	\begingroup
-	\small % FUSE LFS with concurrent regular and CSD access even to the same file.
-	\begin{figure}
-		\centering
-		\includegraphics[width=0.7\textwidth]{resources/images/compile.png}
-	\end{figure}
-	% How does FluffleFS combine these technologies
-	% \begin{itemize}
-	% 	\item Why ZNS, LFS \& eBPF?
-	% 	\item CSD kernels operate on snapshots % concurrent regular and offloaded access even on the same file
-	% 	\item PID + inode pairs for xattr state % in memory only
-	% \end{itemize}
-	\endgroup
-\end{frame}
+\note{
+    1m - 13.0
+    \begin{itemize}
+        \item Cache-coherent interconnects exist / shared virtual memory exists,
+              not the point won't be performant due to roundtrip time.
+        \item In-memory snapshots solve all these issues.
+        \item Send metadata of file, block locations etc, permissions for kernel
+              along with the kernel and I/O request.
+    \end{itemize}
+}
 
 % page 8
-% Now I imagine this particular diagram can seem daunting but lets go through
-% it step by step. First are the bold arrows with underlined word, each word
-% represents a specific system call that is implemented by POSIX complaint
-% operating systems and Windows. First, the user program issues the stat call on
-% the compiled kernel file, this provides an inode number which is temporarily
-% stored in a key value pair as shown in the top left. Second, the user
-% issues an open on the file that is going to be offloaded to the CSD. Third,
-% and this is key, the user calls set extended attribute on the offloaded file,
-% configuring a specific key value pair that indicates to the filesystem that
-% this offloading should occur. As soon as this extended attribute is set, the
-% file system snapshots both the kernel and target file and moves their in-memory
-% representations onto the CSD. Lastly, the user issues a read command on the
-% file, this bypasses the host filesystem and instead a process is spawned on
-% the CSD. The CSD process runs the snapshotted kernel operating on the
-% snapshotted file. In the end the results of the kernel are returned to the
-% user as if it was the data that was read from the file. And this is how we
-% achieve CSD offloading without any changes to existing operating systems APIs.
-% No changes, to existing operating systems are necessary to achieve this
-% process in this way.
-\begin{frame}{FluffleFS}
-	\begingroup
-	\small % FUSE LFS with concurrent regular and CSD access even to the same file.
-	\begin{figure}
-		\centering
-		\includegraphics[width=0.9\textwidth]{resources/images/offloading.png}
-	\end{figure}
-	% How does FluffleFS combine these technologies
-	% \begin{itemize}
-	% 	\item Why ZNS, LFS \& eBPF?
-	% 	\item CSD kernels operate on snapshots % concurrent regular and offloaded access even on the same file
-	% 	\item PID + inode pairs for xattr state % in memory only
-	% \end{itemize}
-	\endgroup
+% The last design decision revolves around the use of eBPF. Most commonly known
+% as a Linux kernel feature eBPF is actually just an instruction set architecture.
+% One that can easily be implemented in a virtual machine and that allows vendor
+% specific code to be hidden behind call instructions. Effectively allowing for
+% vendor agnostic implementations of APIs without forcing vendors to release binaries
+% or source code.
+\begin{frame}{Design: Architecture Independent Kernels}
+    \begin{columns}
+        \begin{column}{0.45\textwidth}
+            \footnotesize
+            \begin{itemize}
+                \item Define system calls in ABI header
+                \item Leave implementation to VM (vendor)
+                \item Compile once use everywhere
+                \item eBPF ISA trivial to implement in VM
+                \item Pre-existing FOSS eBPF VMs (uBPF)
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.55\textwidth}
+            \begingroup
+            \begin{figure}
+                \centering
+                \includegraphics[width=1\textwidth]{resources/images/ubpf-medium-design.png}
+            \end{figure}
+            \endgroup
+        \end{column}
+    \end{columns}
 \end{frame}
+\note{
+    1m - 14.0
+    \begin{itemize}
+        \item eBPF extensively used in the Linux kernel
+        \item Used for hooks in events, receiving network packets etc
+        \item Statically verified. runtime limited, on Linux
+        \item eBPF essentially just an ISA, allows to define system calls
+        \item ISA designed to be easily implemented by a VM.
+        \item Clang supports compiling a subset of C to eBPF bytecode.
+        \item Key feature, is trapped code for system call determined by VM
+        \item Allows to define an ABI completely agnostic from the vendors
+              implementation
+        \item Using an VM allows to re-use user programs on any device
+              architecture
+    \end{itemize}
+}
 
-% page 9
-% Knowing how offloading is achieved we can now turn to a practical example.
-% Background compression algorithms often check if a file is fit for compression
-% prior to compressing it. This is done by computing the shannon entropy across
-% the first portion of a file, in our case 512k. The shannon entropy is measured
-% as a single 32 bits float with a value between 0 and 8. 8 being entirely 
-% incompressable and 0 meaning compressable to 0 size. We perform this
-% computation for 32 individual files with both the computation performed by the
-% host and offloaded. With the offloaded application almost the entire spent is
-% waiting for the result of the kernel. During this time the operating system
-% can schedule other processes to use the CPU instead. This means that for this
-% application the host load is signifcantly reduced. Since such a compression
-% task runs in the background it would be acceptable if the total execution time
-% would be longer, however, this is not the case in our results.
-\begin{frame}{Evaluation Background Compression}
-	\begingroup
-	% \small An emulated programmable computational flash storage device
-	\begin{figure}
-		\centering
-		\includegraphics[width=0.8\textwidth]{resources/images/results.pdf}
-	\end{figure}
-	\endgroup
+\begin{frame}{Shannon Entropy Demo - Setup QEMU}
+        \begin{columns}
+            \begin{column}{0.42\textwidth}
+                \footnotesize
+                QEMU Setup
+                \begin{itemize}
+                    \item Emulates ZNS storage device
+                    \item ~15 Gb storage requirement
+                    \begin{itemize}
+                        \item Downloads ~4.5 Gb qcow image
+                    \end{itemize}
+                    \item Re-run cmake to detect dependencies
+                \end{itemize}
+            \end{column}
+            \begin{column}{0.58\textwidth}
+                \begingroup
+                \small
+                \begin{figure}
+                    \centering
+                    \includegraphics[width=1\textwidth]{resources/images/qemu-setup.png}
+                \end{figure}
+                \endgroup
+            \end{column}
+        \end{columns}
 \end{frame}
+\note{
+    1m - 15.0
+    \begin{itemize}
+        \item Please see project readme for better / more detailed instructions,
+              No need to remember these.
+        \item Image download has 30 minute time out, alternate torrent link
+              available in readme.
+        \item QEMU setup also creates 32gb zns image for non-volatile storage
+              emulation.
+        \item No longer required to compile QEMU from scratch, ZNS support used
+              to be so new it was only available on developer branch outside
+              of main QEMU repo.
+    \end{itemize}
+}
 
-% page 8
-% \begin{frame}{Evaluation Application}
-% 	\begingroup
-% 	% \small An emulated programmable computational flash storage device
-% 	% \begin{figure}
-% 	% 	\centering
-% 	% 	\includegraphics[width=0.8\textwidth]{resources/images/zcsd-arch-final}
-% 	% \end{figure}
-% 	\endgroup
-% \end{frame}
+\begin{frame}{Shannon Entropy Demo - Setup FluffleFS}
+        \begin{columns}
+            \begin{column}{0.40\textwidth}
+                \footnotesize
+                Build FluffleFS
+                \begin{itemize}
+                    \item Login to QEMU VM
+                    \item Update included repo
+                    \item Get only necessary submodules
+                    \item Don't build QEMU inside QEMU
+                    \item Build FluffleFS filesystem
+                \end{itemize}
+            \end{column}
+            \begin{column}{0.60\textwidth}
+                \begingroup
+                \small
+                \begin{figure}
+                    \centering
+                    \includegraphics[width=1\textwidth]{resources/images/qemu-setup2.png}
+                \end{figure}
+                \endgroup
+            \end{column}
+        \end{columns}
+\end{frame}
+\note{
+    1m - 16.0
+    \begin{itemize}
+        \item \textit{-DIS\_DEPLOYED=on} disables QEMU built
+    \end{itemize}
+}
 
-% page 8
-% \begin{frame}{In short}
-% 	\begingroup
-% 	\small OpenCSD \& FluffleFS demonstrate a filesystem design that allows for
-% 	multi-user tenant CSDs agnostic to vendor SSD implementations.
-% 	\endgroup
-% \end{frame}
+\begin{frame}{Shannon Entropy Demo - Kernel}
+        \begin{columns}
+            \begin{column}{0.40\textwidth}
+                \footnotesize
+                Compute distribution of byte values
+                \begin{itemize}
+                    \item eBPF very small stack size
+                    \item Get heap pointer, manually offset
+                    \item System calls provided by eBPF
+                    \item Helper functions \& data structures provided
+                          by filesystem
+                    \item Can we make user programs agnostic to filesystem?
+                \end{itemize}
+            \end{column}
+            \begin{column}{0.60\textwidth}
+                \begingroup
+                \small
+                \begin{figure}
+                    \centering
+                    \includegraphics[width=1\textwidth]{resources/images/demo-kernel.png}
+                \end{figure}
+                \endgroup
+            \end{column}
+        \end{columns}
+\end{frame}
+\note{
+    1m - 17.0
+    \begin{itemize}
+        \item Shannon Entropy determines value distribution, can be for
+              bits / bytes, arbitrary size. Using granularity of memory
+              interface makes most sense.
+        \item Offset buffer for sector data and store histogram / bin data.
+        \item Read each sector of the request and go through each byte.
+        \item
+    \end{itemize}
+}
+
+\begin{frame}{Shannon Entropy Demo - Execution}
+    \begin{columns}
+        \begin{column}{0.40\textwidth}
+            \footnotesize
+            How to submit I/O requests to execute kernels?
+            \begin{itemize}
+                \item Stride requests (FUSE page limit)
+                \item Inode from kernel file as value for extended attribute
+                      Key
+                \item Different keys for different types of offloading
+                \item Return data from \textit{os.pread} less then request
+                      size.
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.60\textwidth}
+            \begingroup
+            \small
+            \begin{figure}
+                \centering
+                \includegraphics[width=0.85\textwidth]{resources/images/python-kernel.png}
+            \end{figure}
+            \endgroup
+        \end{column}
+    \end{columns}
+\end{frame}
+\note{
+    1m - 18.0
+    \begin{itemize}
+        \item Example in Python can also easily be done in C/C++
+        \item
+    \end{itemize}
+}
+
+\begin{frame}{Operating Principle Details}
+    \begin{columns}
+        \begin{column}{0.40\textwidth}
+            \footnotesize
+            \begin{itemize}
+                \item Stream vs Event kernels
+                \item When to take snapshots?
+                \begin{itemize}
+                    \item Upon \textit{setxattr}
+                \end{itemize}
+                \item Isolate by filehandle, pid, inode?
+                \begin{itemize}
+                    \item By pid
+                \end{itemize}
+            \end{itemize}
+            \textit{}
+        \end{column}
+        \begin{column}{0.60\textwidth}
+            \begingroup
+            \small
+            \begin{figure}
+                \centering
+                \includegraphics[width=1\textwidth]{resources/images/offloading.png}
+            \end{figure}
+            \endgroup
+        \end{column}
+    \end{columns}
+\end{frame}
+\note{
+    1m - 19.0
+    \begin{itemize}
+        \item
+    \end{itemize}
+}
+
+\begin{frame}{Limitations and Considerations}
+\end{frame}
 
 % page 10
-% \begin{frame}{Future Work}
-% 	\begingroup
-% 	\small
-% 	\begin{itemize}
-% 		\item File system agnostic integration for CSDs
-% 		\item Static analysis \& security
-% 		\item Endianness conversions
-% 	\end{itemize}
-% 	% \begin{figure}
-% 	% 	\centering
-% 	% 	\includegraphics[width=0.8\textwidth]{resources/images/csx-fs-agnostic.png}
-% 	% \end{figure}
-% 	\endgroup
-% \end{frame}
+\begin{frame}{Future Work}
+	\begingroup
+	\small
+	\begin{itemize}
+		\item File system agnostic integration for CSDs
+		\item Static analysis \& security
+		\item Endianness conversions
+	\end{itemize}
+	% \begin{figure}
+	% 	\centering
+	% 	\includegraphics[width=0.8\textwidth]{resources/images/csx-fs-agnostic.png}
+	% \end{figure}
+	\endgroup
+\end{frame}
 
 % page 11
 % All software and data to this project is open source, this includes scripts to
