@@ -480,35 +480,35 @@
     \end{itemize}
 }
 
-\begin{frame}{Related Work}
-    \begin{columns}
-        \begin{column}{0.25\textwidth}
-            \footnotesize
-            \begin{itemize}
-                \item Over a decade of research
-                \item Many works, many different approaches
-                \item Past survey for complete overview \footnotemark[5]
-            \end{itemize}
-        \end{column}
-        \begin{column}{0.75\textwidth}
-            \begingroup
-            \begin{figure}
-                \centering
-                \includegraphics[width=0.8\textwidth]{resources/images/related-work.png}
-            \end{figure}
-            \endgroup
-        \end{column}
-    \end{columns}
-    \footnotetext[5]{\tiny https://arxiv.org/abs/2112.09691}
-\end{frame}
-\note{
-    30s - 7.0
-    \begin{itemize}
-        \item A little more of a complete overview
-        \item Ordered chronologically
-        \item Part of a bigger survey I did during my masters
-    \end{itemize}
-}
+% \begin{frame}{Related Work}
+%     \begin{columns}
+%         \begin{column}{0.25\textwidth}
+%             \footnotesize
+%             \begin{itemize}
+%                 \item Over a decade of research
+%                 \item Many works, many different approaches
+%                 \item Past survey for complete overview \footnotemark[5]
+%             \end{itemize}
+%         \end{column}
+%         \begin{column}{0.75\textwidth}
+%             \begingroup
+%             \begin{figure}
+%                 \centering
+%                 \includegraphics[width=0.8\textwidth]{resources/images/related-work.png}
+%             \end{figure}
+%             \endgroup
+%         \end{column}
+%     \end{columns}
+%     \footnotetext[5]{\tiny https://arxiv.org/abs/2112.09691}
+% \end{frame}
+% \note{
+%     30s - 7.0
+%     \begin{itemize}
+%         \item A little more of a complete overview
+%         \item Ordered chronologically
+%         \item Part of a bigger survey I did during my masters
+%     \end{itemize}
+% }
 
 \begin{frame}{OpenCSD \& FluffleFS}
     \begin{columns}
@@ -641,17 +641,6 @@
     \end{itemize}
 }
 
-% page 5
-% First is zoned namespaces. A ratified extensions to the NVMe specification
-% the most prominent protocol used with Flash storage today. While the
-% commercial availability of ZNS devices is still poor its benefits have already
-% been prominently demonstrated in scientific literature. With zoned namespaces
-% the host can no longer issue random writes as we have become used to from the
-% traditional block interface. This means writes can no longer overwrite
-% previously written data instead all writes are appended to the current write
-% pointer separated across individual zones. This results in each zone being
-% written sequentially. Should the host desire to erase data it must do so one
-% entire zone at a time.
 \begin{frame}{Design: Zoned NameSpaces (ZNS) \footnotemark[7] 2/2}
     \begin{columns}
         \begin{column}{0.45\textwidth}
@@ -719,7 +708,7 @@
     \end{columns}
 \end{frame}
 \note{
-    1m - 13.0
+    1.5m - 13.5
     \begin{itemize}
         \item Cache-coherent interconnects exist / shared virtual memory exists,
               not the point won't be performant due to roundtrip time.
@@ -729,13 +718,6 @@
     \end{itemize}
 }
 
-% page 8
-% The last design decision revolves around the use of eBPF. Most commonly known
-% as a Linux kernel feature eBPF is actually just an instruction set architecture.
-% One that can easily be implemented in a virtual machine and that allows vendor
-% specific code to be hidden behind call instructions. Effectively allowing for
-% vendor agnostic implementations of APIs without forcing vendors to release binaries
-% or source code.
 \begin{frame}{Design: Architecture Independent Kernels}
     \begin{columns}
         \begin{column}{0.45\textwidth}
@@ -759,7 +741,7 @@
     \end{columns}
 \end{frame}
 \note{
-    1m - 14.0
+    1.5m - 15
     \begin{itemize}
         \item eBPF extensively used in the Linux kernel
         \item Used for hooks in events, receiving network packets etc
@@ -775,76 +757,76 @@
     \end{itemize}
 }
 
-\begin{frame}{Shannon Entropy Demo - Setup QEMU}
-        \begin{columns}
-            \begin{column}{0.42\textwidth}
-                \footnotesize
-                QEMU Setup
-                \begin{itemize}
-                    \item Emulates ZNS storage device
-                    \item ~15 Gb storage requirement
-                    \begin{itemize}
-                        \item Downloads ~4.5 Gb qcow image
-                    \end{itemize}
-                    \item Re-run cmake to detect dependencies
-                \end{itemize}
-            \end{column}
-            \begin{column}{0.58\textwidth}
-                \begingroup
-                \small
-                \begin{figure}
-                    \centering
-                    \includegraphics[width=1\textwidth]{resources/images/qemu-setup.png}
-                \end{figure}
-                \endgroup
-            \end{column}
-        \end{columns}
-\end{frame}
-\note{
-    1m - 15.0
-    \begin{itemize}
-        \item Please see project readme for better / more detailed instructions,
-              No need to remember these.
-        \item Image download has 30 minute time out, alternate torrent link
-              available in readme.
-        \item QEMU setup also creates 32gb zns image for non-volatile storage
-              emulation.
-        \item No longer required to compile QEMU from scratch, ZNS support used
-              to be so new it was only available on developer branch outside
-              of main QEMU repo.
-    \end{itemize}
-}
-
-\begin{frame}{Shannon Entropy Demo - Setup FluffleFS}
-        \begin{columns}
-            \begin{column}{0.40\textwidth}
-                \footnotesize
-                Build FluffleFS
-                \begin{itemize}
-                    \item Login to QEMU VM
-                    \item Update included repo
-                    \item Get only necessary submodules
-                    \item Don't build QEMU inside QEMU
-                    \item Build FluffleFS filesystem
-                \end{itemize}
-            \end{column}
-            \begin{column}{0.60\textwidth}
-                \begingroup
-                \small
-                \begin{figure}
-                    \centering
-                    \includegraphics[width=1\textwidth]{resources/images/qemu-setup2.png}
-                \end{figure}
-                \endgroup
-            \end{column}
-        \end{columns}
-\end{frame}
-\note{
-    1m - 16.0
-    \begin{itemize}
-        \item \textit{-DIS\_DEPLOYED=on} disables QEMU built
-    \end{itemize}
-}
+% \begin{frame}{Shannon Entropy Demo - Setup QEMU}
+%         \begin{columns}
+%             \begin{column}{0.42\textwidth}
+%                 \footnotesize
+%                 QEMU Setup
+%                 \begin{itemize}
+%                     \item Emulates ZNS storage device
+%                     \item ~15 Gb storage requirement
+%                     \begin{itemize}
+%                         \item Downloads ~4.5 Gb qcow image
+%                     \end{itemize}
+%                     \item Re-run cmake to detect dependencies
+%                 \end{itemize}
+%             \end{column}
+%             \begin{column}{0.58\textwidth}
+%                 \begingroup
+%                 \small
+%                 \begin{figure}
+%                     \centering
+%                     \includegraphics[width=1\textwidth]{resources/images/qemu-setup.png}
+%                 \end{figure}
+%                 \endgroup
+%             \end{column}
+%         \end{columns}
+% \end{frame}
+% \note{
+%     1m - 15.0
+%     \begin{itemize}
+%         \item Please see project readme for better / more detailed instructions,
+%               No need to remember these.
+%         \item Image download has 30 minute time out, alternate torrent link
+%               available in readme.
+%         \item QEMU setup also creates 32gb zns image for non-volatile storage
+%               emulation.
+%         \item No longer required to compile QEMU from scratch, ZNS support used
+%               to be so new it was only available on developer branch outside
+%               of main QEMU repo.
+%     \end{itemize}
+% }
+%
+% \begin{frame}{Shannon Entropy Demo - Setup FluffleFS}
+%         \begin{columns}
+%             \begin{column}{0.40\textwidth}
+%                 \footnotesize
+%                 Build FluffleFS
+%                 \begin{itemize}
+%                     \item Login to QEMU VM
+%                     \item Update included repo
+%                     \item Get only necessary submodules
+%                     \item Don't build QEMU inside QEMU
+%                     \item Build FluffleFS filesystem
+%                 \end{itemize}
+%             \end{column}
+%             \begin{column}{0.60\textwidth}
+%                 \begingroup
+%                 \small
+%                 \begin{figure}
+%                     \centering
+%                     \includegraphics[width=1\textwidth]{resources/images/qemu-setup2.png}
+%                 \end{figure}
+%                 \endgroup
+%             \end{column}
+%         \end{columns}
+% \end{frame}
+% \note{
+%     1m - 16.0
+%     \begin{itemize}
+%         \item \textit{-DIS\_DEPLOYED=on} disables QEMU built
+%     \end{itemize}
+% }
 
 \begin{frame}{Shannon Entropy Demo - Kernel}
         \begin{columns}
@@ -947,28 +929,47 @@
 \note{
     1m - 19.0
     \begin{itemize}
-        \item
+        \item We distinguish between stream kernels and event kernels
+        \item Stream: Happens in-place of the regular I/O request
+        \item Event: Happens after the regular I/O request completes normally
+        \item Kernel and target file have to be on the same filesystem
     \end{itemize}
 }
 
 \begin{frame}{Limitations and Considerations}
+    \begin{columns}
+        \begin{column}{0.50\textwidth}
+            \footnotesize
+            \begin{itemize}
+                \item Filesystem is \textbf{solely} proof of concept!
+                \item eBPF endian conversions and datastructure layouts
+                \item Runtime execution of compute kernels \textbf{not}
+                      cycle accurate
+                \item Only, \textit{read stream} kernel fully supported
+                \item File system agnostic integration for CSDs
+            \end{itemize}
+            \textit{}
+        \end{column}
+        \begin{column}{0.50\textwidth}
+            \begingroup
+            \small
+            \begin{figure}
+                \centering
+                \includegraphics[width=1\textwidth]{resources/images/csx-fs-agnostic.png}
+            \end{figure}
+            \endgroup
+        \end{column}
+    \end{columns}
 \end{frame}
-
-% page 10
-\begin{frame}{Future Work}
-	\begingroup
-	\small
-	\begin{itemize}
-		\item File system agnostic integration for CSDs
-		\item Static analysis \& security
-		\item Endianness conversions
-	\end{itemize}
-	% \begin{figure}
-	% 	\centering
-	% 	\includegraphics[width=0.8\textwidth]{resources/images/csx-fs-agnostic.png}
-	% \end{figure}
-	\endgroup
-\end{frame}
+\note{
+    1m - 20.0
+    \begin{itemize}
+        \item Filesystem, no gc, no deletion, no space reclaiming
+        \item My first filesystem, should be redesigned from zero
+        \item eBPF kernels run on the host CPU, no cycle accurate
+              representation of SSD microcontrollers.
+    \end{itemize}
+}
 
 % page 11
 % All software and data to this project is open source, this includes scripts to
@@ -993,5 +994,16 @@
 	\end{itemize}
 	\endgroup
 \end{frame}
+\note{
+    1m - 21.0
+    \begin{itemize}
+        \item Completely omitted details about filesystem and datastructures,
+              see thesis work.
+        \item No details about performance see thesis or earlier ZCSD work.
+        \item Detailed history of computation storage see survey
+        \item Above all, try the prototype today. Go through the readme,
+              write your own kernels
+    \end{itemize}
+}
 
 \end{document}
