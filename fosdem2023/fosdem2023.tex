@@ -828,23 +828,23 @@
 %     \end{itemize}
 % }
 
-\begin{frame}{Shannon Entropy Demo}
+\begin{frame}{Shannon Entropy Demo - Background}
         \begin{columns}
-            \begin{column}{0.40\textwidth}
+            \begin{column}{0.50\textwidth}
                 \footnotesize
-                Compute distribution of byte values
+                Quantify randomness, distribution of possible values
                 \begin{itemize}
-                    \item For project setup and install see README
-                    \item Determine if file suitable for compression
-                    \item
+                    \item High value, very random, typically between 0/1
+                    \item Normalize for bytes
+                    \item Used in background / filesystem compression
+                    \item Store count in 256 bins (array), histogram
                 \end{itemize}
             \end{column}
-            \begin{column}{0.60\textwidth}
+            \begin{column}{0.50\textwidth}
                 \begingroup
-                \small
                 \begin{figure}
                     \centering
-                    \includegraphics[width=1\textwidth]{resources/images/demo-kernel.png}
+                    $$H(x)=-\sum_{i=1}^{n}p(x_i)log_bp(x_i)$$
                 \end{figure}
                 \endgroup
             \end{column}
@@ -856,7 +856,7 @@
         \item Shannon Entropy determines value distribution, can be for
               bits / bytes, arbitrary size. Using granularity of memory
               interface makes most sense.
-        \item
+        \item Normalize by scaling b = in logb
     \end{itemize}
 }
 
@@ -973,9 +973,10 @@
                       concept!
                 \item eBPF endian conversions and datastructure layouts
                 \item Runtime execution of compute kernels \textbf{not}
-                      cycle accurate
+                      accurate
                 \item Only, \textit{read stream} kernel fully supported
-                \item File system agnostic kernels
+                \item Problematic \textit{event} kernel performance
+                \item Filesystem agnostic kernels
             \end{itemize}
             \textit{}
         \end{column}
@@ -997,6 +998,70 @@
         \item My first filesystem, should be redesigned from zero
         \item eBPF kernels run on the host CPU, no cycle accurate
               representation of SSD microcontrollers.
+    \end{itemize}
+}
+
+\begin{frame}{Limitations and Considerations}
+    \begin{columns}
+        \begin{column}{0.50\textwidth}
+            \footnotesize
+            Filesystem agnostic kernels
+            \begin{itemize}
+                \item Provide stable API header for user programs
+                \item CSx filesystems API library
+                \item Dynamically load library through ICDs
+                \item Use statfs to detect filesystem
+                \item Runtime selects library and dynamically recompiles
+                      user programs.
+                \item Optionally, cache user programs
+            \end{itemize}
+            \textit{}
+        \end{column}
+        \begin{column}{0.50\textwidth}
+            \begingroup
+            \small
+            \begin{figure}
+                \centering
+                \includegraphics[width=1\textwidth]{resources/images/csx-fs-agnostic.png}
+            \end{figure}
+            \endgroup
+        \end{column}
+    \end{columns}
+\end{frame}
+\note{
+    1m - 22.0
+    \begin{itemize}
+        \item
+    \end{itemize}
+}
+
+\begin{frame}{Limitations and Considerations}
+    \begin{columns}
+        \begin{column}{0.35\textwidth}
+            \footnotesize
+            Problematic \textit{event} kernel performance
+            \begin{itemize}
+                \item Multiple roundtrips
+                \item Unnecessary data movement
+                \item Two stage kernel \\ (filesystem + user program)
+            \end{itemize}
+            \textit{}
+        \end{column}
+        \begin{column}{0.65\textwidth}
+            \begingroup
+            \small
+            \begin{figure}
+                \centering
+                \includegraphics[width=1\textwidth]{resources/images/current-event-kernel.png}
+            \end{figure}
+            \endgroup
+        \end{column}
+    \end{columns}
+\end{frame}
+\note{
+    1m - 23.0
+    \begin{itemize}
+        \item
     \end{itemize}
 }
 
