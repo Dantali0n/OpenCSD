@@ -41,8 +41,12 @@ concurrent regular user access to the same file!
 * [Modules](#modules)
 * [Dependencies](#dependencies)
 * [Setup](#setup)
- * [CMake Configuration](#cmake-configuration)
-* [Examples](#examples)
+  * [QEMU setup](#qemu-setup)
+  * [Host setup](#host-setup)
+  * [Environment](#environment)
+  * [CMake Configuration](#cmake-configuration)
+* [Examples](#usage-examples)
+* [Roadmap](#roadmap)
 * [Licensing](#licensing)
 * [References](#references)
 
@@ -162,8 +166,11 @@ downloaded within 30 minutes. Alternatively, the file can be downloaded as
 torrent [through this link](https://nextcloud.dantalion.nl/index.php/s/4ni8qCpQbPWRZmR/download).
 This file should be saved as `./build/opencsd/arch-qemucsd.qcow2`.
 
+Alternatively the QEMU image can be downloaded after executing `make qemu-build`
+by running `cd oepncsd; ./download-image.sh`.
+
 ```shell
-# git clone ssh://git@gitlab.dantalion.nl:4022/vu/opencsd.git
+# git clone https://gitlab.dantalion.nl/vu/opencsd.git
 cd opencsd
 git submodule update --init
 mkdir build
@@ -171,7 +178,7 @@ cd build
 cmake ..
 # This will also create a 32gb zns image
 make qemu-build
-cmake ..
+cmake .. # this prevents re-compiling dependencies on every next make command
 cd opencsd
 source activate
 # By default qemu will use 4 CPU cores and 8GB of memory + kvm
@@ -188,9 +195,8 @@ git -c submodule."dependencies/qemu".update=none submodule update --init
 mkdir build
 cd build
 cmake -DENABLE_DOCUMENTATION=off -DIS_DEPLOYED=on ..
-# Do not use make -j $(nproc)
 make fuse-entry-spdk -j $(nproc)
-cmake ..
+cmake .. # this prevents re-compiling dependencies on every next make command
 ```
 
 #### Host Setup
@@ -200,15 +206,17 @@ fixed version from `./dependencies/linux` will be used. This can cause failures
 in `vmlinux.h` with `bpftool` when accessing `/sys/kernel/btf/vmlinux`.
 
 ```shell script
+# git clone https://gitlab.dantalion.nl/vu/opencsd.git
+cd opencsd
 git submodule update --init
 mkdir build
 cd build
-cmake .. # For non default configurations copy the cmake parameters before the ..
+cmake ..
 make fuse-entry -j $(nproc)
 cmake .. # this prevents re-compiling dependencies on every next make command
 ```
 
-### Environment:
+### Environment
 Within the build folder will be a `opencsd/activate` script. This script can be
 sourced using any shell `source opencsd/activate`. This script configures
 environment variables such as `LD_LIBRARY_PATH` while also exposing an essential
@@ -219,11 +227,19 @@ compiled by Cmake. Additionally, `ld-sudo` provides a mechanism to start targets
 with sudo privileges while retaining these environment variables. The
 environment can be deactivated at any time by executing `deactivate`.
 
-### Usage Examples:
+### Usage Examples
 
-1. Start the filesystem in a memory backed mode and mount it on `test`.
+**All usage examples assume the steps of the previous example have been executed
+prior!**
 
-```
+1. Start the filesystem in a memory backed mode (volatile) and mount it on
+   `test`.
+
+Mounts and starts the filesystem in a volatile mode under the `test` directory.
+Any output will be printed to stdout / stderr.
+
+```shell
+# working directory: opencsd (root)
 cd build
 make fuse-entry
 cmake ..
@@ -233,9 +249,83 @@ source activate
 ld−sudo ./fuse−entry −− −d −o max_read=2147483647 test &
 ```
 
-### Contributing
+2. Run the passthrough kernel on the filesystem mounted under `test` using the
+   python script.
 
-#### CMake Configuration
+On a mounted filesystem copy the pre-compiled passthrough read kernel. Next,
+place data in a test file and execute a example python script to orchestrate
+executing the read kernel on the example file.
+
+```shell
+# working directory: opencsd/build/opencsd
+cp ../bin/bpf_flfs_read.o test/
+echo "hello world" > test/test
+ld-sudo python3 ../../python/csd-read-passthrough.py
+```
+
+3. Manually register and start the passthrough kernel step by step with python.
+
+```python
+# ld-sudo python3
+import os
+import xattr
+import pdb
+
+read_stride = 524288
+
+pdb.set_trace()
+
+fd = os.open("test/test", os.O_RDWR)
+filesize = os.stat("test/test").st_size
+
+kern_ino = os.stat("test/bpf_flfs_read.o").st_ino
+
+xattr.setxattr(
+  "test/test", "user.process.csd_read_stream", bytes(f"{kern_ino}", "utf-8")
+)
+
+steps = int(filesize / read_stride)
+if steps % read_stride != 0: steps += 1
+
+for i in range(0, steps):
+  os.pread(fd, read_stride, i * read_stride)
+```
+
+### Roadmap
+
+These are grouped by component and ordered by importance.
+
+1. Testing & Verification
+   1. [ ] Complete runtime testbench to ensure filesystem behavior
+2. FUSE
+   1. [ ] Upgrade FUSE to 3.13.0
+   2. [ ] Remove requirement for redundant `-o max_read=...` argument
+   3. [ ] Increase performance
+      1. [ ] Convert all datastructures to support concurrent access
+      2. [ ] Less restrictive locking on FUSE requests
+      3. [ ] Test disabling `FUSE_CAP_AUTO_INVAL_DATA` with high `attr_timeout`
+             in combination of using `direct_io` in `open` when offloading.
+      4. [ ] Actually implement modification time so FUSE can do its work
+3. eBPF / uBPF
+   1. [ ] Automate endian conversion for end users
+   2. [ ] System to stall kernel execution to normalize for specific processors
+   3. [ ] Fully implement stream and event kernels for both read / write operations
+      1. [ ] read event
+      2. [ ] write stream
+      3. [ ] write event
+      4. [ ] Optimize efficiency of write event
+         1. [ ] Introduce two stage kernels (filesystem + user-program)
+4. CSx FS runtime (Filesystem agnostic kernels)
+   1. [ ] Create dummy runtime service component
+   2. [ ] Create ICD loader
+   3. [ ] Create first official draft of filesystem helper API
+      1. [ ] Implement fixed point operations for decimal math
+5. [ ] Create first official draft of CSx ABI
+6. SPDK / xNVME
+   1. [ ] Create additional ZNS backend using xNVME
+   2. [ ] Allocate larger SPDK buffers so multiple I/O requests can be queued
+
+### CMake Configuration
 
 This section documents all configuration parameters that the CMake project
 exposes and how they influence the project. For more information about the
