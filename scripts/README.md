@@ -6,6 +6,8 @@ Collection of different scripts for different purposes.
 
 - [activate](activate) - Environment script to setup paths to libraries, executables and
   aliases.
+- [download-image.sh](download-image.sh) - Script to download QEMU image without
+  timeout
 - [dockerfile](Dockerfile) - File to generate Docker image used
   throughout Gitlab CI pipeline stages.
 - [find_func.sh](find_func.sh) - Bash script to find function signatures across
@@ -19,12 +21,12 @@ Collection of different scripts for different purposes.
   (using `source`) before this script can be used. Staring qemu also requires
   either a small or large ZNS image to be generated with
  `qemu-img create -f raw znsssd.img 16777216`.
-  - [qemu-start.sh](qemu-start.sh) - Use small ZNS image and emulate Haswell
+  - [qemu-start-256.sh](qemu-start-256.sh) - Use ZNS image and emulate Haswell
     CPU.
-  - [qemu-start-kvm.sh](qemu-start-kvm.sh) - Use small ZNS image with KVM for
+  - [qemu-start-256-kvm.sh](qemu-start-256-kvm.sh) - Use ZNS image with KVM for
     CPU.
-  - [qemu-start-256.sh](qemu-start-256.sh) - Use large ZNS Image and emulate
-    Haswell CPU.
-  - [qemu-start-256-kvm.sh](qemu-start-256-kvm.sh) - Use large ZNS  image with
-    KVM for CPU.
+  - [qemu-start-real-zns.sh](qemu-start-real-zns.sh) - Use zns device
+    passthrough with KVM for CPU.
+  - [qemu-start-real-zns-2nd.sh](qemu-start-256-kvm.sh) - Use zns device
+    passthrough with emulated conventional NVMe and KVM for CPU.
 - [qemu-stop.sh](qemu-stop.sh) - Stop the QEMU VM
