@@ -268,7 +268,7 @@ including:
     * [Filebench Tutorial](http://www.nfsv4bat.org/Documents/nasconf/2005/mcdougall.pdf)
 * FUSE
   * [To FUSE or Not to FUSE: Performance of User-Space File Systems](http://libfuse.github.io/doxygen/fast17-vangoor.pdf)
-  * [FUSE kermel documentation](https://www.kernel.org/doc/html/latest/filesystems/fuse.html)
+  * [FUSE kernel documentation](https://www.kernel.org/doc/html/latest/filesystems/fuse.html)
   * [FUSE forget](https://fuse-devel.narkive.com/SMANJULN/when-does-fuse-forget)
   * Other FUSE3 filesystems that can be used for reference
     * [MergerFS](https://github.com/trapexit/mergerfs/tree/master/src)
