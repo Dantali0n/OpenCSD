@@ -828,11 +828,42 @@
 %     \end{itemize}
 % }
 
-\begin{frame}{Shannon Entropy Demo - Kernel}
+\begin{frame}{Shannon Entropy Demo}
         \begin{columns}
             \begin{column}{0.40\textwidth}
                 \footnotesize
                 Compute distribution of byte values
+                \begin{itemize}
+                    \item For project setup and install see README
+                    \item Determine if file suitable for compression
+                    \item
+                \end{itemize}
+            \end{column}
+            \begin{column}{0.60\textwidth}
+                \begingroup
+                \small
+                \begin{figure}
+                    \centering
+                    \includegraphics[width=1\textwidth]{resources/images/demo-kernel.png}
+                \end{figure}
+                \endgroup
+            \end{column}
+        \end{columns}
+\end{frame}
+\note{
+    1m - 17.0
+    \begin{itemize}
+        \item Shannon Entropy determines value distribution, can be for
+              bits / bytes, arbitrary size. Using granularity of memory
+              interface makes most sense.
+        \item
+    \end{itemize}
+}
+
+\begin{frame}{Shannon Entropy Demo - Kernel}
+        \begin{columns}
+            \begin{column}{0.40\textwidth}
+                \footnotesize
                 \begin{itemize}
                     \item eBPF very small stack size
                     \item Get heap pointer, manually offset
@@ -854,11 +885,8 @@
         \end{columns}
 \end{frame}
 \note{
-    1m - 17.0
+    1m - 18.0
     \begin{itemize}
-        \item Shannon Entropy determines value distribution, can be for
-              bits / bytes, arbitrary size. Using granularity of memory
-              interface makes most sense.
         \item Offset buffer for sector data and store histogram / bin data.
         \item Read each sector of the request and go through each byte.
         \item
@@ -891,7 +919,7 @@
     \end{columns}
 \end{frame}
 \note{
-    1m - 18.0
+    1m - 19.0
     \begin{itemize}
         \item Example in Python can also easily be done in C/C++
         \item
@@ -927,7 +955,7 @@
     \end{columns}
 \end{frame}
 \note{
-    1m - 19.0
+    1m - 20.0
     \begin{itemize}
         \item We distinguish between stream kernels and event kernels
         \item Stream: Happens in-place of the regular I/O request
@@ -941,12 +969,13 @@
         \begin{column}{0.50\textwidth}
             \footnotesize
             \begin{itemize}
-                \item Filesystem is \textbf{solely} proof of concept!
+                \item Filesystem (FluffleFS) is \textbf{solely} proof of
+                      concept!
                 \item eBPF endian conversions and datastructure layouts
                 \item Runtime execution of compute kernels \textbf{not}
                       cycle accurate
                 \item Only, \textit{read stream} kernel fully supported
-                \item File system agnostic integration for CSDs
+                \item File system agnostic kernels
             \end{itemize}
             \textit{}
         \end{column}
@@ -962,7 +991,7 @@
     \end{columns}
 \end{frame}
 \note{
-    1m - 20.0
+    1m - 21.0
     \begin{itemize}
         \item Filesystem, no gc, no deletion, no space reclaiming
         \item My first filesystem, should be redesigned from zero
@@ -995,7 +1024,7 @@
 	\endgroup
 \end{frame}
 \note{
-    1m - 21.0
+    1m - 22.0
     \begin{itemize}
         \item Completely omitted details about filesystem and datastructures,
               see thesis work.
