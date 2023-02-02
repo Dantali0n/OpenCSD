@@ -59,7 +59,7 @@ void segfault_handler(int signal, siginfo_t *si, void *arg) {
 int main(int argc, char* argv[]) {
 	struct bpf_zone_int_filter *skel = nullptr;
 	qemucsd::arguments::options opts;
-    struct spdk_env_opts spdk_opts;
+	struct spdk_env_opts spdk_opts;
 	struct qemucsd::spdk_init::ns_entry entry = {0};
 
 	// Setup segfault handler to print backward stacktraces
@@ -72,31 +72,31 @@ int main(int argc, char* argv[]) {
 		// Parse commandline arguments
 		qemucsd::arguments::parse_args(argc, argv, &opts);
 
-        // Always reset the device
-        opts.dev_init_mode = qemucsd::arguments::DEV_INIT_RESET;
+		// Always reset the device
+		opts.dev_init_mode = qemucsd::arguments::DEV_INIT_RESET;
 
 		// Initialize SPDK with the first ZNS supporting zone found
-        auto start = std::chrono::high_resolution_clock::now();
+		auto start = std::chrono::high_resolution_clock::now();
 		if(qemucsd::spdk_init::initialize_zns_spdk(
-                &opts, &spdk_opts, &entry) < 0)
+				&opts, &spdk_opts, &entry) < 0)
 			return EXIT_FAILURE;
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        std::cout << "Initialization and reset: " << duration.count() << "us." << std::endl;
+		auto stop = std::chrono::high_resolution_clock::now();
+		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+		std::cout << "Initialization and reset: " << duration.count() << "us." << std::endl;
 
-        start = std::chrono::high_resolution_clock::now();
-        if(qemucsd::spdk_init::fill_first_zone(&entry, &opts) < 0)
-            return EXIT_FAILURE;
-        stop = std::chrono::high_resolution_clock::now();
-        duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        std::cout << "Fill first zone: " << duration.count() << "us." << std::endl;
+		start = std::chrono::high_resolution_clock::now();
+		if(qemucsd::spdk_init::fill_first_zone(&entry, &opts) < 0)
+			return EXIT_FAILURE;
+		stop = std::chrono::high_resolution_clock::now();
+		duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+		std::cout << "Fill first zone: " << duration.count() << "us." << std::endl;
 
-        qemucsd::nvme_zns::NvmeZnsSpdkBackend zns_backend(&entry);
+		qemucsd::nvme_zns::NvmeZnsSpdkBackend zns_backend(&entry);
 
 		// Initialize simulator for NVMe BPF command set
-        start = std::chrono::high_resolution_clock::now();
+		start = std::chrono::high_resolution_clock::now();
 		qemucsd::nvme_csd::NvmeCsd nvme_csd(opts.ubpf_mem_size, opts.ubpf_jit,
-                                            &zns_backend);
+											&zns_backend);
 
 		skel = bpf_zone_int_filter__open();
 		if (!skel) {
@@ -106,7 +106,7 @@ int main(int argc, char* argv[]) {
 
 		// Run bpf program on 'device'
 		uint64_t return_size = nvme_csd.nvm_cmd_bpf_run(
-		        (void*)skel->skeleton->data, skel->skeleton->data_sz);
+				(void*)skel->skeleton->data, skel->skeleton->data_sz);
 
 		if (return_size < 0) {
 			fprintf(stderr, "Error while executing BPF program on device\n");
@@ -115,9 +115,9 @@ int main(int argc, char* argv[]) {
 
 		void *data = malloc(return_size);
 		nvme_csd.nvm_cmd_bpf_result(data);
-        stop = std::chrono::high_resolution_clock::now();
-        duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        std::cout << "BPF execution time: " << duration.count() << "us." << std::endl;
+		stop = std::chrono::high_resolution_clock::now();
+		duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+		std::cout << "BPF execution time: " << duration.count() << "us." << std::endl;
 
 		std::cout << "BPF device result: " << *(uint64_t *) data << std::endl;
 
@@ -127,8 +127,8 @@ int main(int argc, char* argv[]) {
 		#ifdef QEMUCSD_DEBUG
 			StackTrace st; st.load_here(32);
 			Printer p; p.print(st);
-        #endif
-        throw;
+		#endif
+		throw;
 	}
 
 	return EXIT_SUCCESS;

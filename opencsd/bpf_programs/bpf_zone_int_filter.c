@@ -37,7 +37,7 @@
 int main() {
 	/** Reading from device using 'heap' based buffers */
 	uint64_t sector_size = bpf_get_sector_size();
-    uint64_t zone_cap = bpf_get_zone_capacity();
+	uint64_t zone_cap = bpf_get_zone_capacity();
 	uint64_t buffer_size;
 	void *buffer;
 
@@ -45,16 +45,16 @@ int main() {
 
 	if(buffer_size < sector_size) return -1;
 
-    uint64_t ints_per_it = sector_size / sizeof(uint32_t);
+	uint64_t ints_per_it = sector_size / sizeof(uint32_t);
 	uint64_t count = 0;
 
 	uint32_t *int_buf = (uint32_t*)buffer;
 	for(uint64_t i = 0; i < zone_cap; i++) {
-        bpf_read(0, i, 0, sector_size, buffer);
-        for(uint64_t j = 0; j < ints_per_it; j++) {
-            if(*(int_buf + j) > RAND_MAX / 2) count++;
-        }
-    }
+		bpf_read(0, i, 0, sector_size, buffer);
+		for(uint64_t j = 0; j < ints_per_it; j++) {
+			if(*(int_buf + j) > RAND_MAX / 2) count++;
+		}
+	}
 
 	bpf_return_data(&count, sizeof(uint64_t));
 
