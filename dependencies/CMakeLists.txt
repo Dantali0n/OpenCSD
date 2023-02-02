@@ -46,7 +46,7 @@ else()
     add_custom_target(boost-build DEPENDS boost-install)
 endif()
 
-add_custom_target(activate-build DEPENDS activate-copy)
+add_custom_target(activate-build DEPENDS activate-copy download-copy)
 add_custom_target(generic-ebpf-build DEPENDS generic-ebpf-copy)
 add_custom_target(ubpf-build DEPENDS ubpf-install)
 add_custom_target(libfuse-build DEPENDS libfuse-install)
@@ -86,6 +86,13 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy
     ${CMAKE_SOURCE_DIR}/scripts/activate
     ${PRJ_ROOT}/activate
+)
+
+add_custom_command(
+    OUTPUT download-copy POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${CMAKE_SOURCE_DIR}/scripts/download-image.sh
+    ${PRJ_ROOT}/download-image.sh
 )
 
 # ---------------------- #
