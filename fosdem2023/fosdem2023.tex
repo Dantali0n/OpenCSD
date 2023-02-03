@@ -6,6 +6,7 @@
 \usepackage{listings}
 \usepackage{subcaption}
 \usepackage{wasysym}
+\usepackage{qrcode}
 \usepackage[export]{adjustbox}[2011/08/13]
 \usetheme{cern}
 
@@ -201,7 +202,19 @@
 % compiled code, safety and synchronization are not covered. First we
 % demonstrate why we need Computational storage in the first place.
 
-\frame{\titlepage}
+\frame{\titlepage
+\footnotesize
+\vspace{5pt}
+\textit{fosdem@dantalion.nl} \\
+\url{https://github.com/Dantali0n/OpenCSD}
+\hfill
+\quad
+\qrcode[height=1in]{https://nextcloud.dantalion.nl/index.php/s/yt8m9jbL9TS9RNj}
+\vfill
+\tiny
+\hfill
+Scan me to download slides
+}
 \note{
     30s - 0.5
     \begin{itemize}
@@ -210,43 +223,43 @@
     \end{itemize}
 }
 
-\begin{frame}{Index}
-    \begin{columns}
-        \begin{column}{0.6\textwidth}
-            \begin{itemize}
-                \item Who am I
-                \item What is Computational Storage
-                \begin{itemize}
-                    \item \footnotesize Why do we Need it
-                    \item \footnotesize State of Current Prototypes
-                \end{itemize}
-                \item OpenCSD \& FluffleFS
-                \begin{itemize}
-                    \item \footnotesize Key Design Aspects
-                    \item \footnotesize Component Breakdown
-                    \item \footnotesize Shannon Entropy Demo
-                    \item \footnotesize Operating Principle Details
-                    \item \footnotesize Limitations and Considerations
-                \end{itemize}
-                \item Future Work
-            \end{itemize}
-        \end{column}
-        \begin{column}{0.4\textwidth}
-        \end{column}
-    \end{columns}
-\end{frame}
-\note{
-    30s - 1.0
-    \begin{itemize}
-        \item What we will talk about today
-        \item Some introduction
-        \item Most probably unfamiliar with computational storage
-        \item Show how to install and run OpenCSD and FluffleFS
-        \item Show some code examples and a demo
-        \item Describe the API and how to create your own computational
-              storage kernels
-    \end{itemize}
-}
+% \begin{frame}{Index}
+%     \begin{columns}
+%         \begin{column}{0.6\textwidth}
+%             \begin{itemize}
+%                 \item Who am I
+%                 \item What is Computational Storage
+%                 \begin{itemize}
+%                     \item \footnotesize Why do we Need it
+%                     \item \footnotesize State of Current Prototypes
+%                 \end{itemize}
+%                 \item OpenCSD \& FluffleFS
+%                 \begin{itemize}
+%                     \item \footnotesize Key Design Aspects
+%                     \item \footnotesize Component Breakdown
+%                     \item \footnotesize Shannon Entropy Demo
+%                     \item \footnotesize Operating Principle Details
+%                     \item \footnotesize Limitations and Considerations
+%                 \end{itemize}
+%                 \item Future Work
+%             \end{itemize}
+%         \end{column}
+%         \begin{column}{0.4\textwidth}
+%         \end{column}
+%     \end{columns}
+% \end{frame}
+% \note{
+%     30s - 1.0
+%     \begin{itemize}
+%         \item What we will talk about today
+%         \item Some introduction
+%         \item Most probably unfamiliar with computational storage
+%         \item Show how to install and run OpenCSD and FluffleFS
+%         \item Show some code examples and a demo
+%         \item Describe the API and how to create your own computational
+%               storage kernels
+%     \end{itemize}
+% }
 
 \begin{frame}{Who am I}
     \begin{itemize}
@@ -350,8 +363,7 @@
             \footnotesize
             \begin{itemize}
                 \item 4.5x bandwidth gap with 64 SSD storage server (2021)
-                \item Flash chip bandwidth under NDA
-                \item PCIe p2p-dma \footnotemark[1]
+                \item Solution: prevent moving data from flash SSD to host
             \end{itemize}
         \end{column}
         \begin{column}{0.7\textwidth}
@@ -359,7 +371,7 @@
             \small
             \begin{figure}
                 \centering
-                \includegraphics[width=0.87\textwidth]{resources/images/storage-bottleneck.png}
+                \includegraphics[width=0.87\textwidth]{resources/images/storage-bottleneck2.png}
             \end{figure}
             \endgroup
         \end{column}
@@ -372,27 +384,24 @@
         \item Enterprise storage servers face large bandwidth gaps to meet
               economic densities.
         \item Actual bandwidth of flash chips on SSDs is often unknown.
-        \item The PCIe root complex typically offers more bandwidth then the
-              memory controller. Can be utilized by Peer-to-Peer DMA.
-        \item p2p-dma across root complexes not supported by Linux due to
-              optional support in specification.
     \end{itemize}
 }
 
 % page 3
 \begin{frame}{What is Computational Storage}
     \begin{columns}
-        \begin{column}{0.3\textwidth}
+        \begin{column}{0.35\textwidth}
             \footnotesize
             \begin{itemize}
                 \item Fit compute \& memory on storage device
-                \item Specialized hardware (ASIC / FPGA)
-                \item Improve energy efficiency
-                \item Reduce data movement
                 \item User submits programs to run on device (\textit{kernels})
+                \item Only return results from user programs
+                \item Reduce data movement
+                \item Improve energy efficiency
+                \item Specialized hardware \\ (ASIC / FPGA)
             \end{itemize}
         \end{column}
-        \begin{column}{0.7\textwidth}
+        \begin{column}{0.65\textwidth}
             \begingroup
             \small
             \begin{figure}
@@ -446,21 +455,21 @@
 \begin{frame}{State of Current Prototypes (September 2022)}
     \begin{columns}
         \begin{column}{0.5\textwidth}
+            Impediments:
+            \footnotesize
+            \begin{itemize}
+                \item 1. API between host and device
+                \item 2. Keep filesystem synchronized
+                \item 3. Stick to existing interfaces
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
             Shortlist:
             \footnotesize
             \begin{itemize}
                 \item BlockNDP (2020) \footnotemark[2]
                 \item Metal FS (2020) \footnotemark[3]
                 \item INSIDER (July 2019) \footnotemark[4]
-            \end{itemize}
-        \end{column}
-        \begin{column}{0.5\textwidth}
-            Impediments:
-            \footnotesize
-            \begin{itemize}
-                \item Lack of concurrent access
-                \item Requires linking shared libraries
-                \item Cumbersome interfaces
             \end{itemize}
         \end{column}
     \end{columns}
@@ -471,9 +480,6 @@
 \note{
     1m - 6.5
     \begin{itemize}
-        \item BlockNDP, designed for filesystem integration but never implemented
-        \item Metal FS. overwrites default Linux pipe behavior
-        \item INSIDER, requires linking a shared library
         \item None, support concurrent regular file and offloaded file access
         \item Interfaces often cumbersome, esoteric and unlike other filesystem
               interfaces.
@@ -878,7 +884,7 @@
                 \small
                 \begin{figure}
                     \centering
-                    \includegraphics[width=1\textwidth]{resources/images/demo-kernel.png}
+                    \includegraphics[width=0.85\textwidth]{resources/images/demo-kernel-3.png}
                 \end{figure}
                 \endgroup
             \end{column}
@@ -889,40 +895,7 @@
     \begin{itemize}
         \item Offset buffer for sector data and store histogram / bin data.
         \item Read each sector of the request and go through each byte.
-        \item
-    \end{itemize}
-}
-
-\begin{frame}{Shannon Entropy Demo - Execution}
-    \begin{columns}
-        \begin{column}{0.40\textwidth}
-            \footnotesize
-            How to submit I/O requests to execute kernels?
-            \begin{itemize}
-                \item Stride requests (FUSE page limit)
-                \item Inode from kernel file as value for extended attribute
-                      Key
-                \item Different keys for different types of offloading
-                \item Return data from \textit{os.pread} less then request
-                      size.
-            \end{itemize}
-        \end{column}
-        \begin{column}{0.60\textwidth}
-            \begingroup
-            \small
-            \begin{figure}
-                \centering
-                \includegraphics[width=0.85\textwidth]{resources/images/python-kernel.png}
-            \end{figure}
-            \endgroup
-        \end{column}
-    \end{columns}
-\end{frame}
-\note{
-    1m - 19.0
-    \begin{itemize}
-        \item Example in Python can also easily be done in C/C++
-        \item
+        \item Yellow functions by eBPF system calls, purple by filesystem
     \end{itemize}
 }
 
@@ -931,6 +904,7 @@
         \begin{column}{0.40\textwidth}
             \footnotesize
             \begin{itemize}
+                \item Step by step system calls
                 \item Stream vs Event kernels
                 \item When to take snapshots?
                 \begin{itemize}
@@ -964,6 +938,39 @@
     \end{itemize}
 }
 
+\begin{frame}{Shannon Entropy Demo - Execution}
+    \begin{columns}
+        \begin{column}{0.40\textwidth}
+            \footnotesize
+            How to submit I/O requests to execute kernels?
+            \begin{itemize}
+                \item Stride requests (FUSE page limit)
+                \item Inode from kernel file as value for extended attribute
+                      Key
+                \item Different keys for different types of offloading
+                \item Return data from \textit{os.pread} less then request
+                      size.
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.60\textwidth}
+            \begingroup
+            \small
+            \begin{figure}
+                \centering
+                \includegraphics[width=0.85\textwidth]{resources/images/python-kernel-carbon2.png}
+            \end{figure}
+            \endgroup
+        \end{column}
+    \end{columns}
+\end{frame}
+\note{
+    1m - 19.0
+    \begin{itemize}
+        \item Example in Python can also easily be done in C/C++
+        \item
+    \end{itemize}
+}
+
 \begin{frame}{Limitations and Considerations}
     \begin{columns}
         \begin{column}{0.50\textwidth}
@@ -972,8 +979,8 @@
                 \item Filesystem (FluffleFS) is \textbf{solely} proof of
                       concept!
                 \item eBPF endian conversions and datastructure layouts
-                \item Runtime execution of compute kernels \textbf{not}
-                      accurate
+                \item No floating point in eBPF
+                \item Kernel performance not representative of microcontrollers
                 \item Only, \textit{read stream} kernel fully supported
                 \item Problematic \textit{event} kernel performance
                 \item Filesystem agnostic kernels
@@ -1001,69 +1008,69 @@
     \end{itemize}
 }
 
-\begin{frame}{Limitations and Considerations}
-    \begin{columns}
-        \begin{column}{0.50\textwidth}
-            \footnotesize
-            Filesystem agnostic kernels
-            \begin{itemize}
-                \item Provide stable API header for user programs
-                \item CSx filesystems API library
-                \item Dynamically load library through ICDs
-                \item Use statfs to detect filesystem
-                \item Runtime selects library and dynamically recompiles
-                      user programs.
-                \item Optionally, cache user programs
-            \end{itemize}
-            \textit{}
-        \end{column}
-        \begin{column}{0.50\textwidth}
-            \begingroup
-            \small
-            \begin{figure}
-                \centering
-                \includegraphics[width=1\textwidth]{resources/images/csx-fs-agnostic.png}
-            \end{figure}
-            \endgroup
-        \end{column}
-    \end{columns}
-\end{frame}
-\note{
-    1m - 22.0
-    \begin{itemize}
-        \item
-    \end{itemize}
-}
-
-\begin{frame}{Limitations and Considerations}
-    \begin{columns}
-        \begin{column}{0.35\textwidth}
-            \footnotesize
-            Problematic \textit{event} kernel performance
-            \begin{itemize}
-                \item Multiple roundtrips
-                \item Unnecessary data movement
-                \item Two stage kernel \\ (filesystem + user program)
-            \end{itemize}
-            \textit{}
-        \end{column}
-        \begin{column}{0.65\textwidth}
-            \begingroup
-            \small
-            \begin{figure}
-                \centering
-                \includegraphics[width=1\textwidth]{resources/images/current-event-kernel.png}
-            \end{figure}
-            \endgroup
-        \end{column}
-    \end{columns}
-\end{frame}
-\note{
-    1m - 23.0
-    \begin{itemize}
-        \item
-    \end{itemize}
-}
+% \begin{frame}{Limitations and Considerations}
+%     \begin{columns}
+%         \begin{column}{0.50\textwidth}
+%             \footnotesize
+%             Filesystem agnostic kernels
+%             \begin{itemize}
+%                 \item Provide stable API header for user programs
+%                 \item CSx filesystems API library
+%                 \item Dynamically load library through ICDs
+%                 \item Use statfs to detect filesystem
+%                 \item Runtime selects library and dynamically recompiles
+%                       user programs.
+%                 \item Optionally, cache user programs
+%             \end{itemize}
+%             \textit{}
+%         \end{column}
+%         \begin{column}{0.50\textwidth}
+%             \begingroup
+%             \small
+%             \begin{figure}
+%                 \centering
+%                 \includegraphics[width=1\textwidth]{resources/images/csx-fs-agnostic.png}
+%             \end{figure}
+%             \endgroup
+%         \end{column}
+%     \end{columns}
+% \end{frame}
+% \note{
+%     1m - 22.0
+%     \begin{itemize}
+%         \item
+%     \end{itemize}
+% }
+%
+% \begin{frame}{Limitations and Considerations}
+%     \begin{columns}
+%         \begin{column}{0.35\textwidth}
+%             \footnotesize
+%             Problematic \textit{event} kernel performance
+%             \begin{itemize}
+%                 \item Multiple roundtrips
+%                 \item Unnecessary data movement
+%                 \item Two stage kernel \\ (filesystem + user program)
+%             \end{itemize}
+%             \textit{}
+%         \end{column}
+%         \begin{column}{0.65\textwidth}
+%             \begingroup
+%             \small
+%             \begin{figure}
+%                 \centering
+%                 \includegraphics[width=1\textwidth]{resources/images/current-event-kernel.png}
+%             \end{figure}
+%             \endgroup
+%         \end{column}
+%     \end{columns}
+% \end{frame}
+% \note{
+%     1m - 23.0
+%     \begin{itemize}
+%         \item
+%     \end{itemize}
+% }
 
 % page 11
 % All software and data to this project is open source, this includes scripts to
