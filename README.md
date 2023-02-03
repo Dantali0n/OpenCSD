@@ -295,9 +295,12 @@ for i in range(0, steps):
 
 These are grouped by component and ordered by importance.
 
-1. Testing & Verification
+1. Support & Infrastructure
+   1. Use clang-tidy to apply code formatting
+   2. Integrate CI/CD job to check clang-tidy formatting
+2. Testing & Verification
    1. [ ] Complete runtime testbench to ensure filesystem behavior
-2. FUSE
+3. FUSE
    1. [ ] Upgrade FUSE to 3.13.0
    2. [ ] Remove requirement for redundant `-o max_read=...` argument
    3. [ ] Increase performance
@@ -306,7 +309,7 @@ These are grouped by component and ordered by importance.
       3. [ ] Test disabling `FUSE_CAP_AUTO_INVAL_DATA` with high `attr_timeout`
              in combination of using `direct_io` in `open` when offloading.
       4. [ ] Actually implement modification time so FUSE can do its work
-3. eBPF / uBPF
+4. eBPF / uBPF
    1. [ ] Automate endian conversion for end users
    2. [ ] System to stall kernel execution to normalize for specific processors
    3. [ ] Fully implement stream and event kernels for both read / write operations
@@ -315,13 +318,13 @@ These are grouped by component and ordered by importance.
       3. [ ] write event
       4. [ ] Optimize efficiency of write event
          1. [ ] Introduce two stage kernels (filesystem + user-program)
-4. CSx FS runtime (Filesystem agnostic kernels)
+5. CSx FS runtime (Filesystem agnostic kernels)
    1. [ ] Create dummy runtime service component
    2. [ ] Create ICD loader
    3. [ ] Create first official draft of filesystem helper API
       1. [ ] Implement fixed point operations for decimal math
-5. [ ] Create first official draft of CSx ABI
-6. SPDK / xNVME
+6. [ ] Create first official draft of CSx ABI
+7. SPDK / xNVME
    1. [ ] Create additional ZNS backend using xNVME
    2. [ ] Allocate larger SPDK buffers so multiple I/O requests can be queued
 
