@@ -495,6 +495,7 @@ if(${has_qemu} OR IS_DEPLOYED)
 endif()
 
 add_custom_command(OUTPUT qemu-image PRE_BUILD
+    COMMAND source activate
     COMMAND qemu-img create -f raw znsssd.img 34359738368
     WORKING_DIRECTORY ${PRJ_ROOT}
     DEPENDS qemu-install
@@ -507,7 +508,7 @@ add_custom_command(OUTPUT qemu-install PRE_BUILD
 )
 
 add_custom_command(OUTPUT qemu-configure PRE_BUILD
-    COMMAND CFLAGS=-Wno-error=deprecated-declarations ../configure --enable-debug --disable-zstd --target-list=x86_64-softmmu --prefix=${PRJ_ROOT}
+    COMMAND CFLAGS=-Wno-error=deprecated-declarations ../configure --enable-debug --disable-zstd --enable-slirp --target-list=x86_64-softmmu --prefix=${PRJ_ROOT}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/qemu/build
     DEPENDS qemu-build-dir
 )

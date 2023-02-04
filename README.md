@@ -107,6 +107,7 @@ This project has a large selection of dependencies as shown below. Note however,
     * python 3.x
     * mesonbuild < 0.60 (`pip3 install meson==0.59`)
     * pyelftools (`pip3 install pyelftools`)
+    * libslirp
     * ninja
     * cunit
 * Documentation
