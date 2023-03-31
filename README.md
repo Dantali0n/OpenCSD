@@ -2,7 +2,7 @@
 [![coverage report](https://gitlab.dantalion.nl/vu/opencsd/badges/master/coverage.svg)](https://gitlab.dantalion.nl/vu/opencsd/-/jobs/artifacts/master/download?job=coverage)
 [![latest commit](https://shields.io/github/last-commit/Dantali0n/opencsd)](https://gitlab.dantalion.nl/vu/opencsd/-/commits/master)
 [![source code license MIT](https://shields.io/github/license/Dantali0n/opencsd)](https://gitlab.dantalion.nl/vu/opencsd/-/blob/master/LICENSE)
-[![follow me on twitter](https://img.shields.io/twitter/follow/D4ntali0n?style=social)](https://twitter.com/D4ntali0n)
+[![follow me on mastodon](https://img.shields.io/mastodon/follow/108140655414581916?domain=https%3A%2F%2Ffosstodon.org&style=social)](https://fosstodon.org/@dantalion)
 
 ## Publications
 
