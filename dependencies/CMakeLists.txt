@@ -554,7 +554,7 @@ add_custom_command(
 # Download qemu image if preparing deployment / on host development
 if(NOT IS_DEPLOYED)
 download_file(
-    https://nextcloud.dantalion.nl/index.php/s/xKPgSXcb66ggJ5j/download
+    https://nextcloud.dantalion.nl/s/diW4CrE7gfgLqxe/download
     ${PRJ_ROOT}/arch-qemucsd.qcow2
     SHA256 6b35abbf09cb20392b2eaf1770210674deb0d5fd0242788b9ba83ec7fd3deead
     1500
