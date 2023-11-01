@@ -7,7 +7,7 @@
 ## Publications
 
 * FOSDEM, 5 February 2023- [OpenCSD, simple and intuitive computational storage emulation with QEMU and eBPF](https://fosdem.org/2023/schedule/event/csd/)
-* Thesis, 26 August 2022 - [OpenCSD: LFS enabled Computational Storage Device over Zoned Namespaces (ZNS) SSDs](https://nextcloud.dantalion.nl/index.php/s/CH8sr8YbmwgMxHK/download)
+* Thesis, 26 August 2022 - [OpenCSD: LFS enabled Computational Storage Device over Zoned Namespaces (ZNS) SSDs](https://nextcloud.dantalion.nl/s/dN7KZTSSyxx2Xw4/download)
 * [ICT.OPEN](https://www.ictopen.nl/home/), 7 April 2022 - [OpenCSD: Unified Architecture for eBPF-powered Computational Storage Devices (CSD) with Filesystem Support](https://gitlab.dantalion.nl/vu/opencsd/-/jobs/4591/artifacts/raw/build/ictopen2022.pdf?inline=false)
 * arXiv, 13 December 2021 - [Past, Present and Future of Computational Storage: A Survey](https://arxiv.org/abs/2112.09691)
 * arXiv, 29 November 2021 - [ZCSD: a Computational Storage Device over Zoned Namespaces (ZNS) SSDs](https://arxiv.org/abs/2112.00142)
@@ -164,7 +164,7 @@ versions.
 
 The QEMU setup will try to download a 4.5 GB qcow2 image that will fail if not
 downloaded within 30 minutes. Alternatively, the file can be downloaded as
-torrent [through this link](https://nextcloud.dantalion.nl/index.php/s/4ni8qCpQbPWRZmR/download).
+torrent [through this link](https://nextcloud.dantalion.nl/s/QHc3wt6Knr6bm4Q/download).
 This file should be saved as `./build/opencsd/arch-qemucsd.qcow2`.
 
 Alternatively the QEMU image can be downloaded after executing `make qemu-build`
